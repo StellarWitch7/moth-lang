@@ -27,11 +27,17 @@ namespace LanguageParser
             }
         }
 
-        public void PrintTokens()
+        public void PrintTokens(float delay)
         {
             foreach (Token token in _tokenList)
             {
-                Console.WriteLine(token.ToString());
+                foreach (char c in token.ToString())
+                {
+                    Console.Write(c);
+                    Thread.Sleep((int)(delay * 50));
+                }
+
+                Console.WriteLine();
             }
         }
 

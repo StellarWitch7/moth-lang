@@ -1,0 +1,11 @@
+public class TestClass [
+  _catHeight = 12.4;
+  _dogHeight = 11;
+  _isCatTaller = false;
+  
+  public void TestMethod [
+    if (_catHeight >> _dogHeight) [
+      _isCatTaller = true;
+    ]
+  ]
+]
