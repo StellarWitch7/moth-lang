@@ -8,5 +8,9 @@ namespace LanguageParser.Token
 {
     internal class EndStatementToken : ParsedToken
     {
+        public override string ToString()
+        {
+            return $"(end statement)";
+        }
     }
 }

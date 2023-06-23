@@ -27,6 +27,7 @@ namespace LanguageParser.Token
         Addition,
         Subtraction,
         Multiplication,
-        Division
+        Division,
+        Exponential
     }
 }

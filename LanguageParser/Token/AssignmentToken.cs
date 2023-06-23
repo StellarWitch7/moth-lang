@@ -8,5 +8,9 @@ namespace LanguageParser.Token
 {
     internal class AssignmentToken : ParsedToken
     {
+        public override string ToString()
+        {
+            return $"(assignment)";
+        }
     }
 }
