@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using LanguageParser.Token;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -7,6 +9,8 @@ namespace LanguageParser
     internal class Program
     {
         private bool _isRunning = true;
+        private StringBuilder _script = new StringBuilder();
+        private List<ParsedToken> _tokenList = new List<ParsedToken>();
 
         static void Main(string[] args)
         {
@@ -24,9 +28,10 @@ namespace LanguageParser
                 {
                     
                 }
-                else if (ParseExpression(input))
+                else
                 {
-
+                    _script.Append(input);
+                    _script.Append('\n');
                 }
             }
         }
@@ -43,14 +48,30 @@ namespace LanguageParser
                 _isRunning = false;
                 return true;
             }
+            else if (input == "/run")
+            {
+                ParseStatements();
+                PrintTokens(_tokenList); //Testing
+                _script.Clear();
+                _tokenList.Clear();
+                return true;
+            }
 
             Console.WriteLine("Unknown command. Check your spelling.");
             return false;
         }
 
-        bool ParseExpression(string input)
+        void PrintTokens(List<ParsedToken> tokens)
         {
-            var stream = new PeekStream(input);
+            foreach (ParsedToken token in tokens)
+            {
+                Console.WriteLine(token.ToString());
+            }
+        }
+
+        bool ParseStatements()
+        {
+            var stream = new PeekStream(_script.ToString());
             string content = stream.Content;
 
             if (content.Length == 0)
@@ -58,9 +79,56 @@ namespace LanguageParser
                 return false;
             }
 
-            while (true)
+            while (stream.Current != null)
             {
-                if (stream.Current == null)
+                ParseStatement(stream, _tokenList);
+            }
+
+            return true;
+        }
+
+        bool ParseStatement(PeekStream stream, List<ParsedToken> tokenList)
+        {
+            while (stream.Current != null)
+            {
+                if (stream.Current == ';')
+                {
+                    tokenList.Add(new EndStatementToken());
+                    stream.MoveNext();
+                    return true;
+                }
+                else if (IsSpace(stream.Current))
+                {
+                    stream.MoveNext();
+                }
+                else if (ParseVariable(stream, out NameToken vToken))
+                {
+                    tokenList.Add(vToken);
+                }
+                else if (stream.Current == '=')
+                {
+                    tokenList.Add(new AssignmentToken());
+                    stream.MoveNext();
+                    if (!ParseExpression(stream, tokenList))
+                    {
+                        Console.WriteLine("Expected expression.");
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        bool IsSpace(char? c)
+        {
+            return (c == ' ' || c == '\t' || c == '\r' || c == '\n');
+        }
+
+        bool ParseExpression(PeekStream stream, List<ParsedToken> tokenList)
+        {
+            while (stream.Current != null)
+            {
+                if (stream.Current == ';')
                 {
                     return true;
                 }
@@ -68,39 +136,49 @@ namespace LanguageParser
                 {
                     stream.MoveNext();
                 }
-                else if (ParseNumber(stream, out int number))
+                else if (ParseNumber(stream, out NumberToken nToken))
                 {
-                    Console.WriteLine($"number {number}");
+                    tokenList.Add(nToken);
                 }
-                else if (ParseVariable(stream, out string? varName))
+                else if (ParseVariable(stream, out NameToken vToken))
                 {
-                    Console.WriteLine($"variable {varName}");
+                    tokenList.Add(vToken);
                 }
-                else if (ParseOperator(stream, out Operator op)
+                else if (ParseOperator(stream, out OperatorToken oToken))
                 {
-
+                    tokenList.Add(oToken);
                 }
                 else
                 {
                     Console.WriteLine("Invalid expression.");
-                    return true;
+                    return false;
                 }
             }
+
+            return false;
         }
 
-        bool ParseOperator(PeekStream stream, out Operator op)
+        bool ParseOperator(PeekStream stream, out OperatorToken token)
         {
-            throw new NotImplementedException();
+            token = default;
+            return false;
         }
 
-        bool ParseNumber(PeekStream stream, out int number)
+        bool ParseNumber(PeekStream stream, out NumberToken token)
         {
             StringBuilder builder = new StringBuilder();
+            bool isFloat = false;
 
             while (stream.Current is char c)
             {
                 if (IsDigit(c))
                 {
+                    builder.Append(c);
+                    stream.MoveNext();
+                }
+                else if (c == '.')
+                {
+                    isFloat = true;
                     builder.Append(c);
                     stream.MoveNext();
                 }
@@ -112,22 +190,29 @@ namespace LanguageParser
 
             if (builder.Length > 0)
             {
-                if (int.TryParse(builder.ToString(), out number))
+                if (isFloat && float.TryParse(builder.ToString(), out float fValue))
                 {
+                    token = new FloatToken(fValue);
+                    return true;
+                }
+                else if (int.TryParse(builder.ToString(), out int iValue))
+                {
+                    token = new IntToken(iValue);
                     return true;
                 }
                 else
                 {
-                    Console.WriteLine($"{builder.ToString()} is not a valid int.");
+                    Console.WriteLine($"{builder.ToString()} is not a valid number.");
+                    token = default;
                     return false;
                 }
             }
 
-            number = default;
+            token = default;
             return false;
         }
 
-        bool ParseVariable(PeekStream stream, out string? varName)
+        bool ParseVariable(PeekStream stream, out NameToken token)
         {
             StringBuilder builder = new StringBuilder();
 
@@ -146,11 +231,11 @@ namespace LanguageParser
 
             if (builder.Length > 0)
             {
-                varName = builder.ToString();
+                token = new NameToken(builder.ToString());
                 return true;
             }
 
-            varName = default;
+            token = default;
             return false;
         }
 
@@ -168,11 +253,5 @@ namespace LanguageParser
         {
             return IsLetter(c) || c == '_';
         }
-    }
-
-    internal enum Operator
-    {
-        Add,
-        Subtract
     }
 }
