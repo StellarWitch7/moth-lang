@@ -1,4 +1,4 @@
-import @test.namespace
+import @test.namespace;
 
 public class TestClass [
   private num _catHeight = 12.4;
