@@ -27,5 +27,10 @@ namespace LanguageParser
         {
             return c == ' ' || c == '\t' || c == '\r' || c == '\n';
         }
+
+        public static bool IsNewLine(char? c)
+        {
+            return c == '\n';
+        }
     }
 }

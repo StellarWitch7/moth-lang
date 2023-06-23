@@ -5,9 +5,9 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.Token
+namespace LanguageParser.Tokens
 {
-    internal class NumberToken : ParsedToken
+    internal class NumberToken : Token
     {
     }
 }

@@ -5,20 +5,20 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace LanguageParser.Token
+namespace LanguageParser.Tokens
 {
-    internal class IntToken : NumberToken
+    internal class FloatToken : NumberToken
     {
-        private int _value;
+        private float _value;
 
-        public IntToken(int value)
+        public FloatToken(float value)
         {
             _value = value;
         }
 
         public override string ToString()
         {
-            return $"(int {_value})";
+            return $"(float {_value})";
         }
     }
 }

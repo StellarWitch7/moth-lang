@@ -5,9 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace LanguageParser.Token
+namespace LanguageParser.Tokens
 {
-    internal class OperatorToken : ParsedToken
+    internal class OperatorToken : Token
     {
         private Operator _operator;
 

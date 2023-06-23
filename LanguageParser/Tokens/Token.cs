@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.Token
+namespace LanguageParser.Tokens
 {
-    internal class ParsedToken
+    internal class Token
     {
     }
 }

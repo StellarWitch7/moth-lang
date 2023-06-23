@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.Token
+namespace LanguageParser.Tokens
 {
-    internal class AssignmentToken : ParsedToken
+    internal class AssignmentToken : Token
     {
         public override string ToString()
         {

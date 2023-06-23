@@ -1,4 +1,5 @@
-﻿using LanguageParser.Token;
+﻿
+using LanguageParser.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,17 +10,26 @@ namespace LanguageParser
 {
     internal class Tokenizer
     {
-        private List<ParsedToken> _tokenList = new List<ParsedToken>();
+        private List<Token> _tokenList = new List<Token>();
         private StringBuilder _script = new StringBuilder();
+        private int _currentLine = 1;
 
         public Tokenizer(StringBuilder script)
         {
             _script = script;
         }
 
+        public List<Token> Tokens
+        {
+            get
+            {
+                return _tokenList;
+            }
+        }
+
         public void PrintTokens()
         {
-            foreach (ParsedToken token in _tokenList)
+            foreach (Token token in _tokenList)
             {
                 Console.WriteLine(token.ToString());
             }
@@ -43,7 +53,7 @@ namespace LanguageParser
             return true;
         }
 
-        bool ParseStatement(PeekStream stream, List<ParsedToken> tokenList)
+        bool ParseStatement(PeekStream stream, List<Token> tokenList)
         {
             while (stream.Current != null)
             {
@@ -55,6 +65,11 @@ namespace LanguageParser
                 }
                 else if (CharChecker.IsSpace(stream.Current))
                 {
+                    if (CharChecker.IsNewLine(stream.Current))
+                    {
+                        _currentLine++;
+                    }
+
                     stream.MoveNext();
                 }
                 else if (ParseVariable(stream, out NameToken vToken))
@@ -67,7 +82,7 @@ namespace LanguageParser
                     stream.MoveNext();
                     if (!ParseExpression(stream, tokenList))
                     {
-                        Console.WriteLine("Expected expression.");
+                        Console.WriteLine($"Expected expression at line {_currentLine}.");
                     }
                 }
             }
@@ -75,7 +90,7 @@ namespace LanguageParser
             return false;
         }
 
-        bool ParseExpression(PeekStream stream, List<ParsedToken> tokenList)
+        bool ParseExpression(PeekStream stream, List<Token> tokenList)
         {
             while (stream.Current != null)
             {
@@ -101,7 +116,7 @@ namespace LanguageParser
                 }
                 else
                 {
-                    Console.WriteLine("Invalid expression.");
+                    Console.WriteLine($"Invalid expression at line {_currentLine}.");
                     return false;
                 }
             }
@@ -202,7 +217,7 @@ namespace LanguageParser
                 }
                 else
                 {
-                    Console.WriteLine($"{builder.ToString()} is not a valid number.");
+                    Console.WriteLine($"{builder} at line {_currentLine} is not a valid number.");
                     token = default;
                     return false;
                 }
