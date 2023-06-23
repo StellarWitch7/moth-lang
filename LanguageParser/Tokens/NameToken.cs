@@ -17,7 +17,7 @@ namespace LanguageParser.Tokens
 
         public override string ToString()
         {
-            return $"(name {_name})";
+            return $"(name <{_name}>)";
         }
     }
 }

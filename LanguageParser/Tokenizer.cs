@@ -35,54 +35,88 @@ namespace LanguageParser
             }
         }
 
-        public bool ParseStatements()
+        public bool ParseScript()
         {
             var stream = new PeekStream(_script.ToString());
-            string content = stream.Content;
 
-            if (content.Length == 0)
+            if (stream.Length == 0)
             {
                 return false;
             }
 
-            while (stream.Current != null)
+            while (stream.Current is char c)
             {
-                ParseStatement(stream, _tokenList);
-            }
-
-            return true;
-        }
-
-        bool ParseStatement(PeekStream stream, List<Token> tokenList)
-        {
-            while (stream.Current != null)
-            {
-                if (stream.Current == ';')
+                if (CharChecker.IsSpace(c))
                 {
-                    tokenList.Add(new EndStatementToken());
-                    stream.MoveNext();
-                    return true;
-                }
-                else if (CharChecker.IsSpace(stream.Current))
-                {
-                    if (CharChecker.IsNewLine(stream.Current))
+                    if (CharChecker.IsNewLine(c))
                     {
                         _currentLine++;
                     }
 
                     stream.MoveNext();
                 }
-                else if (ParseVariable(stream, out NameToken vToken))
+                else if (ParseComment(stream))
                 {
-                    tokenList.Add(vToken);
+
                 }
-                else if (stream.Current == '=')
+                else if (c == ';')
                 {
-                    tokenList.Add(new AssignmentToken());
+                    _tokenList.Add(new EndStatementToken());
                     stream.MoveNext();
-                    if (!ParseExpression(stream, tokenList))
+                }
+                else if (ParseKeyword(stream, out KeywordToken kToken))
+                {
+                    _tokenList.Add(kToken);
+                    stream.MoveNext();
+                }
+                else if (c == '{')
+                {
+                    _tokenList.Add(new OpeningToken());
+                    stream.MoveNext();
+                }
+                else if (c == '}')
+                {
+                    _tokenList.Add(new ClosingToken());
+                    stream.MoveNext();
+                }
+                else if (c == '=')
+                {
+                    _tokenList.Add(new AssignmentToken());
+                    stream.MoveNext();
+                }
+                else if (ParseNumber(stream, out NumberToken numToken))
+                {
+                    _tokenList.Add(numToken);
+                }
+                else if (ParseName(stream, out NameToken nameToken))
+                {
+                    _tokenList.Add(nameToken);
+                }
+                else if (ParseOperator(stream, out OperatorToken opToken))
+                {
+                    _tokenList.Add(opToken);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        private bool ParseComment(PeekStream stream)
+        {
+            if (stream.Peek(2) == "//")
+            {
+                while (stream.Current is char c)
+                {
+                    stream.MoveNext();
+
+                    if (CharChecker.IsNewLine(c))
                     {
-                        Console.WriteLine($"Expected expression at line {_currentLine}.");
+                        _currentLine++;
+                        return true;
                     }
                 }
             }
@@ -90,37 +124,29 @@ namespace LanguageParser
             return false;
         }
 
-        bool ParseExpression(PeekStream stream, List<Token> tokenList)
+        bool ParseKeyword(PeekStream stream, out KeywordToken token)
         {
-            while (stream.Current != null)
+            if (!CharChecker.IsLetter(stream.Current))
             {
-                if (stream.Current == ';')
-                {
-                    return true;
-                }
-                else if (stream.Current == ' ')
-                {
-                    stream.MoveNext();
-                }
-                else if (ParseNumber(stream, out NumberToken nToken))
-                {
-                    tokenList.Add(nToken);
-                }
-                else if (ParseVariable(stream, out NameToken vToken))
-                {
-                    tokenList.Add(vToken);
-                }
-                else if (ParseOperator(stream, out OperatorToken oToken))
-                {
-                    tokenList.Add(oToken);
-                }
-                else
-                {
-                    Console.WriteLine($"Invalid expression at line {_currentLine}.");
-                    return false;
-                }
+                token = default;
+                return false;
             }
 
+            if (stream.Peek(3) == "if ")
+            {
+                stream.MoveAmount(2);
+                token = new KeywordToken(Keyword.If);
+                return true;
+            }
+
+            if (stream.Peek(6) == "class ")
+            {
+                stream.MoveAmount(5);
+                token = new KeywordToken(Keyword.Class);
+                return true;
+            }
+
+            token = default;
             return false;
         }
 
@@ -227,7 +253,7 @@ namespace LanguageParser
             return false;
         }
 
-        bool ParseVariable(PeekStream stream, out NameToken token)
+        bool ParseName(PeekStream stream, out NameToken token)
         {
             StringBuilder builder = new StringBuilder();
 

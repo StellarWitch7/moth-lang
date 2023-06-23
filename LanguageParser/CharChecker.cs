@@ -8,17 +8,17 @@ namespace LanguageParser
 {
     public static class CharChecker
     {
-        public static bool IsDigit(char c)
+        public static bool IsDigit(char? c)
         {
             return c >= '0' && c <= '9';
         }
 
-        public static bool IsLetter(char c)
+        public static bool IsLetter(char? c)
         {
             return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
         }
 
-        public static bool IsVariableChar(char c)
+        public static bool IsVariableChar(char? c)
         {
             return IsLetter(c) || c == '_';
         }

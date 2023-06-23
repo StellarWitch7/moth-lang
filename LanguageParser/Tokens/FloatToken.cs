@@ -18,7 +18,7 @@ namespace LanguageParser.Tokens
 
         public override string ToString()
         {
-            return $"(float {_value})";
+            return $"(float <{_value}>)";
         }
     }
 }

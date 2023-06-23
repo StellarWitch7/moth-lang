@@ -47,10 +47,11 @@ namespace LanguageParser
             }
             else if (input == "/run")
             {
-                Tokenizer _tokenizer = new Tokenizer(_script);
-                _tokenizer.ParseStatements();
-                _tokenizer.PrintTokens(); //Testing
+                Tokenizer tokenizer = new Tokenizer(_script);
+                tokenizer.ParseScript();
+                tokenizer.PrintTokens(); //Testing
                 _script.Clear();
+                Compiler compiler = new Compiler(tokenizer.Tokens);
                 return true;
             }
 
