@@ -31,6 +31,9 @@ namespace LanguageParser.Tokens
         Public,
         Private,
         Void,
-        Return
+        Return,
+        Nix,
+        True,
+        False
     }
 }

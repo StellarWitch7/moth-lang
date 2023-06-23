@@ -64,19 +64,34 @@ namespace LanguageParser
                     _tokenList.Add(new EndStatementToken());
                     stream.MoveNext();
                 }
-                else if (c == '{')
+                else if (c == '[')
                 {
-                    _tokenList.Add(new OpeningToken());
+                    _tokenList.Add(new OpeningBracketToken());
                     stream.MoveNext();
                 }
-                else if (c == '}')
+                else if (c == ']')
                 {
-                    _tokenList.Add(new ClosingToken());
+                    _tokenList.Add(new ClosingBracketToken());
                     stream.MoveNext();
                 }
                 else if (c == '=')
                 {
                     _tokenList.Add(new AssignmentToken());
+                    stream.MoveNext();
+                }
+                else if (c == ')')
+                {
+                    _tokenList.Add(new ClosingParenthesesToken());
+                    stream.MoveNext();
+                }
+                else if (c == '(')
+                {
+                    _tokenList.Add(new ClosingParenthesesToken());
+                    stream.MoveNext();
+                }
+                else if (c == '.')
+                {
+                    _tokenList.Add(new PeriodToken());
                     stream.MoveNext();
                 }
                 else if (ParseKeyword(stream, out KeywordToken keyToken))
@@ -91,6 +106,10 @@ namespace LanguageParser
                 {
                     _tokenList.Add(nameToken);
                 }
+                else if (ParseComparor(stream, out ComparisonToken comToken))
+                {
+                    _tokenList.Add(comToken);
+                }
                 else if (ParseOperator(stream, out OperatorToken opToken))
                 {
                     _tokenList.Add(opToken);
@@ -102,6 +121,69 @@ namespace LanguageParser
             }
 
             return true;
+        }
+
+        private bool ParseComparor(PeekStream stream, out ComparisonToken token)
+        {
+            if (stream.Peek(2) == "==")
+            {
+                token = new ComparisonToken(ComparisonType.Equal);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == "!=")
+            {
+                token = new ComparisonToken(ComparisonType.NotEqual);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == ">=")
+            {
+                token = new ComparisonToken(ComparisonType.LargerThanOrEqual);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == "<=")
+            {
+                token = new ComparisonToken(ComparisonType.LessThanOrEqual);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == ">>")
+            {
+                token = new ComparisonToken(ComparisonType.LargerThan);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == "<<")
+            {
+                token = new ComparisonToken(ComparisonType.LessThan);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == "&&")
+            {
+                token = new ComparisonToken(ComparisonType.And);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == "!&")
+            {
+                token = new ComparisonToken(ComparisonType.NotAnd);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else if (stream.Peek(2) == "||")
+            {
+                token = new ComparisonToken(ComparisonType.Or);
+                stream.MoveAmount(2);
+                return true;
+            }
+            else
+            {
+                token = null;
+                return false;
+            }
         }
 
         private bool ParseComment(PeekStream stream)
@@ -191,6 +273,27 @@ namespace LanguageParser
             {
                 stream.MoveAmount(7);
                 token = new KeywordToken(Keyword.Return);
+                return true;
+            }
+
+            if (stream.Peek(4) == "nix ")
+            {
+                stream.MoveAmount(4);
+                token = new KeywordToken(Keyword.Nix);
+                return true;
+            }
+
+            if (stream.Peek(5) == "true ")
+            {
+                stream.MoveAmount(5);
+                token = new KeywordToken(Keyword.True);
+                return true;
+            }
+
+            if (stream.Peek(6) == "false ")
+            {
+                stream.MoveAmount(6);
+                token = new KeywordToken(Keyword.False);
                 return true;
             }
 

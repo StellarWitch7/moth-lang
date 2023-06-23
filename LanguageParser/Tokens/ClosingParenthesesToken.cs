@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.Tokens
 {
-    internal class ClosingToken : Token
+    internal class ClosingParenthesesToken : Token
     {
         public override string ToString()
         {
-            return $"(closing bracket)";
+            return $"(closing parentheses)";
         }
     }
 }
