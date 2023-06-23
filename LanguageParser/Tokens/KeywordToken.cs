@@ -34,6 +34,11 @@ namespace LanguageParser.Tokens
         Return,
         Nix,
         True,
-        False
+        False,
+        Num,
+        Bool,
+        Obj,
+        Str,
+        Import
     }
 }

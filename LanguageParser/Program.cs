@@ -63,11 +63,12 @@ namespace LanguageParser
                     tokenizer = new Tokenizer(new StringBuilder()
                         .Append(fileContents));
 
-                    WriteBlock(fileContents, "\r\n|\r|\n", 0.6f);
+                    Console.WriteLine();
+                    WriteBlock(fileContents, "\r\n|\r|\n", 0.4f);
                 }
                 
                 tokenizer.ParseScript();
-                tokenizer.PrintTokens(0.6f); //Testing
+                tokenizer.PrintTokens(0.4f); //Testing
                 _script.Clear();
                 Compiler compiler = new Compiler(tokenizer.Tokens);
                 return true;

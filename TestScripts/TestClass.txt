@@ -1,10 +1,12 @@
+import @test.namespace
+
 public class TestClass [
-  _catHeight = 12.4;
-  _dogHeight = 11;
-  _isCatTaller = false;
+  private num _catHeight = 12.4;
+  private num _dogHeight = 11;
+  private bool _isCatTaller = false;
   
   public void TestMethod [
-    if (_catHeight >> _dogHeight) [
+    if (_catHeight > _dogHeight) [
       _isCatTaller = true;
     ]
   ]

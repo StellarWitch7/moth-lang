@@ -1,5 +1,4 @@
-﻿
-using LanguageParser.Tokens;
+﻿using LanguageParser.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -100,6 +99,16 @@ namespace LanguageParser
                     _tokenList.Add(new PeriodToken());
                     stream.MoveNext();
                 }
+                else if (c == ',')
+                {
+                    _tokenList.Add(new CommaToken());
+                    stream.MoveNext();
+                }
+                else if (c == '@')
+                {
+                    _tokenList.Add(new NamespaceTagToken());
+                    stream.MoveNext();
+                }
                 else if (ParseKeyword(stream, out KeywordToken keyToken))
                 {
                     _tokenList.Add(keyToken);
@@ -155,13 +164,13 @@ namespace LanguageParser
                 stream.MoveAmount(2);
                 return true;
             }
-            else if (stream.Peek(2) == ">>")
+            else if (stream.Peek(1) == ">")
             {
                 token = new ComparisonToken(ComparisonType.LargerThan);
                 stream.MoveAmount(2);
                 return true;
             }
-            else if (stream.Peek(2) == "<<")
+            else if (stream.Peek(1) == "<")
             {
                 token = new ComparisonToken(ComparisonType.LessThan);
                 stream.MoveAmount(2);
@@ -300,6 +309,41 @@ namespace LanguageParser
             {
                 stream.MoveAmount(6);
                 token = new KeywordToken(Keyword.False);
+                return true;
+            }
+
+            if (stream.Peek(5) == "bool ")
+            {
+                stream.MoveAmount(5);
+                token = new KeywordToken(Keyword.Bool);
+                return true;
+            }
+
+            if (stream.Peek(4) == "num ")
+            {
+                stream.MoveAmount(4);
+                token = new KeywordToken(Keyword.Num);
+                return true;
+            }
+
+            if (stream.Peek(4) == "obj ")
+            {
+                stream.MoveAmount(4);
+                token = new KeywordToken(Keyword.Obj);
+                return true;
+            }
+
+            if (stream.Peek(4) == "str ")
+            {
+                stream.MoveAmount(4);
+                token = new KeywordToken(Keyword.Str);
+                return true;
+            }
+
+            if (stream.Peek(7) == "import ")
+            {
+                stream.MoveAmount(7);
+                token = new KeywordToken(Keyword.Import);
                 return true;
             }
 
