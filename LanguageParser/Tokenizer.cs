@@ -64,11 +64,6 @@ namespace LanguageParser
                     _tokenList.Add(new EndStatementToken());
                     stream.MoveNext();
                 }
-                else if (ParseKeyword(stream, out KeywordToken kToken))
-                {
-                    _tokenList.Add(kToken);
-                    stream.MoveNext();
-                }
                 else if (c == '{')
                 {
                     _tokenList.Add(new OpeningToken());
@@ -83,6 +78,10 @@ namespace LanguageParser
                 {
                     _tokenList.Add(new AssignmentToken());
                     stream.MoveNext();
+                }
+                else if (ParseKeyword(stream, out KeywordToken keyToken))
+                {
+                    _tokenList.Add(keyToken);
                 }
                 else if (ParseNumber(stream, out NumberToken numToken))
                 {
@@ -134,15 +133,64 @@ namespace LanguageParser
 
             if (stream.Peek(3) == "if ")
             {
-                stream.MoveAmount(2);
+                stream.MoveAmount(3);
                 token = new KeywordToken(Keyword.If);
                 return true;
             }
 
             if (stream.Peek(6) == "class ")
             {
-                stream.MoveAmount(5);
+                stream.MoveAmount(6);
                 token = new KeywordToken(Keyword.Class);
+                return true;
+            }
+
+            if (stream.Peek(4) == "new ")
+            {
+                stream.MoveAmount(4);
+                token = new KeywordToken(Keyword.New);
+                return true;
+            }
+
+            if (stream.Peek(4) == "var ")
+            {
+                stream.MoveAmount(4);
+                token = new KeywordToken(Keyword.Var);
+                return true;
+            }
+
+            if (stream.Peek(5) == "else ")
+            {
+                stream.MoveAmount(5);
+                token = new KeywordToken(Keyword.Else);
+                return true;
+            }
+
+            if (stream.Peek(7) == "public ")
+            {
+                stream.MoveAmount(7);
+                token = new KeywordToken(Keyword.Public);
+                return true;
+            }
+
+            if (stream.Peek(8) == "private ")
+            {
+                stream.MoveAmount(8);
+                token = new KeywordToken(Keyword.Private);
+                return true;
+            }
+
+            if (stream.Peek(5) == "void ")
+            {
+                stream.MoveAmount(5);
+                token = new KeywordToken(Keyword.Void);
+                return true;
+            }
+
+            if (stream.Peek(7) == "return ")
+            {
+                stream.MoveAmount(7);
+                token = new KeywordToken(Keyword.Return);
                 return true;
             }
 

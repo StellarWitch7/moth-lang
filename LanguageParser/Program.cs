@@ -18,7 +18,7 @@ namespace LanguageParser
         {
             while (_isRunning)
             {
-                Console.Write("-> ");
+                Console.Write("|>> ");
                 string input = Console.ReadLine();
 
                 if (ProcessCommand(input))
@@ -35,17 +35,17 @@ namespace LanguageParser
 
         bool ProcessCommand(string input)
         {
-            if (!input.StartsWith("/"))
+            if (!input.StartsWith("$/"))
             {
                 return false;
             }
 
-            if (input == "/exit")
+            if (input == "$/exit")
             {
                 _isRunning = false;
                 return true;
             }
-            else if (input == "/run")
+            else if (input == "$/run")
             {
                 Tokenizer tokenizer = new Tokenizer(_script);
                 tokenizer.ParseScript();

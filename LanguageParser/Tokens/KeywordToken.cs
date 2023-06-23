@@ -24,6 +24,13 @@ namespace LanguageParser.Tokens
     internal enum Keyword
     {
         Class,
-        If
+        If,
+        Var,
+        New,
+        Else,
+        Public,
+        Private,
+        Void,
+        Return
     }
 }
