@@ -73,6 +73,7 @@ namespace LanguageParser
         Bool,
         Obj,
         Str,
-        Import
+        Import,
+        Call
     }
 }
