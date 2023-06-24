@@ -353,6 +353,13 @@ namespace LanguageParser
                 return true;
             }
 
+            if (stream.Peek(5) == "call ")
+            {
+                stream.MoveAmount(5);
+                token = new Token(TokenType.Call);
+                return true;
+            }
+
             token = default;
             return false;
         }
