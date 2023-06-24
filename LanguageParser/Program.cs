@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using static System.Net.Mime.MediaTypeNames;
 using System.Text.RegularExpressions;
+using LanguageParser.Tokens;
 
 namespace LanguageParser
 {
@@ -70,7 +71,8 @@ namespace LanguageParser
                 tokenizer.ParseScript();
                 tokenizer.PrintTokens(0.4f); //Testing
                 _script.Clear();
-                Compiler compiler = new Compiler(tokenizer.Tokens);
+                TokenParser tokenParser = new TokenParser(new ParseContext(tokenizer.Tokens));
+                tokenParser.ParseTokens();
                 return true;
             }
             else if (input == "$/clear")

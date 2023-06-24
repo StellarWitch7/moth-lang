@@ -1,13 +1,13 @@
 import @test.namespace;
 
-public class TestClass [
+public class TestClass {
   private num _catHeight = 12.4;
   private num _dogHeight = 11;
   private bool _isCatTaller = false;
   
-  public void TestMethod [
-    if (_catHeight > _dogHeight) [
+  public void TestMethod {
+    if (_catHeight > _dogHeight) {
       _isCatTaller = true;
-    ]
-  ]
-]
+    }
+  }
+}

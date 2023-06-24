@@ -66,66 +66,66 @@ namespace LanguageParser
                 }
                 else if (c == ';')
                 {
-                    _tokenList.Add(new EndStatementToken());
+                    _tokenList.Add(new Token(TokenType.Semicolon));
                     stream.MoveNext();
                 }
-                else if (c == '[')
+                else if (c == '{')
                 {
-                    _tokenList.Add(new OpeningBracketToken());
+                    _tokenList.Add(new Token(TokenType.OpeningBracket));
                     stream.MoveNext();
                 }
-                else if (c == ']')
+                else if (c == '}')
                 {
-                    _tokenList.Add(new ClosingBracketToken());
+                    _tokenList.Add(new Token(TokenType.ClosingBracket));
                     stream.MoveNext();
                 }
                 else if (c == '=')
                 {
-                    _tokenList.Add(new AssignmentToken());
+                    _tokenList.Add(new Token(TokenType.Assignment));
                     stream.MoveNext();
                 }
                 else if (c == ')')
                 {
-                    _tokenList.Add(new ClosingParenthesesToken());
+                    _tokenList.Add(new Token(TokenType.ClosingParentheses));
                     stream.MoveNext();
                 }
                 else if (c == '(')
                 {
-                    _tokenList.Add(new ClosingParenthesesToken());
+                    _tokenList.Add(new Token(TokenType.OpeningParentheses));
                     stream.MoveNext();
                 }
                 else if (c == '.')
                 {
-                    _tokenList.Add(new PeriodToken());
+                    _tokenList.Add(new Token(TokenType.Period));
                     stream.MoveNext();
                 }
                 else if (c == ',')
                 {
-                    _tokenList.Add(new CommaToken());
+                    _tokenList.Add(new Token(TokenType.Comma));
                     stream.MoveNext();
                 }
                 else if (c == '@')
                 {
-                    _tokenList.Add(new NamespaceTagToken());
+                    _tokenList.Add(new Token(TokenType.NamespaceTag));
                     stream.MoveNext();
                 }
-                else if (ParseKeyword(stream, out KeywordToken keyToken))
+                else if (ParseKeyword(stream, out Token keyToken))
                 {
                     _tokenList.Add(keyToken);
                 }
-                else if (ParseNumber(stream, out NumberToken numToken))
+                else if (ParseNumber(stream, out Token numToken))
                 {
                     _tokenList.Add(numToken);
                 }
-                else if (ParseName(stream, out NameToken nameToken))
+                else if (ParseName(stream, out Token nameToken))
                 {
                     _tokenList.Add(nameToken);
                 }
-                else if (ParseComparor(stream, out ComparisonToken comToken))
+                else if (ParseComparor(stream, out Token comToken))
                 {
                     _tokenList.Add(comToken);
                 }
-                else if (ParseOperator(stream, out OperatorToken opToken))
+                else if (ParseOperator(stream, out Token opToken))
                 {
                     _tokenList.Add(opToken);
                 }
@@ -138,59 +138,59 @@ namespace LanguageParser
             return true;
         }
 
-        private bool ParseComparor(PeekStream stream, out ComparisonToken token)
+        private bool ParseComparor(PeekStream stream, out Token token)
         {
             if (stream.Peek(2) == "==")
             {
-                token = new ComparisonToken(ComparisonType.Equal);
+                token = new Token(TokenType.Equal);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(2) == "!=")
             {
-                token = new ComparisonToken(ComparisonType.NotEqual);
+                token = new Token(TokenType.NotEqual);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(2) == ">=")
             {
-                token = new ComparisonToken(ComparisonType.LargerThanOrEqual);
+                token = new Token(TokenType.LargerThanOrEqual);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(2) == "<=")
             {
-                token = new ComparisonToken(ComparisonType.LessThanOrEqual);
+                token = new Token(TokenType.LessThanOrEqual);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(1) == ">")
             {
-                token = new ComparisonToken(ComparisonType.LargerThan);
+                token = new Token(TokenType.LargerThan);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(1) == "<")
             {
-                token = new ComparisonToken(ComparisonType.LessThan);
+                token = new Token(TokenType.LessThan);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(2) == "&&")
             {
-                token = new ComparisonToken(ComparisonType.And);
+                token = new Token(TokenType.And);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(2) == "!&")
             {
-                token = new ComparisonToken(ComparisonType.NotAnd);
+                token = new Token(TokenType.NotAnd);
                 stream.MoveAmount(2);
                 return true;
             }
             else if (stream.Peek(2) == "||")
             {
-                token = new ComparisonToken(ComparisonType.Or);
+                token = new Token(TokenType.Or);
                 stream.MoveAmount(2);
                 return true;
             }
@@ -220,7 +220,7 @@ namespace LanguageParser
             return false;
         }
 
-        bool ParseKeyword(PeekStream stream, out KeywordToken token)
+        bool ParseKeyword(PeekStream stream, out Token token)
         {
             if (!CharChecker.IsLetter(stream.Current))
             {
@@ -231,119 +231,119 @@ namespace LanguageParser
             if (stream.Peek(3) == "if ")
             {
                 stream.MoveAmount(3);
-                token = new KeywordToken(Keyword.If);
+                token = new Token(TokenType.If);
                 return true;
             }
 
             if (stream.Peek(6) == "class ")
             {
                 stream.MoveAmount(6);
-                token = new KeywordToken(Keyword.Class);
+                token = new Token(TokenType.Class);
                 return true;
             }
 
             if (stream.Peek(4) == "new ")
             {
                 stream.MoveAmount(4);
-                token = new KeywordToken(Keyword.New);
+                token = new Token(TokenType.New);
                 return true;
             }
 
             if (stream.Peek(4) == "var ")
             {
                 stream.MoveAmount(4);
-                token = new KeywordToken(Keyword.Var);
+                token = new Token(TokenType.Var);
                 return true;
             }
 
             if (stream.Peek(5) == "else ")
             {
                 stream.MoveAmount(5);
-                token = new KeywordToken(Keyword.Else);
+                token = new Token(TokenType.Else);
                 return true;
             }
 
             if (stream.Peek(7) == "public ")
             {
                 stream.MoveAmount(7);
-                token = new KeywordToken(Keyword.Public);
+                token = new Token(TokenType.Public);
                 return true;
             }
 
             if (stream.Peek(8) == "private ")
             {
                 stream.MoveAmount(8);
-                token = new KeywordToken(Keyword.Private);
+                token = new Token(TokenType.Private);
                 return true;
             }
 
             if (stream.Peek(5) == "void ")
             {
                 stream.MoveAmount(5);
-                token = new KeywordToken(Keyword.Void);
+                token = new Token(TokenType.Void);
                 return true;
             }
 
             if (stream.Peek(7) == "return ")
             {
                 stream.MoveAmount(7);
-                token = new KeywordToken(Keyword.Return);
+                token = new Token(TokenType.Return);
                 return true;
             }
 
             if (stream.Peek(4) == "nix ")
             {
                 stream.MoveAmount(4);
-                token = new KeywordToken(Keyword.Nix);
+                token = new Token(TokenType.Nix);
                 return true;
             }
 
             if (stream.Peek(5) == "true ")
             {
                 stream.MoveAmount(5);
-                token = new KeywordToken(Keyword.True);
+                token = new Token(TokenType.True);
                 return true;
             }
 
             if (stream.Peek(6) == "false ")
             {
                 stream.MoveAmount(6);
-                token = new KeywordToken(Keyword.False);
+                token = new Token(TokenType.False);
                 return true;
             }
 
             if (stream.Peek(5) == "bool ")
             {
                 stream.MoveAmount(5);
-                token = new KeywordToken(Keyword.Bool);
+                token = new Token(TokenType.Bool);
                 return true;
             }
 
             if (stream.Peek(4) == "num ")
             {
                 stream.MoveAmount(4);
-                token = new KeywordToken(Keyword.Num);
+                token = new Token(TokenType.Num);
                 return true;
             }
 
             if (stream.Peek(4) == "obj ")
             {
                 stream.MoveAmount(4);
-                token = new KeywordToken(Keyword.Obj);
+                token = new Token(TokenType.Obj);
                 return true;
             }
 
             if (stream.Peek(4) == "str ")
             {
                 stream.MoveAmount(4);
-                token = new KeywordToken(Keyword.Str);
+                token = new Token(TokenType.Str);
                 return true;
             }
 
             if (stream.Peek(7) == "import ")
             {
                 stream.MoveAmount(7);
-                token = new KeywordToken(Keyword.Import);
+                token = new Token(TokenType.Import);
                 return true;
             }
 
@@ -351,40 +351,40 @@ namespace LanguageParser
             return false;
         }
 
-        bool ParseOperator(PeekStream stream, out OperatorToken token)
+        bool ParseOperator(PeekStream stream, out Token token)
         {
             StringBuilder builder = new StringBuilder();
-            OperatorToken newToken = null;
+            Token newToken = null;
 
             while (stream.Current is char c)
             {
                 if (c == '+')
                 {
-                    newToken = new OperatorToken(Operator.Addition);
+                    newToken = new Token(TokenType.Addition);
                     builder.Append(c);
                     stream.MoveNext();
                 }
                 else if (c == '-')
                 {
-                    newToken = new OperatorToken(Operator.Subtraction);
+                    newToken = new Token(TokenType.Subtraction);
                     builder.Append(c);
                     stream.MoveNext();
                 }
                 else if (c == '*')
                 {
-                    newToken = new OperatorToken(Operator.Multiplication);
+                    newToken = new Token(TokenType.Multiplication);
                     builder.Append(c);
                     stream.MoveNext();
                 }
                 else if (c == '/')
                 {
-                    newToken = new OperatorToken(Operator.Division);
+                    newToken = new Token(TokenType.Division);
                     builder.Append(c);
                     stream.MoveNext();
                 }
                 else if (c == '^')
                 {
-                    newToken = new OperatorToken(Operator.Exponential);
+                    newToken = new Token(TokenType.Exponential);
                     builder.Append(c);
                     stream.MoveNext();
                 }
@@ -406,7 +406,7 @@ namespace LanguageParser
             }
         }
 
-        bool ParseNumber(PeekStream stream, out NumberToken token)
+        bool ParseNumber(PeekStream stream, out Token token)
         {
             StringBuilder builder = new StringBuilder();
             bool isFloat = false;
@@ -434,12 +434,12 @@ namespace LanguageParser
             {
                 if (isFloat && float.TryParse(builder.ToString(), out float fValue))
                 {
-                    token = new FloatToken(fValue);
+                    token = new Token(TokenType.Float, fValue);
                     return true;
                 }
                 else if (int.TryParse(builder.ToString(), out int iValue))
                 {
-                    token = new IntToken(iValue);
+                    token = new Token(TokenType.Int, iValue);
                     return true;
                 }
                 else
@@ -454,7 +454,7 @@ namespace LanguageParser
             return false;
         }
 
-        bool ParseName(PeekStream stream, out NameToken token)
+        bool ParseName(PeekStream stream, out Token token)
         {
             StringBuilder builder = new StringBuilder();
 
@@ -473,7 +473,7 @@ namespace LanguageParser
 
             if (builder.Length > 0)
             {
-                token = new NameToken(builder.ToString());
+                token = new Token(TokenType.Name, builder.ToString());
                 return true;
             }
 
