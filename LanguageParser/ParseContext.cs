@@ -10,7 +10,7 @@ namespace LanguageParser
     {
         public Stack<ParseState> StateStack;
         private List<Token> _tokens;
-        private int _position;
+        private int _position = 0;
 
         public ParseContext(List<Token> tokens)
         {

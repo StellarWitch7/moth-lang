@@ -19,34 +19,57 @@ namespace LanguageParser
         public StatementListNode ProcessStatementList()
         {
             List<StatementNode> statements = new List<StatementNode>();
-            var current = _context.Current;
 
-            while (current != null)
+            while (_context.Current != null)
             {
-                switch (current.TokenType)
+                switch (_context.Current.TokenType)
                 {
+                    case TokenType.Semicolon:
+                        _context.MoveNext();
+                        break;
                     case TokenType.Set:
                         _context.MoveNext();
-                        statements.Add(ProcessAssignment(_context));
+                        statements.Add(ProcessAssignment());
                         break;
+                    default: break;
                 }
             }
 
             return new StatementListNode(statements);
         }
 
-        public AssignmentNode ProcessAssignment(ParseContext context)
+        public AssignmentNode ProcessAssignment()
         {
             var newVarNode = new VariableNode((string)_context.Current.Value);
-            context.MoveNext();
-            context.MoveNext();
-            var newExprNode = ProcessExpression(context);
+            _context.MoveNext();
+            _context.MoveNext();
+            var newExprNode = ProcessExpression();
             return new AssignmentNode(newVarNode, newExprNode);
         }
 
-        private ExpressionNode ProcessExpression(ParseContext context)
+        private ExpressionNode ProcessExpression()
         {
-            return new ConstantNode(_context.Current.Value);
+            var newExprNode = new ExpressionNode();
+
+            while (_context.Current != null && _context.Current.TokenType != TokenType.Semicolon)
+            {
+                switch (_context.Current.TokenType)
+                {
+                    case TokenType.Float:
+                        newExprNode = new ConstantNode(_context.Current.Value);
+                        _context.MoveNext();
+                        break;
+                    case TokenType.Int:
+                        newExprNode = new ConstantNode(_context.Current.Value);
+                        _context.MoveNext();
+                        break;
+                    default:
+                        Console.WriteLine($"Expected expression after keyword {TokenType.Set}.");
+                        return default;
+                }
+            }
+
+            return newExprNode;
         }
     }
 
