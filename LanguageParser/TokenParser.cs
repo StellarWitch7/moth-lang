@@ -28,7 +28,9 @@ namespace LanguageParser
                         _context.MoveNext();
                         statements.Add(ProcessAssignment());
                         break;
-                    default: break;
+                    default:
+                        _context.MoveNext();
+                        break;
                 }
             }
 
