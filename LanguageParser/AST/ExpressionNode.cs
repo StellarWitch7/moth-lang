@@ -8,16 +8,5 @@ namespace LanguageParser.AST
 {
     internal class ExpressionNode : ASTNode
     {
-
-    }
-
-    internal class ConstantNode : ExpressionNode
-    {
-        public object Value { get; }
-
-        public ConstantNode(object value)
-        {
-            Value = value;
-        }
     }
 }

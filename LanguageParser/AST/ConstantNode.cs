@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.AST
 {
-    internal class VariableNode : ASTNode
+    internal class ConstantNode : ExpressionNode
     {
-        public string Name { get; }
+        public object Value { get; }
 
-        public VariableNode(string name)
+        public ConstantNode(object value)
         {
-            Name = name;
+            Value = value;
         }
     }
 }

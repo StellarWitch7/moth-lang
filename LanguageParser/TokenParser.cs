@@ -26,6 +26,7 @@ namespace LanguageParser
                 switch (current.TokenType)
                 {
                     case TokenType.Set:
+                        _context.MoveNext();
                         statements.Add(ProcessAssignment(_context));
                         break;
                 }
@@ -34,9 +35,14 @@ namespace LanguageParser
             return new StatementListNode(statements);
         }
 
-        private StatementNode ProcessAssignment(ParseContext context)
+        public AssignmentNode ProcessAssignment(ParseContext context)
         {
-            throw new NotImplementedException();
+            return new AssignmentNode(new VariableNode((string)_context.Current.Value), ProcessExpression(context));
+        }
+
+        private ExpressionNode ProcessExpression(ParseContext context)
+        {
+            return new ConstantNode();
         }
     }
 
