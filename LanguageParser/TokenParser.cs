@@ -43,7 +43,23 @@ namespace LanguageParser
 
         private CallNode ProcessCall()
         {
-            throw new NotImplementedException();
+            return new CallNode(ProcessMethod());
+        }
+
+        private MethodNode ProcessMethod()
+        {
+            string originClass = (string)_context.Current.Value;
+            _context.MoveAmount(2);
+            string methodName = (string)_context.Current.Value;
+            _context.MoveAmount(2);
+            var args = new List<ExpressionNode>();
+
+            while (_context.Current != null && _context.Current.TokenType != TokenType.ClosingParentheses) {
+                args.Add(ProcessExpression());
+            }
+
+            _context.MoveNext();
+            return new MethodNode(methodName, originClass, args);
         }
 
         private AssignmentNode ProcessAssignment()
@@ -59,7 +75,8 @@ namespace LanguageParser
             ExpressionNode newExprNode = default;
             bool exprFound = false;
 
-            while (_context.Current != null && _context.Current.TokenType != TokenType.Semicolon)
+            while (_context.Current != null
+                && _context.Current.TokenType != TokenType.ClosingParentheses)
             {
                 switch (_context.Current.TokenType)
                 {
@@ -69,6 +86,15 @@ namespace LanguageParser
                         if (!exprFound)
                         {
                             Console.WriteLine($"Expected expression after keyword {TokenType.Set}.");
+                        }
+
+                        return newExprNode;
+                    case TokenType.Comma:
+                        _context.MoveNext();
+
+                        if (!exprFound)
+                        {
+                            Console.WriteLine($"Failed to parse method arguments.");
                         }
 
                         return newExprNode;
