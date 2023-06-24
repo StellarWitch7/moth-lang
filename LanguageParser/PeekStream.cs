@@ -62,7 +62,7 @@ namespace LanguageParser
             }
             else
             {
-                return string.Empty;
+                return default;
             }
         }
     }
