@@ -37,12 +37,16 @@ namespace LanguageParser
 
         public AssignmentNode ProcessAssignment(ParseContext context)
         {
-            return new AssignmentNode(new VariableNode((string)_context.Current.Value), ProcessExpression(context));
+            var newVarNode = new VariableNode((string)_context.Current.Value);
+            context.MoveNext();
+            context.MoveNext();
+            var newExprNode = ProcessExpression(context);
+            return new AssignmentNode(newVarNode, newExprNode);
         }
 
         private ExpressionNode ProcessExpression(ParseContext context)
         {
-            return new ConstantNode();
+            return new ConstantNode(_context.Current.Value);
         }
     }
 
