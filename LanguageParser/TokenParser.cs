@@ -28,6 +28,10 @@ namespace LanguageParser
                         _context.MoveNext();
                         statements.Add(ProcessAssignment());
                         break;
+                    case TokenType.Call:
+                        _context.MoveNext();
+                        statements.Add(ProcessCall());
+                        break;
                     default:
                         _context.MoveNext();
                         break;
@@ -35,6 +39,11 @@ namespace LanguageParser
             }
 
             return new StatementListNode(statements);
+        }
+
+        private CallNode ProcessCall()
+        {
+            throw new NotImplementedException();
         }
 
         private AssignmentNode ProcessAssignment()
