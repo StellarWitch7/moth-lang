@@ -1,5 +1,4 @@
-﻿using LanguageParser.Tokens;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -81,7 +80,7 @@ namespace LanguageParser
                 }
                 else if (c == '=')
                 {
-                    _tokenList.Add(new Token(TokenType.Assignment));
+                    _tokenList.Add(new Token(TokenType.AssignmentSeparator));
                     stream.MoveNext();
                 }
                 else if (c == ')')
@@ -344,6 +343,13 @@ namespace LanguageParser
             {
                 stream.MoveAmount(7);
                 token = new Token(TokenType.Import);
+                return true;
+            }
+
+            if (stream.Peek(4) == "set ")
+            {
+                stream.MoveAmount(4);
+                token = new Token(TokenType.Set);
                 return true;
             }
 

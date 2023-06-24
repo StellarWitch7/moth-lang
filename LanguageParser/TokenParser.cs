@@ -1,4 +1,4 @@
-﻿using LanguageParser.Tokens;
+﻿using LanguageParser.AST;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,18 +16,34 @@ namespace LanguageParser
             _context = context;
         }
 
-        public void ParseTokens()
+        public StatementListNode ProcessStatementList()
         {
-            while (_context.Current != null)
+            List<StatementNode> statements = new List<StatementNode>();
+            var current = _context.Current;
+
+            while (current != null)
             {
-                
+                switch (current.TokenType)
+                {
+                    case TokenType.Set:
+                        statements.Add(ProcessAssignment(_context));
+                        break;
+                }
             }
+
+            return new StatementListNode(statements);
+        }
+
+        private StatementNode ProcessAssignment(ParseContext context)
+        {
+            throw new NotImplementedException();
         }
     }
 
     internal enum ParseState
     {
         None,
+        Script,
         Name,
         AssignToVariable,
         Expression

@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.Tokens
+namespace LanguageParser
 {
     internal class Token
     {
-        public TokenType TokenType;
+        public readonly TokenType TokenType;
         public object Value;
 
         public Token(TokenType tokenType)
@@ -34,7 +34,8 @@ namespace LanguageParser.Tokens
         ClosingBracket,
         OpeningParentheses,
         ClosingParentheses,
-        Assignment,
+        AssignmentSeparator,
+        Set,
         Comma,
         Semicolon,
         Float,

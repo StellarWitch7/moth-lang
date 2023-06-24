@@ -1,5 +1,4 @@
-﻿using LanguageParser.Tokens;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +8,7 @@ namespace LanguageParser
 {
     internal class ParseContext
     {
-        public Stack<ParseState> State;
+        public Stack<ParseState> StateStack;
         private List<Token> _tokens;
         private int _position;
 
