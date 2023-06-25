@@ -14,7 +14,7 @@ internal class ConstantNode : ExpressionNode
 	public override void WriteDebugString(IndentedTextWriter writer, bool indent = false)
 	{
 		writer.Write(nameof(ConstantNode));
-		writer.Write("{ ");
+		writer.Write(" { ");
 		writer.Write(nameof(Value));
 		writer.Write(" = ");
 		writer.Write('(');

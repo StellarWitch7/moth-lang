@@ -20,30 +20,27 @@ internal partial class ASTNode
 
 		writer.Write(type.Name);
 
-		if (indent && (props.Length != 1 || props[0].PropertyType.IsAssignableTo(typeof(ASTNode))))
+		if (props.Length == 0)
+		{
+			writer.WriteLine(" {}");
+		}
+		else if (indent && (props.Length != 1 || props[0].PropertyType.IsAssignableTo(typeof(ASTNode))))
 		{
 			writer.WriteLine();
 			writer.WriteLine('{');
 			writer.Indent++;
 
-			if (props.Length != 0)
+			for (var i = 0; i < props.Length; i++)
 			{
-				for (var i = 0; i < props.Length; i++)
-				{
-					var prop = props[i];
-					var value = prop.GetValue(this);
-					if (i != 0) writer.WriteLine(',');
-					writer.Write(prop.Name);
-					writer.Write(" = ");
-					WriteDebugString(writer, value, indent);
-				}
+				var prop = props[i];
+				var value = prop.GetValue(this);
+				if (i != 0) writer.WriteLine(',');
+				writer.Write(prop.Name);
+				writer.Write(" = ");
+				WriteDebugString(writer, value, indent);
+			}
 
-				writer.WriteLine();
-			}
-			else
-			{
-				writer.WriteLine("{}");
-			}
+			writer.WriteLine();
 
 			writer.Indent--;
 			writer.Write('}');
