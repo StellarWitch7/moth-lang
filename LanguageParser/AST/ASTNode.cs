@@ -2,5 +2,4 @@
 
 internal partial class ASTNode
 {
-	
 }

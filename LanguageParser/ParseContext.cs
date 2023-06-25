@@ -1,59 +1,58 @@
 ﻿using LanguageParser.Tokens;
 
-namespace LanguageParser
+namespace LanguageParser;
+
+internal class ParseContext
 {
-    internal class ParseContext
+	public readonly int Length;
+	private readonly List<Token> _tokens;
+	public int Position { get; private set; }
+
+	public ParseContext(List<Token> tokens)
     {
-	    public readonly int Length;
-	    private readonly List<Token> _tokens;
-	    public int Position { get; private set; }
+        _tokens = tokens;
+        Length = _tokens.Count;
+    }
 
-	    public ParseContext(List<Token> tokens)
+    public Token? Current
+    {
+        get
         {
-            _tokens = tokens;
-            Length = _tokens.Count;
-        }
-
-        public Token? Current
-        {
-            get
+            if (Position >= _tokens.Count)
             {
-                if (Position >= _tokens.Count)
-                {
-                    return null;
-                }
-
-                return _tokens[Position];
+                return null;
             }
-        }
-        
-        public void MoveNext()
-        {
-            Position++;
-        }
 
-        public void MoveAmount(int amount)
-        {
-            Position += amount;
+            return _tokens[Position];
         }
+    }
+    
+    public void MoveNext()
+    {
+        Position++;
+    }
 
-        public Token GetByIndex(int index)
+    public void MoveAmount(int amount)
+    {
+        Position += amount;
+    }
+
+    public Token GetByIndex(int index)
+    {
+        return _tokens[index];
+    }
+
+    public Token[] Peek(int count)
+    {
+        if (Position + count <= Length)
         {
-            return _tokens[index];
+            var copied = new Token[count];
+            _tokens.CopyTo(Position, copied, 0, count);
+            return copied;
         }
-
-        public Token[] Peek(int count)
+        else
         {
-            if (Position + count <= Length)
-            {
-                var copied = new Token[count];
-                _tokens.CopyTo(Position, copied, 0, count);
-                return copied;
-            }
-            else
-            {
-                return Array.Empty<Token>();
-            }
+            return Array.Empty<Token>();
         }
     }
 }

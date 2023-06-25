@@ -1,6 +1,6 @@
 ﻿namespace LanguageParser.AST;
 
-internal class StatementListNode : ASTNode
+internal class StatementListNode : StatementNode
 {
 	public List<StatementNode> StatementNodes { get; }
 
