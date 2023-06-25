@@ -1,22 +1,21 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
+﻿using System.Text.RegularExpressions;
+using LanguageParser.Tokens;
+using LanguageParser.AST;
 using System.Text;
-using static System.Net.Mime.MediaTypeNames;
-using System.Text.RegularExpressions;
 
 namespace LanguageParser
 {
     internal class Program
     {
         private bool _isRunning = true;
-        private StringBuilder _script = new StringBuilder();
+        private readonly StringBuilder _script = new();
 
-        static void Main(string[] args)
+        public static void Main()
         {
             new Program().Run();
         }
 
-        void Run()
+        private void Run()
         {
             Console.WriteLine("Welcome to the Storm shell.");
             Console.WriteLine("Enter '$/help' to get a list of commands.");
@@ -24,7 +23,7 @@ namespace LanguageParser
             while (_isRunning)
             {
                 Console.Write("|>> ");
-                string input = Console.ReadLine();
+                var input = Console.ReadLine() ?? string.Empty;
 
                 if (ProcessCommand(input))
                 {
@@ -38,7 +37,7 @@ namespace LanguageParser
             }
         }
 
-        bool ProcessCommand(string input)
+        private bool ProcessCommand(string input)
         {
             if (!input.StartsWith("$/"))
             {
@@ -52,26 +51,32 @@ namespace LanguageParser
             }
             else if (input.StartsWith("$/run"))
             {
-                Tokenizer tokenizer = new Tokenizer(_script);
-
-                if (input.StartsWith("$/run @"))
+	            List<Token> tokens;
+	            if (input.StartsWith("$/run @"))
                 {
-                    var fileContents = File
-                        .ReadAllText(input
-                        .Substring(input
-                        .IndexOf("@") + 1));
-                    tokenizer = new Tokenizer(new StringBuilder()
-                        .Append(fileContents));
+                    var fileContents = File.ReadAllText(
+	                    input[(input.IndexOf("@", StringComparison.Ordinal) + 1)..]
+	                );
+
+                    tokens = Tokenizer.Tokenize(fileContents);
 
                     Console.WriteLine();
                     WriteBlock(fileContents, "\r\n|\r|\n", 0.4f);
                 }
+	            else
+	            {
+		            tokens = Tokenizer.Tokenize(_script.ToString());
+	            }
                 
-                tokenizer.ParseScript();
-                tokenizer.PrintTokens(0.4f); //Testing
+	            Console.WriteLine();
+                PrintTokens(tokens, 0.4f); //Testing
+                
                 _script.Clear();
-                TokenParser tokenParser = new TokenParser(new ParseContext(tokenizer.Tokens));
-                tokenParser.ProcessStatementList(); //temp for testing
+                var tokenParser = new TokenParser(tokens);
+                var statements = tokenParser.ProcessStatementList(); //temp for testing
+                Console.WriteLine();
+                PrintStatements(statements.StatementNodes, 0.4f);
+                
                 return true;
             }
             else if (input == "$/clear")
@@ -91,12 +96,30 @@ namespace LanguageParser
             return false;
         }
 
-        public static void WriteBlock(string content, string regex, float delay)
+        private static void PrintTokens(List<Token> tokens, float delay)
+        {
+	        foreach (var token in tokens)
+	        {
+		        Console.WriteLine(token.ToString());
+		        Thread.Sleep((int)(delay * 50));
+	        }
+        }
+
+        private static void PrintStatements(List<StatementNode> statements, float delay)
+        {
+	        foreach (var statement in statements)
+	        {
+		        Console.WriteLine(statement);
+		        Thread.Sleep((int)(delay * 50));
+	        }
+        }
+
+        private static void WriteBlock(string content, string regex, float delay)
         {
             var strings = Regex.Split(content, regex);
             foreach (var s in strings)
             {
-                foreach (char c in s)
+                foreach (var c in s)
                 {
                     Console.Write(c);
                     Thread.Sleep((int)(delay * 50));
