@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace LanguageParser.AST;
 
-namespace LanguageParser.AST
+internal partial class ASTNode
 {
-    internal class ASTNode
-    {
-    }
+	
 }

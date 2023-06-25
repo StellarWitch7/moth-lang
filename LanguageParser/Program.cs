@@ -109,7 +109,7 @@ namespace LanguageParser
         {
 	        foreach (var statement in statements)
 	        {
-		        Console.WriteLine(statement);
+		        Console.WriteLine(statement.GetDebugString("\t"));
 		        Thread.Sleep((int)(delay * 50));
 	        }
         }

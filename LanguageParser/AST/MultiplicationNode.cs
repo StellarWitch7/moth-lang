@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace LanguageParser.AST;
 
-namespace LanguageParser.AST
+internal class MultiplicationNode : BinaryOperationNode
 {
-    internal class MultiplicationNode : BinaryOperationNode
-    {
-        public MultiplicationNode(ExpressionNode left, ExpressionNode right) : base(left, right)
-        {
-        }
-    }
+	public MultiplicationNode(ExpressionNode left, ExpressionNode right) : base(left, right)
+	{
+	}
 }

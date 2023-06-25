@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace LanguageParser.AST;
 
-namespace LanguageParser.AST
+internal class StatementListNode : ASTNode
 {
-    internal class StatementListNode : ASTNode
-    {
-        public List<StatementNode> StatementNodes { get; }
+	public List<StatementNode> StatementNodes { get; }
 
-        public StatementListNode(List<StatementNode> statements)
-        {
-            StatementNodes = statements;
-        }
-    }
+	public StatementListNode(List<StatementNode> statements)
+	{
+		StatementNodes = statements;
+	}
 }
