@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using LanguageParser.Tokens;
 
 namespace LanguageParser
 {
     internal class ParseContext
     {
-        public readonly int Length;
-        private List<Token> _tokens;
-        private int _position = 0;
+	    public readonly int Length;
+	    private readonly List<Token> _tokens;
+	    public int Position { get; private set; }
 
-        public ParseContext(List<Token> tokens)
+	    public ParseContext(List<Token> tokens)
         {
             _tokens = tokens;
             Length = _tokens.Count;
@@ -22,31 +18,23 @@ namespace LanguageParser
         {
             get
             {
-                if (_position >= _tokens.Count)
+                if (Position >= _tokens.Count)
                 {
                     return null;
                 }
 
-                return _tokens[_position];
+                return _tokens[Position];
             }
         }
-
-        public int Position
-        {
-            get
-            {
-                return _position;
-            }
-        }
-
+        
         public void MoveNext()
         {
-            _position++;
+            Position++;
         }
 
         public void MoveAmount(int amount)
         {
-            _position += amount;
+            Position += amount;
         }
 
         public Token GetByIndex(int index)
@@ -56,15 +44,15 @@ namespace LanguageParser
 
         public Token[] Peek(int count)
         {
-            if (_position + count <= Length)
+            if (Position + count <= Length)
             {
-                Token[] copied = new Token[count];
-                _tokens.CopyTo(_position, copied, 0, count);
+                var copied = new Token[count];
+                _tokens.CopyTo(Position, copied, 0, count);
                 return copied;
             }
             else
             {
-                return default;
+                return Array.Empty<Token>();
             }
         }
     }

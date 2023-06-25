@@ -2,18 +2,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using LanguageParser.Tokens;
 
 namespace LanguageParser
 {
     internal class TokenParser
     {
-        private ParseContext _context;
+        private readonly ParseContext _context;
 
-        public TokenParser(ParseContext context)
+        public TokenParser(List<Token> tokens)
         {
-            _context = context;
+            _context = new ParseContext(tokens);
         }
 
         public StatementListNode ProcessStatementList()
@@ -22,7 +24,7 @@ namespace LanguageParser
 
             while (_context.Current != null)
             {
-                switch (_context.Current.TokenType)
+                switch (_context.Current?.Type)
                 {
                     case TokenType.Set:
                         _context.MoveNext();
@@ -48,13 +50,13 @@ namespace LanguageParser
 
         private MethodNode ProcessMethod()
         {
-            string originClass = (string)_context.Current.Value;
+            string originClass = _context.Current?.Text.ToString() ?? string.Empty;
             _context.MoveAmount(2);
-            string methodName = (string)_context.Current.Value;
+            string methodName = _context.Current?.Text.ToString() ?? string.Empty;
             _context.MoveAmount(2);
             var args = new List<ExpressionNode>();
 
-            while (_context.Current != null && _context.Current.TokenType != TokenType.ClosingParentheses) {
+            while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses) {
                 args.Add(ProcessExpression());
             }
 
@@ -64,31 +66,33 @@ namespace LanguageParser
 
         private AssignmentNode ProcessAssignment()
         {
-            var newVarNode = new VariableNode((string)_context.Current.Value);
+            var newVarNode = new VariableNode(_context.Current?.Text.ToString() ?? string.Empty);
             _context.MoveAmount(2);
             var newExprNode = ProcessExpression();
             return new AssignmentNode(newVarNode, newExprNode);
         }
 
-        private ExpressionNode ProcessExpression()
+        private ExpressionNode? ProcessExpression()
         {
-            ExpressionNode newExprNode = default;
+            ExpressionNode? newExprNode = null;
             bool exprFound = false;
 
-            while (_context.Current != null
-                && _context.Current.TokenType != TokenType.ClosingParentheses)
+            while (_context.Current != null && _context.Current.Value.Type != TokenType.ClosingParentheses)
             {
-                switch (_context.Current.TokenType)
+                switch (_context.Current.Value.Type)
                 {
-                    case TokenType.Semicolon:
-                        _context.MoveNext();
+	                case TokenType.Semicolon:
+	                {
+		                _context.MoveNext();
 
-                        if (!exprFound)
-                        {
-                            Console.WriteLine($"Expected expression after keyword {TokenType.Set}.");
-                        }
+		                if (!exprFound)
+		                {
+			                Console.WriteLine($"Expected expression after keyword {TokenType.Set}.");
+		                }
 
-                        return newExprNode;
+		                return newExprNode;
+	                }
+	                
                     case TokenType.Comma:
                         _context.MoveNext();
 
@@ -99,12 +103,12 @@ namespace LanguageParser
 
                         return newExprNode;
                     case TokenType.Float:
-                        newExprNode = new ConstantNode(_context.Current.Value);
+                        newExprNode = new ConstantNode(float.Parse(_context.Current.Value.Text.Span));
                         _context.MoveNext();
                         exprFound = true;
                         break;
                     case TokenType.Int:
-                        newExprNode = new ConstantNode(_context.Current.Value);
+                        newExprNode = new ConstantNode(BigInteger.Parse(_context.Current.Value.Text.Span));
                         _context.MoveNext();
                         exprFound = true;
                         break;

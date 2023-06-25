@@ -1,18 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.CodeDom.Compiler;
 
-namespace LanguageParser.AST
+namespace LanguageParser.AST;
+
+internal class ConstantNode : ExpressionNode
 {
-    internal class ConstantNode : ExpressionNode
-    {
-        public object Value { get; }
+	public object Value { get; }
 
-        public ConstantNode(object value)
-        {
-            Value = value;
-        }
-    }
+	public ConstantNode(object value)
+	{
+		Value = value;
+	}
+
+	public override void WriteDebugString(IndentedTextWriter writer, bool indent = false)
+	{
+		writer.Write(nameof(ConstantNode));
+		writer.Write(" { ");
+		writer.Write(nameof(Value));
+		writer.Write(" = ");
+		writer.Write('(');
+		writer.Write(Value.GetType().Name);
+		writer.Write(") ");
+		writer.Write(Value);
+		writer.Write(" }");
+	}
 }
