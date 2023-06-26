@@ -2,10 +2,10 @@
 
 internal class AssignmentNode : StatementNode
 {
-	public VariableNode Left { get; }
+	public VariableRefNode Left { get; }
 	public ExpressionNode Right { get; }
 
-	public AssignmentNode(VariableNode left, ExpressionNode right)
+	public AssignmentNode(VariableRefNode left, ExpressionNode right)
 	{
 		Left = left;
 		Right = right;

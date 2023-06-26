@@ -2,9 +2,9 @@
 
 internal class CallNode : StatementNode
 {
-	public MethodNode Method { get; }
+	public MethodCallNode Method { get; }
 
-	public CallNode(MethodNode method)
+	public CallNode(MethodCallNode method)
 	{
 		Method = method;
 	}

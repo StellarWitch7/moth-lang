@@ -1,10 +1,10 @@
 ﻿namespace LanguageParser.AST;
 
-internal class VariableNode : ExpressionNode
+internal class VariableRefNode : ExpressionNode
 {
 	public string Name { get; }
 
-	public VariableNode(string name)
+	public VariableRefNode(string name)
 	{
 		Name = name;
 	}

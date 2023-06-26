@@ -68,9 +68,11 @@ internal class Program
 	        Console.WriteLine();
             PrintTokens(tokens, 0.15f); //Testing
             var parser = new TokenParser(tokens);
-            var statements = parser.ProcessStatementList();
-            Console.WriteLine(statements.GetDebugString());
-            
+            var scriptAST = parser.ProcessScript();
+            Console.WriteLine();
+            Console.WriteLine(scriptAST.GetDebugString("  "));
+            Console.WriteLine();
+
             _script.Clear();
             return true;
         }

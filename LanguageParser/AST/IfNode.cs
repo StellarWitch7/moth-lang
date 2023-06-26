@@ -11,14 +11,12 @@ namespace LanguageParser.AST
         public ExpressionNode Condition { get; }
         public StatementListNode Then { get; }
         public StatementListNode? Else { get; }
-        public StatementListNode Continue { get; }
 
-        public IfNode(ExpressionNode condition, StatementListNode then, StatementListNode @else, StatementListNode @continue)
+        public IfNode(ExpressionNode condition, StatementListNode then, StatementListNode @else)
         {
             Condition = condition;
             Then = then;
             Else = @else;
-            Continue = @continue;
         }
     }
 }

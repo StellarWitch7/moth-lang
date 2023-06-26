@@ -18,7 +18,136 @@ internal class TokenParser
         _context = new ParseContext(tokens);
     }
 
-    public StatementListNode? ProcessStatementList()
+    public ScriptAST ProcessScript()
+    {
+        AssignNamespaceNode assignNamespaceNode = null;
+        List<ImportNode> imports = new List<ImportNode>();
+        List<ClassNode> classes = new List<ClassNode>();
+
+        if (_context.Current?.Type == TokenType.NamespaceTag)
+        {
+            _context.MoveNext();
+            ProcessNamespaceAssignment();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.NamespaceTag);
+        }
+
+        while (_context.Current != null)
+        {
+            switch (_context.Current?.Type)
+            {
+                case TokenType.Import:
+                    _context.MoveNext();
+                    imports.Add(ProcessImport());
+                    break;
+                case TokenType.Public:
+                    _context.MoveNext();
+
+                    if (_context.Current?.Type == TokenType.Class)
+                    {
+                        _context.MoveNext();
+
+                        if (_context.Current?.Type == TokenType.Name)
+                        {
+                            string className = _context.Current.Value.Text.ToString();
+                            _context.MoveNext();
+                            classes.Add(ProcessClass(PrivacyType.Public, className));
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value, TokenType.Class);
+                    }
+
+                    break;
+                case TokenType.Private:
+                    _context.MoveNext();
+
+                    if (_context.Current?.Type == TokenType.Class)
+                    {
+                        _context.MoveNext();
+                        
+                        if (_context.Current?.Type == TokenType.Name)
+                        {
+                            string className = _context.Current.Value.Text.ToString();
+                            _context.MoveNext();
+                            classes.Add(ProcessClass(PrivacyType.Private, className));
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value, TokenType.Class);
+                    }
+
+                    break;
+                default:
+                    throw new UnexpectedTokenException(_context.Current.Value);
+            }
+        }
+
+        return new ScriptAST(assignNamespaceNode, imports, classes);
+    }
+
+    private NamespaceNode ProcessNamespace()
+    {
+        List<string> @namespace = new List<string>();
+
+        while (_context.Current != null)
+        {
+            switch (_context.Current?.Type)
+            {
+                case TokenType.Semicolon:
+                    return new NamespaceNode(@namespace);
+                case TokenType.Name:
+                    @namespace.Add(_context.Current.Value.Text.ToString());
+                    _context.MoveNext();
+                    break;
+                case TokenType.Period:
+                    @namespace.Add(_context.Current.Value.Text.ToString());
+                    _context.MoveNext();
+                    break;
+                default:
+                    throw new UnexpectedTokenException(_context.Current.Value);
+            }
+        }
+
+        throw new UnexpectedTokenException(_context.Current.Value);
+    }
+
+    private AssignNamespaceNode ProcessNamespaceAssignment()
+    {
+        return new AssignNamespaceNode(ProcessNamespace());
+    }
+
+    private ImportNode ProcessImport()
+    {
+        if (_context.Current?.Type == TokenType.NamespaceTag)
+        {
+            _context.MoveNext();
+            return new ImportNode(ProcessNamespace());
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.NamespaceTag);
+        }
+    }
+
+    private ClassNode ProcessClass(PrivacyType privacy, string name)
+    {
+        if (_context.Current?.Type == TokenType.OpeningCurlyBraces)
+        {
+            _context.MoveNext();
+            return new ClassNode(name, privacy, ProcessStatementList(true));
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.OpeningCurlyBraces);
+        }
+    }
+
+    private StatementListNode? ProcessStatementList(bool isClassRoot = false)
     {
         List<StatementNode> statements = new List<StatementNode>();
 
@@ -27,24 +156,172 @@ internal class TokenParser
             switch (_context.Current?.Type)
             {
                 case TokenType.OpeningCurlyBraces:
-                    _context.MoveNext();
-                    statements.Add(ProcessStatementList());
-                    break;
+                    if (!isClassRoot)
+                    {
+                        _context.MoveNext();
+                        statements.Add(ProcessStatementList());
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value);
+                    }
                 case TokenType.ClosingCurlyBraces:
                     _context.MoveNext();
                     return new StatementListNode(statements);
                 case TokenType.Set:
-                    _context.MoveNext();
-                    statements.Add(ProcessAssignment());
-                    break;
+                    if (!isClassRoot)
+                    {
+                        _context.MoveNext();
+                        statements.Add(ProcessAssignment());
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value);
+                    }
                 case TokenType.Call:
-                    _context.MoveNext();
-                    statements.Add(ProcessCall());
-                    break;
+                    if (!isClassRoot)
+                    {
+                        _context.MoveNext();
+                        statements.Add(ProcessCall());
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value);
+                    }
                 case TokenType.If:
-                    _context.MoveNext();
-                    statements.Add(ProcessIf());
-                    break;
+                    if (!isClassRoot)
+                    {
+                        _context.MoveNext();
+                        statements.Add(ProcessIf());
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value);
+                    }
+                case TokenType.Public:
+                    if (isClassRoot)
+                    {
+                        bool isConstant = false;
+                        _context.MoveNext();
+
+                        if (_context.Current?.Type == TokenType.Constant)
+                        {
+                            isConstant = true;
+                            _context.MoveNext();
+                        }
+
+                        switch (_context.Current?.Type)
+                        {
+                            case TokenType.Bool:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Public, isConstant,
+                                    DefinitionType.Bool));
+                                break;
+                            case TokenType.String:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Public, isConstant,
+                                    DefinitionType.String));
+                                break;
+                            case TokenType.Int32:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Public, isConstant,
+                                    DefinitionType.Int32));
+                                break;
+                            case TokenType.Float32:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Public, isConstant,
+                                    DefinitionType.Float32));
+                                break;
+                            case TokenType.Void:
+                                if (isConstant)
+                                {
+                                    throw new UnexpectedTokenException(_context.Current.Value);
+                                }
+
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Public, false,
+                                    DefinitionType.Void));
+                                break;
+                            case TokenType.Name:
+                                var classRef = new ClassRefNode(_context.Current.Value.Text.ToString());
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Public, isConstant,
+                                    DefinitionType.ClassObject, classRef));
+                                break;
+                            default:
+                                throw new UnexpectedTokenException(_context.Current.Value);
+                        }
+
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value, TokenType.Var);
+                    }
+                case TokenType.Private:
+                    if (isClassRoot)
+                    {
+                        bool isConstant = false;
+                        _context.MoveNext();
+
+                        if (_context.Current?.Type == TokenType.Constant)
+                        {
+                            isConstant = true;
+                            _context.MoveNext();
+                        }
+
+                        switch (_context.Current?.Type)
+                        {
+                            case TokenType.Bool:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Private, isConstant,
+                                    DefinitionType.Bool));
+                                break;
+                            case TokenType.String:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Private, isConstant,
+                                    DefinitionType.String));
+                                break;
+                            case TokenType.Int32:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Private, isConstant,
+                                    DefinitionType.Int32));
+                                break;
+                            case TokenType.Float32:
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Private, isConstant,
+                                    DefinitionType.Float32));
+                                break;
+                            case TokenType.Void:
+                                if (isConstant)
+                                {
+                                    throw new UnexpectedTokenException(_context.Current.Value);
+                                }
+
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Private, false,
+                                    DefinitionType.Void));
+                                break;
+                            case TokenType.Name:
+                                var classRef = new ClassRefNode(_context.Current.Value.Text.ToString());
+                                _context.MoveNext();
+                                statements.Add(ProcessDefinition(PrivacyType.Private, isConstant,
+                                    DefinitionType.ClassObject, classRef));
+                                break;
+                            default:
+                                throw new UnexpectedTokenException(_context.Current.Value);
+                        }
+
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value, TokenType.Var);
+                    }
                 default:
                     _context.MoveNext();
                     break;
@@ -61,14 +338,42 @@ internal class TokenParser
         }
     }
 
+    private FieldNode ProcessDefinition(PrivacyType privacyType, bool isConstant,
+        DefinitionType fieldType, ClassRefNode? classRef = null)
+    {
+        string name;
+
+        if (_context.Current?.Type == TokenType.Name)
+        {
+            _context.Current.Value.Text.ToString();
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+        }
+
+        if (_context.Current?.Type == TokenType.OpeningParentheses)
+        {
+
+        }
+        else if (_context.Current?.Type == TokenType.AssignmentSeparator)
+        {
+
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value);
+        }
+    }
+
     private IfNode ProcessIf()
     {
         var condition = ProcessExpression();
         _context.MoveNext();
         var then = ProcessStatementList();
         var @else = ProcessElse();
-        var @continue = ProcessStatementList();
-        return new IfNode(condition, then, @else, @continue);
+        return new IfNode(condition, then, @else);
     }
 
     private StatementListNode? ProcessElse()
@@ -102,7 +407,7 @@ internal class TokenParser
         return new CallNode(ProcessMethod());
     }
 
-    private MethodNode ProcessMethod()
+    private MethodCallNode ProcessMethod()
     {
         string originClass = _context.Current?.Text.ToString() ?? string.Empty;
         _context.MoveAmount(2);
@@ -115,12 +420,12 @@ internal class TokenParser
         }
 
         _context.MoveNext();
-        return new MethodNode(methodName, originClass, args);
+        return new MethodCallNode(methodName, originClass, args);
     }
 
     private AssignmentNode ProcessAssignment()
     {
-        var newVarNode = new VariableNode(_context.Current?.Text.ToString() ?? string.Empty);
+        var newVarNode = new VariableRefNode(_context.Current?.Text.ToString() ?? string.Empty);
         _context.MoveAmount(2);
         var newExprNode = ProcessExpression();
         return new AssignmentNode(newVarNode, newExprNode);
