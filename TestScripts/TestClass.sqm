@@ -1,18 +1,19 @@
+@test.namespacey;
+
 wield @test.namespace;
 
 accessible thing TestClass {
-  inaccessible float32 _catHeight = 12.3;
-  inaccessible Dog _dog = fresh Dog(11.2);
-  accessible bool IsCatTallerThanDog = false;
+  inaccessible float32 _catHeight;
+  inaccessible int32 _dogHeight;
+  accessible maybe IsCatTallerThanDog;
 
-  accessible void Calculate() {
-    set IsCatTallerThanDog = _dog.height < _catHeight;
-  }
+//  accessible void Calculate() {
+//    set IsCatTallerThanDog = _dogHeight < _catHeight;
+//  } //assignment fails
 }
 
 accessible thing TestClass2 {
-  accessible void Run() {
-    var testClass = fresh TestClass();
-    call testClass.Calculate();
+  accessible void Run(maybe testParam) { //param fails
+    call TestClass.Calculate();
   }
 }

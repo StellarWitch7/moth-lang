@@ -9,14 +9,24 @@ namespace LanguageParser.AST
     internal class ParameterNode : ASTNode
     {
         public DefinitionType Type { get; }
+        public ClassRefNode? TypeRef { get; }
         public string Name { get; }
 
-        public ParameterNode(DefinitionType type, string name)
+        public ParameterNode(DefinitionType type, string name, ClassRefNode typeRef)
         {
             if (type != DefinitionType.Void)
             {
                 Type = type;
                 Name = name;
+
+                if (type == DefinitionType.ClassObject)
+                {
+                    TypeRef = typeRef;
+                }
+                else
+                {
+                    TypeRef = null;
+                }
             }
             else
             {

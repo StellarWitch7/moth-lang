@@ -99,6 +99,7 @@ internal class TokenParser
             switch (_context.Current?.Type)
             {
                 case TokenType.Semicolon:
+                    _context.MoveNext();
                     return new NamespaceNode(@namespace);
                 case TokenType.Name:
                     @namespace.Add(_context.Current.Value.Text.ToString());
@@ -328,24 +329,17 @@ internal class TokenParser
             }
         }
 
-        if (statements.Count <= 0)
-        {
-            return default;
-        }
-        else
-        {
-            return new StatementListNode(statements);
-        }
+        throw new UnexpectedTokenException(_context.Current.Value);
     }
 
-    private FieldNode ProcessDefinition(PrivacyType privacyType, bool isConstant,
+    private StatementNode ProcessDefinition(PrivacyType privacyType, bool isConstant,
         DefinitionType fieldType, ClassRefNode? classRef = null)
     {
         string name;
 
         if (_context.Current?.Type == TokenType.Name)
         {
-            _context.Current.Value.Text.ToString();
+            name = _context.Current.Value.Text.ToString();
             _context.MoveNext();
         }
         else
@@ -355,15 +349,133 @@ internal class TokenParser
 
         if (_context.Current?.Type == TokenType.OpeningParentheses)
         {
+            _context.MoveNext();
+            var @params = ProcessParameterList();
 
+            if (_context.Current?.Type == TokenType.OpeningCurlyBraces)
+            {
+                _context.MoveNext();
+                var statements = ProcessStatementList();
+                return new MethodDefNode(name, @params, statements);
+            }
+            else
+            {
+                throw new UnexpectedTokenException(_context.Current.Value);
+            }
         }
-        else if (_context.Current?.Type == TokenType.AssignmentSeparator)
+        else if (_context.Current?.Type == TokenType.Semicolon)
         {
-
+            _context.MoveNext();
+            return new FieldNode(name, privacyType, fieldType, isConstant);
         }
         else
         {
             throw new UnexpectedTokenException(_context.Current.Value);
+        }
+    }
+
+    private ParameterListNode ProcessParameterList()
+    {
+        List<ParameterNode> @params = new List<ParameterNode>();
+
+        while (_context.Current != null)
+        {
+            switch (_context.Current?.Type)
+            {
+                case TokenType.ClosingParentheses:
+                    _context.MoveNext();
+                    return new ParameterListNode(@params);
+                case TokenType.Comma:
+                    _context.MoveNext();
+                    break;
+                default:
+                    @params.Add(ProcessParameter());
+                    break;
+            }
+        }
+
+        throw new UnexpectedTokenException(_context.Current.Value);
+    }
+
+    private ParameterNode ProcessParameter()
+    {
+        switch (_context.Current?.Type)
+        {
+            case TokenType.Bool:
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.Name)
+                {
+                    string name = _context.Current.Value.Text.ToString();
+                    return new ParameterNode(DefinitionType.Bool, name, null);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                }
+            case TokenType.String:
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.Name)
+                {
+                    string name = _context.Current.Value.Text.ToString();
+                    return new ParameterNode(DefinitionType.String, name, null);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                }
+            case TokenType.Int32:
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.Name)
+                {
+                    string name = _context.Current.Value.Text.ToString();
+                    return new ParameterNode(DefinitionType.Int32, name, null);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                }
+            case TokenType.Float32:
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.Name)
+                {
+                    string name = _context.Current.Value.Text.ToString();
+                    return new ParameterNode(DefinitionType.Float32, name, null);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                }
+            case TokenType.Matrix:
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.Name)
+                {
+                    string name = _context.Current.Value.Text.ToString();
+                    return new ParameterNode(DefinitionType.Matrix, name, null);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                }
+            case TokenType.Name:
+                var typeName = new ClassRefNode(_context.Current.Value.Text.ToString());
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.Name)
+                {
+                    string name = _context.Current.Value.Text.ToString();
+                    return new ParameterNode(DefinitionType.ClassObject, name, typeName);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                }
+            default:
+                throw new UnexpectedTokenException(_context.Current.Value);
         }
     }
 
@@ -628,6 +740,11 @@ internal class TokenParser
                     {
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
+                    break;
+                case TokenType.Name:
+                    newExprNode = new VariableRefNode(_context.Current.Value.Text.ToString());
+                    _context.MoveNext();
+                    exprFound = true;
                     break;
                 default:
                     throw new UnexpectedTokenException(_context.Current.Value);
