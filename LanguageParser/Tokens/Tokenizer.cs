@@ -104,6 +104,7 @@ public static class Tokenizer
 						']' => TokenType.ClosingSquareBrackets,
                         '>' => TokenType.LargerThan,
                         '<' => TokenType.LessThan,
+						'"' => TokenType.DoubleQuote,
                         '|' => TokenType.Or,
                         '&' => TokenType.And,
                         '!' => TokenType.Not,

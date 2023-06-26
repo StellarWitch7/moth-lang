@@ -95,5 +95,6 @@ public enum TokenType
     LogicalOr,
     LogicalXor,
     LogicalAnd,
-    LogicalNand
+    LogicalNand,
+    DoubleQuote
 }
