@@ -20,14 +20,14 @@ internal class TokenParser
 
     public ScriptAST ProcessScript()
     {
-        AssignNamespaceNode assignNamespaceNode = null;
+        AssignNamespaceNode assignNamespaceNode;
         List<ImportNode> imports = new List<ImportNode>();
         List<ClassNode> classes = new List<ClassNode>();
 
         if (_context.Current?.Type == TokenType.NamespaceTag)
         {
             _context.MoveNext();
-            ProcessNamespaceAssignment();
+            assignNamespaceNode = ProcessNamespaceAssignment();
         }
         else
         {
@@ -407,6 +407,7 @@ internal class TokenParser
                 if (_context.Current?.Type == TokenType.Name)
                 {
                     string name = _context.Current.Value.Text.ToString();
+                    _context.MoveNext();
                     return new ParameterNode(DefinitionType.Bool, name, null);
                 }
                 else
@@ -419,6 +420,7 @@ internal class TokenParser
                 if (_context.Current?.Type == TokenType.Name)
                 {
                     string name = _context.Current.Value.Text.ToString();
+                    _context.MoveNext();
                     return new ParameterNode(DefinitionType.String, name, null);
                 }
                 else
@@ -431,6 +433,7 @@ internal class TokenParser
                 if (_context.Current?.Type == TokenType.Name)
                 {
                     string name = _context.Current.Value.Text.ToString();
+                    _context.MoveNext();
                     return new ParameterNode(DefinitionType.Int32, name, null);
                 }
                 else
@@ -443,6 +446,7 @@ internal class TokenParser
                 if (_context.Current?.Type == TokenType.Name)
                 {
                     string name = _context.Current.Value.Text.ToString();
+                    _context.MoveNext();
                     return new ParameterNode(DefinitionType.Float32, name, null);
                 }
                 else
@@ -455,6 +459,7 @@ internal class TokenParser
                 if (_context.Current?.Type == TokenType.Name)
                 {
                     string name = _context.Current.Value.Text.ToString();
+                    _context.MoveNext();
                     return new ParameterNode(DefinitionType.Matrix, name, null);
                 }
                 else
@@ -468,6 +473,7 @@ internal class TokenParser
                 if (_context.Current?.Type == TokenType.Name)
                 {
                     string name = _context.Current.Value.Text.ToString();
+                    _context.MoveNext();
                     return new ParameterNode(DefinitionType.ClassObject, name, typeName);
                 }
                 else
@@ -481,7 +487,7 @@ internal class TokenParser
 
     private IfNode ProcessIf()
     {
-        var condition = ProcessExpression();
+        var condition = ProcessExpression(true);
         _context.MoveNext();
         var then = ProcessStatementList();
         var @else = ProcessElse();
@@ -528,7 +534,7 @@ internal class TokenParser
         var args = new List<ExpressionNode>();
 
         while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses) {
-            args.Add(ProcessExpression());
+            args.Add(ProcessExpression()); //TODO: does this count as a parent method?
         }
 
         _context.MoveNext();
@@ -539,20 +545,22 @@ internal class TokenParser
     {
         var newVarNode = new VariableRefNode(_context.Current?.Text.ToString() ?? string.Empty);
         _context.MoveAmount(2);
-        var newExprNode = ProcessExpression();
+        var newExprNode = ProcessExpression(true);
         return new AssignmentNode(newVarNode, newExprNode);
     }
 
-    private ExpressionNode? ProcessExpression()
+    private ExpressionNode? ProcessExpression(bool isParent = false)
     {
         ExpressionNode? newExprNode = null;
         bool exprFound = false;
 
-        while (_context.Current != null && _context.Current.Value.Type != TokenType.ClosingParentheses)
+        while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses)
         {
-            switch (_context.Current.Value.Type)
+            switch (_context.Current?.Type)
             {
                 case TokenType.OpeningCurlyBraces:
+                    if (isParent) _context.MoveNext();
+
                     if (!exprFound)
                     {
                         throw new UnexpectedTokenException(_context.Current.Value);
@@ -560,7 +568,7 @@ internal class TokenParser
 
                     return newExprNode;
                 case TokenType.Semicolon:
-                    _context.MoveNext();
+                    if (isParent) _context.MoveNext();
 
                     if (!exprFound)
                     {
@@ -569,7 +577,7 @@ internal class TokenParser
 
                     return newExprNode;
                 case TokenType.Comma:
-                    _context.MoveNext();
+                    if (isParent) _context.MoveNext();
 
                     if (!exprFound)
                     {

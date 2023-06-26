@@ -7,13 +7,13 @@ accessible thing TestClass {
   inaccessible int32 _dogHeight;
   accessible maybe IsCatTallerThanDog;
 
-//  accessible void Calculate() {
-//    set IsCatTallerThanDog = _dogHeight < _catHeight;
-//  } //assignment fails
+  accessible void Calculate() {
+    set IsCatTallerThanDog = _dogHeight < _catHeight;
+  }
 }
 
 accessible thing TestClass2 {
-  accessible void Run(maybe testParam) { //param fails
-    call TestClass.Calculate();
+  accessible void Run(maybe testParam) { //param doesn't show up in AST, investigate
+    ring TestClass.Calculate();
   }
 }
