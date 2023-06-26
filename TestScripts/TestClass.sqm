@@ -1,0 +1,18 @@
+wield @test.namespace;
+
+accessible thing TestClass {
+  inaccessible float32 _catHeight = 12.3;
+  inaccessible Dog _dog = fresh Dog(11.2);
+  accessible bool IsCatTallerThanDog = false;
+
+  accessible void Calculate() {
+    set IsCatTallerThanDog = _dog.height < _catHeight;
+  }
+}
+
+accessible thing TestClass2 {
+  accessible void Run() {
+    var testClass = fresh TestClass();
+    call testClass.Calculate();
+  }
+}

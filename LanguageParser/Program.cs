@@ -51,32 +51,24 @@ internal class Program
         }
         else if (input.StartsWith("$/run"))
         {
-	            List<Token> tokens;
-	            if (input.StartsWith("$/run @"))
+	        List<Token> tokens;
+	        if (input.StartsWith("$/run @"))
             {
-                var fileContents = File.ReadAllText(
-	                    input[(input.IndexOf("@", StringComparison.Ordinal) + 1)..]
-	                );
-
+                var fileContents = File.ReadAllText(input[(input.IndexOf("@", StringComparison.Ordinal) + 1)..]);
                 tokens = Tokenizer.Tokenize(fileContents);
 
                 Console.WriteLine();
                 WriteBlock(fileContents, "\r\n|\r|\n", 0.4f);
             }
-	            else
-	            {
-		            tokens = Tokenizer.Tokenize(_script.ToString());
-	            }
+	        else
+	        {
+		        tokens = Tokenizer.Tokenize(_script.ToString());
+	        }
             
-	            Console.WriteLine();
+	        Console.WriteLine();
             PrintTokens(tokens, 0.4f); //Testing
             
             _script.Clear();
-            var tokenParser = new TokenParser(tokens);
-            var statements = tokenParser.ProcessStatementList(); //temp for testing
-            Console.WriteLine();
-            PrintStatements(statements.StatementNodes, 0.4f);
-            
             return true;
         }
         else if (input == "$/clear")
