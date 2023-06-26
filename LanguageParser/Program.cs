@@ -17,7 +17,7 @@ internal class Program
 
     private void Run()
     {
-        Console.WriteLine("Welcome to the Storm shell.");
+        Console.WriteLine("Welcome to the Squyrm shell.");
         Console.WriteLine("Enter '$/help' to get a list of commands.");
 
         while (_isRunning)
@@ -58,7 +58,7 @@ internal class Program
                 tokens = Tokenizer.Tokenize(fileContents);
 
                 Console.WriteLine();
-                WriteBlock(fileContents, "\r\n|\r|\n", 0.4f);
+                WriteBlock(fileContents, "\r\n|\r|\n", 0.2f);
             }
 	        else
 	        {
@@ -66,7 +66,10 @@ internal class Program
 	        }
             
 	        Console.WriteLine();
-            PrintTokens(tokens, 0.4f); //Testing
+            PrintTokens(tokens, 0.15f); //Testing
+            var parser = new TokenParser(tokens);
+            var statements = parser.ProcessStatementList();
+            Console.WriteLine(statements.GetDebugString());
             
             _script.Clear();
             return true;
