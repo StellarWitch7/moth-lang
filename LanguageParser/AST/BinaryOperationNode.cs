@@ -2,8 +2,8 @@
 
 internal class BinaryOperationNode : ExpressionNode
 {
-	public ExpressionNode Left { get; }
-	public ExpressionNode Right { get; }
+	public ExpressionNode Left { get; set; }
+	public ExpressionNode Right { get; set; }
     public OperationType Type { get; }
 
 	public BinaryOperationNode(ExpressionNode left, ExpressionNode right, OperationType type)

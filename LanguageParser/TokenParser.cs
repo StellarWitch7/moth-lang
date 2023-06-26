@@ -487,7 +487,7 @@ internal class TokenParser
 
     private IfNode ProcessIf()
     {
-        var condition = ProcessExpression(true);
+        var condition = ProcessExpression(null);
         _context.MoveNext();
         var then = ProcessStatementList();
         var @else = ProcessElse();
@@ -534,7 +534,7 @@ internal class TokenParser
         var args = new List<ExpressionNode>();
 
         while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses) {
-            args.Add(ProcessExpression()); //TODO: does this count as a parent method?
+            args.Add(ProcessExpression(null)); //TODO: does this count as a parent method?
         }
 
         _context.MoveNext();
@@ -545,13 +545,15 @@ internal class TokenParser
     {
         var newVarNode = new VariableRefNode(_context.Current?.Text.ToString() ?? string.Empty);
         _context.MoveAmount(2);
-        var newExprNode = ProcessExpression(true);
+        var newExprNode = ProcessExpression(null);
         return new AssignmentNode(newVarNode, newExprNode);
     }
 
-    private ExpressionNode? ProcessExpression(bool isParent = false)
+    //Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
+    private ExpressionNode? ProcessExpression(ExpressionNode lastCreatedNode)
     {
         ExpressionNode? newExprNode = null;
+        bool isParent = lastCreatedNode == null;
         bool exprFound = false;
 
         while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses)
@@ -566,6 +568,7 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
 
+                    lastCreatedNode = newExprNode;
                     return newExprNode;
                 case TokenType.Semicolon:
                     if (isParent) _context.MoveNext();
@@ -575,6 +578,7 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
 
+                    lastCreatedNode = newExprNode;
                     return newExprNode;
                 case TokenType.Comma:
                     if (isParent) _context.MoveNext();
@@ -584,6 +588,7 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
 
+                    lastCreatedNode = newExprNode;
                     return newExprNode;
                 case TokenType.Float32:
                     newExprNode = new ConstantNode(float.Parse(_context.Current.Value.Text.Span));
@@ -599,7 +604,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Addition, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Addition, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -610,7 +615,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Subtraction, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Subtraction, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -621,7 +626,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Multiplication, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Multiplication, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -632,7 +637,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Division, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Division, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -643,7 +648,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Exponential, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Exponential, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -654,7 +659,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Equal, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Equal, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -665,7 +670,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.NotEqual, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.NotEqual, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -676,7 +681,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.LargerThan, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.LargerThan, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -687,7 +692,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.LessThan, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.LessThan, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -698,7 +703,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.LargerThanOrEqual, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.LargerThanOrEqual, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -709,7 +714,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.LessThanOrEqual, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.LessThanOrEqual, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -720,7 +725,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.Or, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.Or, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -731,7 +736,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.And, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.And, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -742,7 +747,7 @@ internal class TokenParser
                     if (newExprNode != null)
                     {
                         _context.MoveNext();
-                        newExprNode = ProcessBinaryOp(OperationType.NotAnd, newExprNode);
+                        newExprNode = ProcessBinaryOp(OperationType.NotAnd, newExprNode, lastCreatedNode);
                     }
                     else
                     {
@@ -764,13 +769,14 @@ internal class TokenParser
             throw new UnexpectedTokenException(_context.Current.Value);
         }
 
+        lastCreatedNode = newExprNode;
         return newExprNode;
     }
 
-    private ExpressionNode? ProcessBinaryOp(OperationType opType, ExpressionNode left)
+    private ExpressionNode? ProcessBinaryOp(OperationType opType, ExpressionNode left, ExpressionNode lastCreatedNode)
     {
-        var right = ProcessExpression();
-        
+        var right = ProcessExpression(lastCreatedNode);
+
         switch (opType)
         {
             case OperationType.Addition:
@@ -778,10 +784,41 @@ internal class TokenParser
             case OperationType.Subtraction:
                 return new BinaryOperationNode(left, right, OperationType.Subtraction);
             case OperationType.Multiplication:
+                if (lastCreatedNode is BinaryOperationNode mulBin)
+                {
+                    if (mulBin.Type == OperationType.Addition || mulBin.Type == OperationType.Subtraction)
+                    {
+                        var newBinOp = new BinaryOperationNode(mulBin.Right, right, OperationType.Multiplication);
+                        mulBin.Right = newBinOp;
+                        return newBinOp;
+                    }
+                }
+
                 return new BinaryOperationNode(left, right, OperationType.Multiplication);
             case OperationType.Division:
+                if (lastCreatedNode is BinaryOperationNode divBin)
+                {
+                    if (divBin.Type == OperationType.Addition || divBin.Type == OperationType.Subtraction)
+                    {
+                        var newBinOp = new BinaryOperationNode(divBin.Right, right, OperationType.Division);
+                        divBin.Right = newBinOp;
+                        return newBinOp;
+                    }
+                }
+
                 return new BinaryOperationNode(left, right, OperationType.Division);
             case OperationType.Exponential:
+                if (lastCreatedNode is BinaryOperationNode expBin)
+                {
+                    if (expBin.Type == OperationType.Addition || expBin.Type == OperationType.Subtraction
+                        || expBin.Type == OperationType.Multiplication || expBin.Type == OperationType.Division)
+                    {
+                        var newBinOp = new BinaryOperationNode(expBin.Right, right, OperationType.Exponential);
+                        expBin.Right = newBinOp;
+                        return newBinOp;
+                    }
+                }
+
                 return new BinaryOperationNode(left, right, OperationType.Exponential);
             case OperationType.Equal:
                 return new BinaryOperationNode(left, right, OperationType.Equal);
