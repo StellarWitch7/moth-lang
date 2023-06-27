@@ -106,7 +106,6 @@ internal class TokenParser
                     _context.MoveNext();
                     break;
                 case TokenType.Period:
-                    @namespace.Add(_context.Current.Value.Text.ToString());
                     _context.MoveNext();
                     break;
                 default:
