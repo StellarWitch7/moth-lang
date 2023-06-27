@@ -9,6 +9,7 @@ accessible thing TestClass {
 
   accessible void Calculate() {
     set IsCatTallerThanDog = _dogHeight < _catHeight;
+	set _catHeight = _dogHeight * (_catHeight + 3);
   }
 }
 

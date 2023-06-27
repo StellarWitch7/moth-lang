@@ -568,7 +568,6 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
 
-                    lastCreatedNode = newExprNode;
                     return newExprNode;
                 case TokenType.Semicolon:
                     if (isParent) _context.MoveNext();
@@ -578,7 +577,6 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
 
-                    lastCreatedNode = newExprNode;
                     return newExprNode;
                 case TokenType.Comma:
                     if (isParent) _context.MoveNext();
@@ -588,7 +586,19 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
 
-                    lastCreatedNode = newExprNode;
+                    return newExprNode;
+                case TokenType.ClosingParentheses:
+                    if (isParent) _context.MoveNext();
+
+                    if (!exprFound)
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value);
+                    }
+
+                    return newExprNode;
+                case TokenType.OpeningParentheses:
+                    _context.MoveNext();
+                    newExprNode = ProcessExpression(lastCreatedNode);
                     return newExprNode;
                 case TokenType.Float32:
                     newExprNode = new ConstantNode(float.Parse(_context.Current.Value.Text.Span));
@@ -762,6 +772,8 @@ internal class TokenParser
                 default:
                     throw new UnexpectedTokenException(_context.Current.Value);
             }
+
+            lastCreatedNode = newExprNode;
         }
 
         if (!exprFound)
