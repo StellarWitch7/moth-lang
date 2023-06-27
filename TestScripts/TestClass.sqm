@@ -3,18 +3,22 @@
 wield @test.namespace;
 
 accessible thing TestClass {
-  inaccessible float32 _catHeight;
-  inaccessible int32 _dogHeight;
+  inaccessible float32 catHeight;
+  inaccessible int32 dogHeight;
   accessible maybe IsCatTallerThanDog;
 
-  accessible void Calculate() {
-    set IsCatTallerThanDog = _dogHeight < _catHeight;
-	set _catHeight = _dogHeight * (_catHeight + 3);
+  accessible maybe Calculate() { //return type not added to method def AST
+    set self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
+	set self.catHeight = self.dogHeight * (self.catHeight + 3);
+	relinquish self.IsCatTallerThanDog; //throws exception as it is not implemented
   }
 }
 
 accessible thing TestClass2 {
+  accessible unrelenting maybe TestBool;
+
   accessible void Run(maybe testParam) { //param doesn't show up in AST, investigate
-    ring TestClass.Calculate();
+	ring TestClass.Calculate();
+	set self.TestBool = ring TestClass.Calculate();
   }
 }

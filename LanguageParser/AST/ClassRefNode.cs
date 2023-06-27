@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.AST
 {
-    internal class ClassRefNode : ASTNode
+    internal class ClassRefNode : RefNode
     {
         public string Name { get; }
+        public bool IsCurrentClass { get; }
 
-        public ClassRefNode(string name)
+        public ClassRefNode(bool isCurrentClass, string name = "this")
         {
             Name = name;
+            IsCurrentClass = isCurrentClass;
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using LanguageParser.Tokens;
+using System.Collections;
 
 namespace LanguageParser;
 
@@ -147,7 +148,7 @@ internal class TokenParser
         }
     }
 
-    private StatementListNode? ProcessStatementList(bool isClassRoot = false)
+    private StatementListNode ProcessStatementList(bool isClassRoot = false)
     {
         List<StatementNode> statements = new List<StatementNode>();
 
@@ -184,7 +185,7 @@ internal class TokenParser
                     if (!isClassRoot)
                     {
                         _context.MoveNext();
-                        statements.Add(ProcessCall());
+                        statements.Add(new StatementCallNode(ProcessCall()));
                         break;
                     }
                     else
@@ -247,7 +248,7 @@ internal class TokenParser
                                     DefinitionType.Void));
                                 break;
                             case TokenType.Name:
-                                var classRef = new ClassRefNode(_context.Current.Value.Text.ToString());
+                                var classRef = new ClassRefNode(false, _context.Current.Value.Text.ToString());
                                 _context.MoveNext();
                                 statements.Add(ProcessDefinition(PrivacyType.Public, isConstant,
                                     DefinitionType.ClassObject, classRef));
@@ -307,7 +308,7 @@ internal class TokenParser
                                     DefinitionType.Void));
                                 break;
                             case TokenType.Name:
-                                var classRef = new ClassRefNode(_context.Current.Value.Text.ToString());
+                                var classRef = new ClassRefNode(false, _context.Current.Value.Text.ToString());
                                 _context.MoveNext();
                                 statements.Add(ProcessDefinition(PrivacyType.Private, isConstant,
                                     DefinitionType.ClassObject, classRef));
@@ -323,8 +324,7 @@ internal class TokenParser
                         throw new UnexpectedTokenException(_context.Current.Value, TokenType.Var);
                     }
                 default:
-                    _context.MoveNext();
-                    break;
+                    throw new UnexpectedTokenException(_context.Current.Value);
             }
         }
 
@@ -466,7 +466,7 @@ internal class TokenParser
                     throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
                 }
             case TokenType.Name:
-                var typeName = new ClassRefNode(_context.Current.Value.Text.ToString());
+                var typeName = new ClassRefNode(false, _context.Current.Value.Text.ToString());
                 _context.MoveNext();
 
                 if (_context.Current?.Type == TokenType.Name)
@@ -519,43 +519,162 @@ internal class TokenParser
         }
     }
 
-    private CallNode ProcessCall()
+    private RefNode ProcessCall()
     {
-        return new CallNode(ProcessMethod());
+        ClassRefNode originClass;
+        string methodName;
+        List<ExpressionNode> args = new List<ExpressionNode>();
+
+        if (_context.Current?.Type == TokenType.Name)
+        {
+            originClass = new ClassRefNode(false, _context.Current?.Text.ToString());
+            _context.MoveNext();
+        }
+        else if (_context.Current?.Type == TokenType.This)
+        {
+            originClass = new ClassRefNode(true);
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value);
+        }
+
+        if (_context.Current?.Type == TokenType.Period)
+        {
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Period);
+        }
+
+        if (_context.Current?.Type == TokenType.Name)
+        {
+            methodName = _context.Current?.Text.ToString();
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+        }
+
+        if (_context.Current?.Type == TokenType.OpeningParentheses)
+        {
+            _context.MoveNext();
+            args = ProcessArgs();
+        }
+
+        RefNode newRefNode;
+        newRefNode = new MethodCallNode(methodName, originClass, args);
+
+        while (_context.Current?.Type == TokenType.Period)
+        {
+            _context.MoveNext();
+
+            if (_context.Current?.Type == TokenType.Name)
+            {
+                string newName = _context.Current?.Text.ToString();
+                _context.MoveNext();
+
+                if (_context.Current?.Type == TokenType.OpeningParentheses)
+                {
+                    _context.MoveNext();
+                    newRefNode = new MethodCallNode(newName, newRefNode, ProcessArgs());
+                }
+                else if (_context.Current?.Type == TokenType.Period)
+                {
+                    newRefNode = new VariableRefNode(newName, newRefNode);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(_context.Current.Value);
+                }
+            }
+            else
+            {
+                throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+            }
+        }
+
+        return newRefNode;
     }
 
-    private MethodCallNode ProcessMethod()
+    private List<ExpressionNode> ProcessArgs()
     {
-        string originClass = _context.Current?.Text.ToString() ?? string.Empty;
-        _context.MoveAmount(2);
-        string methodName = _context.Current?.Text.ToString() ?? string.Empty;
-        _context.MoveAmount(2);
-        var args = new List<ExpressionNode>();
+        List<ExpressionNode> args = new List<ExpressionNode>();
 
-        while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses) {
-            args.Add(ProcessExpression(null)); //TODO: does this count as a parent method?
+        while (_context.Current != null)
+        {
+            if (_context.Current?.Type == TokenType.ClosingParentheses) break;
+            args.Add(ProcessExpression(null, true));
         }
 
         _context.MoveNext();
-        return new MethodCallNode(methodName, originClass, args);
+        return args;
     }
 
     private AssignmentNode ProcessAssignment()
     {
-        var newVarNode = new VariableRefNode(_context.Current?.Text.ToString() ?? string.Empty);
-        _context.MoveAmount(2);
+        ClassRefNode classRef;
+        VariableRefNode variableRef;
+
+        if (_context.Current?.Type == TokenType.Name)
+        {
+            classRef = new ClassRefNode(false, _context.Current?.Text.ToString());
+            _context.MoveNext();
+        }
+        else if (_context.Current?.Type == TokenType.This)
+        {
+            classRef = new ClassRefNode(true);
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value);
+        }
+
+        if (_context.Current?.Type == TokenType.Period)
+        {
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Period);
+        }
+
+        if (_context.Current?.Type == TokenType.Name)
+        {
+            variableRef = new VariableRefNode(_context.Current.Value.Text.ToString(), classRef);
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+        }
+
+        if (_context.Current?.Type == TokenType.AssignmentSeparator)
+        {
+            _context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(_context.Current.Value, TokenType.AssignmentSeparator);
+        }
+
         var newExprNode = ProcessExpression(null);
-        return new AssignmentNode(newVarNode, newExprNode);
+        return new AssignmentNode(variableRef, newExprNode);
     }
 
-    //Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
-    private ExpressionNode? ProcessExpression(ExpressionNode lastCreatedNode)
+    // Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
+    // Alternatively, set isParent to true.
+    private ExpressionNode ProcessExpression(ExpressionNode lastCreatedNode, bool isParameter = false)
     {
         ExpressionNode? newExprNode = null;
-        bool isParent = lastCreatedNode == null;
         bool exprFound = false;
+        bool isParent = lastCreatedNode == null;
 
-        while (_context.Current != null && _context.Current?.Type != TokenType.ClosingParentheses)
+        while (_context.Current != null)
         {
             switch (_context.Current?.Type)
             {
@@ -587,9 +706,9 @@ internal class TokenParser
 
                     return newExprNode;
                 case TokenType.ClosingParentheses:
-                    if (isParent) _context.MoveNext();
+                    if (isParent && !isParameter) _context.MoveNext();
 
-                    if (!exprFound)
+                    if (!exprFound && !isParameter)
                     {
                         throw new UnexpectedTokenException(_context.Current.Value);
                     }
@@ -607,6 +726,11 @@ internal class TokenParser
                 case TokenType.Int32:
                     newExprNode = new ConstantNode(BigInteger.Parse(_context.Current.Value.Text.Span));
                     _context.MoveNext();
+                    exprFound = true;
+                    break;
+                case TokenType.Call:
+                    _context.MoveNext();
+                    newExprNode = new ExpressionCallNode(ProcessCall());
                     exprFound = true;
                     break;
                 case TokenType.Addition:
@@ -764,10 +888,53 @@ internal class TokenParser
                     }
                     break;
                 case TokenType.Name:
-                    newExprNode = new VariableRefNode(_context.Current.Value.Text.ToString());
+                    ClassRefNode otherRef = new ClassRefNode(false, _context.Current.Value.Text.ToString());
                     _context.MoveNext();
-                    exprFound = true;
-                    break;
+
+                    if (_context.Current?.Type == TokenType.Period)
+                    {
+                        _context.MoveNext();
+
+                        if (_context.Current?.Type == TokenType.Name)
+                        {
+                            newExprNode = new VariableRefNode(_context.Current.Value.Text.ToString(), otherRef);
+                            _context.MoveNext();
+                            exprFound = true;
+                            break;
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Period);
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value, TokenType.Period);
+                    }
+                case TokenType.This:
+                    ClassRefNode thisRef = new ClassRefNode(true);
+                    _context.MoveNext();
+
+                    if (_context.Current?.Type == TokenType.Period)
+                    {
+                        _context.MoveNext();
+
+                        if (_context.Current?.Type == TokenType.Name)
+                        {
+                            newExprNode = new VariableRefNode(_context.Current.Value.Text.ToString(), thisRef);
+                            _context.MoveNext();
+                            exprFound = true;
+                            break;
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(_context.Current.Value, TokenType.Name);
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(_context.Current.Value, TokenType.Period);
+                    }
                 default:
                     throw new UnexpectedTokenException(_context.Current.Value);
             }

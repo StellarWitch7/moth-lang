@@ -1,15 +1,15 @@
 ﻿namespace LanguageParser.AST;
 
-internal class MethodCallNode : StatementNode
+internal class MethodCallNode : RefNode
 {
 	public string Name { get; }
-	public string OriginClass { get; }
+	public RefNode Origin { get; }
 	public List<ExpressionNode> Arguments { get; }
 
-	public MethodCallNode(string name, string originClass, List<ExpressionNode> arguments)
+	public MethodCallNode(string name, RefNode originClass, List<ExpressionNode> arguments)
 	{
 		Name = name;
-		OriginClass = originClass;
+		Origin = originClass;
 		Arguments = arguments;
 	}
 }

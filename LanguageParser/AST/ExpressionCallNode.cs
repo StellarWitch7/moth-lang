@@ -1,0 +1,18 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LanguageParser.AST
+{
+    internal class ExpressionCallNode : ExpressionNode
+    {
+        public RefNode Ref { get; }
+
+        public ExpressionCallNode(RefNode @ref)
+        {
+            Ref = @ref;
+        }
+    }
+}
