@@ -1,5 +1,5 @@
 ﻿namespace LanguageParser.AST;
 
-internal class ExpressionNode : ASTNode
+public class ExpressionNode : StatementNode
 {
 }

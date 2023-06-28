@@ -58,7 +58,7 @@ internal class Program
                 tokens = Tokenizer.Tokenize(fileContents);
 
                 Console.WriteLine();
-                WriteBlock(fileContents, "\r\n|\r|\n", 0.2f);
+                WriteBlock(fileContents, "\r\n|\r|\n", 0.002f);
             }
 	        else
 	        {
@@ -66,9 +66,8 @@ internal class Program
 	        }
             
 	        Console.WriteLine();
-            PrintTokens(tokens, 0.15f); //Testing
-            var parser = new TokenParser(tokens);
-            var scriptAST = parser.ProcessScript();
+            PrintTokens(tokens, 0.02f); //Testing
+            var scriptAST = TokenParser.ProcessScript(new ParseContext(tokens));
             Console.WriteLine();
             Console.WriteLine(scriptAST.GetDebugString("  "));
             Console.WriteLine();

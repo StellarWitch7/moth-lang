@@ -4,39 +4,38 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.AST
-{
-    internal class FieldNode : StatementNode
-    {
-        public string Name { get; }
-        public PrivacyType Privacy { get; }
-        public DefinitionType Type { get; }
-        public bool IsConstant { get; }
+namespace LanguageParser.AST;
 
-        public FieldNode(string name, PrivacyType privacy, DefinitionType type, bool isConstant = false)
-        {
-            Name = name;
-            Privacy = privacy;
-            Type = type;
-            IsConstant = isConstant;
-        }
+public class FieldNode : StatementNode
+{
+    public string Name { get; }
+    public PrivacyType Privacy { get; }
+    public DefinitionType Type { get; }
+    public bool IsConstant { get; }
+
+    public FieldNode(string name, PrivacyType privacy, DefinitionType type, bool isConstant = false)
+    {
+        Name = name;
+        Privacy = privacy;
+        Type = type;
+        IsConstant = isConstant;
     }
 }
 
 public enum PrivacyType
 {
-    Public,
-    Private,
-    Local
+Public,
+Private,
+Local
 }
 
 public enum DefinitionType
 {
-    Bool,
-    Int32,
-    Float32,
-    String,
-    Matrix,
-    ClassObject,
-    Void
+Bool,
+Int32,
+Float32,
+String,
+Matrix,
+ClassObject,
+Void
 }

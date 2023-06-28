@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.AST
 {
-    internal class ParameterListNode : ASTNode
+    public class ParameterListNode : ASTNode
     {
-        public List<ParameterNode> ParameterNodes;
+        public List<ParameterNode> ParameterNodes { get; }
 
         public ParameterListNode(List<ParameterNode> parameterNodes)
         {

@@ -4,34 +4,33 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.AST
+namespace LanguageParser.AST;
+
+public class ParameterNode : ASTNode
 {
-    internal class ParameterNode : ASTNode
+    public DefinitionType Type { get; }
+    public ClassRefNode? TypeRef { get; }
+    public string Name { get; }
+
+    public ParameterNode(DefinitionType type, string name, ClassRefNode typeRef)
     {
-        public DefinitionType Type { get; }
-        public ClassRefNode? TypeRef { get; }
-        public string Name { get; }
-
-        public ParameterNode(DefinitionType type, string name, ClassRefNode typeRef)
+        if (type != DefinitionType.Void)
         {
-            if (type != DefinitionType.Void)
-            {
-                Type = type;
-                Name = name;
+            Type = type;
+            Name = name;
 
-                if (type == DefinitionType.ClassObject)
-                {
-                    TypeRef = typeRef;
-                }
-                else
-                {
-                    TypeRef = null;
-                }
+            if (type == DefinitionType.ClassObject)
+            {
+                TypeRef = typeRef;
             }
             else
             {
-                throw new ArgumentException();
+                TypeRef = null;
             }
+        }
+        else
+        {
+            throw new ArgumentException();
         }
     }
 }

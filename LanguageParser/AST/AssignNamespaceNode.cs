@@ -4,15 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.AST
-{
-    internal class AssignNamespaceNode : ASTNode
-    {
-        public NamespaceNode NamespaceNode { get; }
+namespace LanguageParser.AST;
 
-        public AssignNamespaceNode(NamespaceNode namespaceNode)
-        {
-            NamespaceNode = namespaceNode;
-        }
+public class AssignNamespaceNode : ASTNode
+{
+    public NamespaceNode NamespaceNode { get; }
+
+    public AssignNamespaceNode(NamespaceNode namespaceNode)
+    {
+        NamespaceNode = namespaceNode;
     }
 }

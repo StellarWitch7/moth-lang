@@ -2,7 +2,7 @@
 
 namespace LanguageParser;
 
-internal class ParseContext
+public class ParseContext
 {
 	public readonly int Length;
 	private readonly List<Token> _tokens;

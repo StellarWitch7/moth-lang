@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.VisualBasic.FileIO;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,10 +12,15 @@ namespace LanguageParser.AST
         public string Name { get; }
         public ParameterListNode Params { get; }
         public StatementListNode ExecutionStatements { get; }
+        public PrivacyType PrivacyType { get; }
+        public DefinitionType ReturnType { get; }
 
-        public MethodDefNode(string name, ParameterListNode @params, StatementListNode executionStatements)
+        public MethodDefNode(string name, PrivacyType privacyType, DefinitionType returnType,
+            ParameterListNode @params, StatementListNode executionStatements)
         {
             Name = name;
+            PrivacyType = privacyType;
+            ReturnType = returnType;
             Params = @params;
             ExecutionStatements = executionStatements;
         }

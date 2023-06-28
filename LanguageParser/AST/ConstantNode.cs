@@ -2,7 +2,7 @@
 
 namespace LanguageParser.AST;
 
-internal class ConstantNode : ExpressionNode
+public class ConstantNode : ExpressionNode
 {
 	public object Value { get; }
 

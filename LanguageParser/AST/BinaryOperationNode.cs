@@ -1,10 +1,10 @@
 ﻿namespace LanguageParser.AST;
 
-internal class BinaryOperationNode : ExpressionNode
+public class BinaryOperationNode : ExpressionNode
 {
-	public ExpressionNode Left { get; set; }
-	public ExpressionNode Right { get; set; }
     public OperationType Type { get; }
+    public ExpressionNode Left { get; set; }
+	public ExpressionNode Right { get; set; }
 
 	public BinaryOperationNode(ExpressionNode left, ExpressionNode right, OperationType type)
 	{
@@ -29,5 +29,8 @@ public enum OperationType
     NotEqual,
     And,
     Or,
-    NotAnd
+    NotAnd,
+    Access,
+    Modulo,
+    Assignment
 }

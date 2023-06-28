@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.AST
+namespace LanguageParser.AST;
+
+public class RefNode : ExpressionNode
 {
-    internal class RefNode : ExpressionNode
-    {
-    }
 }

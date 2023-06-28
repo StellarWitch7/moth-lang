@@ -1,6 +1,6 @@
 ﻿namespace LanguageParser.AST;
 
-internal class VariableRefNode : RefNode
+public class VariableRefNode : RefNode
 {
 	public RefNode Origin { get; }
 	public string Name { get; }

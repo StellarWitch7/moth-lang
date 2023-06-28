@@ -1,6 +1,6 @@
 ﻿namespace LanguageParser.AST;
 
-internal class MethodCallNode : RefNode
+public class MethodCallNode : RefNode
 {
 	public string Name { get; }
 	public RefNode Origin { get; }

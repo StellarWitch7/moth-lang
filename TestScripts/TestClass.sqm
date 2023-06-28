@@ -7,18 +7,22 @@ accessible thing TestClass {
   inaccessible int32 dogHeight;
   accessible maybe IsCatTallerThanDog;
 
-  accessible maybe Calculate() { //return type not added to method def AST
-    set self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
-	set self.catHeight = self.dogHeight * (self.catHeight + 3);
-	relinquish self.IsCatTallerThanDog; //throws exception as it is not implemented
+  accessible maybe Calculate() {
+    self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
+	self.catHeight = self.dogHeight * (self.catHeight + 3);
+	//relinquish self.IsCatTallerThanDog; //throws exception as it is not implemented
   }
 }
 
 accessible thing TestClass2 {
   accessible unrelenting maybe TestBool;
 
-  accessible void Run(maybe testParam) { //param doesn't show up in AST, investigate
-	ring TestClass.Calculate();
-	set self.TestBool = ring TestClass.Calculate();
+  accessible void Run(maybe testParam) {
+	TestClass.Calculate();
+	self.TestBool = TestClass.Calculate();
+	
+	whether 4 > 1 {
+      Toot.GetGayness(5).ToString();
+	}
   }
 }

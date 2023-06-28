@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.AST;
 
-internal class ImportNode : ASTNode
+public class ImportNode : ASTNode
 {
     public NamespaceNode NamespaceNode { get; }
 

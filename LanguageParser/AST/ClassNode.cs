@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.AST;
 
-internal class ClassNode : ASTNode
+public class ClassNode : ASTNode
 {
     public string Name { get; }
     public PrivacyType Privacy { get; }

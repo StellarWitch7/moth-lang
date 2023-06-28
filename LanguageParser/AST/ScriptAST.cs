@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LanguageParser.AST;
 
-internal class ScriptAST : ASTNode
+public class ScriptAST : ASTNode
 {
     public AssignNamespaceNode AssignNamespaceNode { get; }
     public List<ImportNode> ImportNodes { get; }
