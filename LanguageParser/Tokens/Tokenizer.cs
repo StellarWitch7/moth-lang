@@ -42,7 +42,7 @@ public static class Tokenizer
 								"whether" => TokenType.If,
 								"nix" => TokenType.Null,
 								"fresh" => TokenType.New,
-								"var" => TokenType.Var,
+								"local" => TokenType.Var,
 								"int32" => TokenType.Int32,
 								"float32" => TokenType.Float32,
 								"rope" => TokenType.String,

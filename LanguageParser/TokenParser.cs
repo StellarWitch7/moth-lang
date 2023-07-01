@@ -174,6 +174,56 @@ public static class TokenParser
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
+                case TokenType.Var:
+                    if (!isClassRoot)
+                    {
+                        bool isConstant = false;
+                        context.MoveNext();
+
+                        if (context.Current?.Type == TokenType.Constant)
+                        {
+                            isConstant = true;
+                            context.MoveNext();
+                        }
+
+                        switch (context.Current?.Type)
+                        {
+                            case TokenType.Bool:
+                                context.MoveNext();
+                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
+                                    DefinitionType.Bool));
+                                break;
+                            case TokenType.String:
+                                context.MoveNext();
+                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
+                                    DefinitionType.String));
+                                break;
+                            case TokenType.Int32:
+                                context.MoveNext();
+                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
+                                    DefinitionType.Int32));
+                                break;
+                            case TokenType.Float32:
+                                context.MoveNext();
+                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
+                                    DefinitionType.Float32));
+                                break;
+                            case TokenType.Name:
+                                var classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
+                                context.MoveNext();
+                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
+                                    DefinitionType.ClassObject, classRef));
+                                break;
+                            default:
+                                throw new UnexpectedTokenException(context.Current.Value);
+                        }
+
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
                 case TokenType.Return:
                     if (!isClassRoot)
                     {
