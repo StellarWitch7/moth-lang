@@ -174,6 +174,17 @@ public static class TokenParser
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
+                case TokenType.Return:
+                    if (!isClassRoot)
+                    {
+                        context.MoveNext();
+                        statements.Add(new ReturnNode(ProcessExpression(context, null)));
+                        break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
                 case TokenType.Public:
                     if (isClassRoot)
                     {
@@ -300,6 +311,76 @@ public static class TokenParser
                     {
                         statements.Add(ProcessExpression(context, null));
                         break;
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+                case TokenType.Increment:
+                    if (!isClassRoot)
+                    {
+                        ClassRefNode classRef;
+                        context.MoveNext();
+
+                        if (context.Current?.Type == TokenType.This)
+                        {
+                            classRef = new ClassRefNode(true);
+                            context.MoveNext();
+                        }
+                        else if (context.Current?.Type == TokenType.Name)
+                        {
+                            classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
+                            context.MoveNext();
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+
+                        if (context.Current?.Type == TokenType.Name)
+                        {
+                            statements.Add(new IncrementVarNode(new VariableRefNode(context.Current.Value.Text.ToString(), classRef)));
+                            break;
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+                case TokenType.Decrement:
+                    if (!isClassRoot)
+                    {
+                        ClassRefNode classRef;
+                        context.MoveNext();
+
+                        if (context.Current?.Type == TokenType.This)
+                        {
+                            classRef = new ClassRefNode(true);
+                            context.MoveNext();
+                        }
+                        else if (context.Current?.Type == TokenType.Name)
+                        {
+                            classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
+                            context.MoveNext();
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+
+                        if (context.Current?.Type == TokenType.Name)
+                        {
+                            statements.Add(new DecrementVarNode(new VariableRefNode(context.Current.Value.Text.ToString(), classRef)));
+                            break;
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
                     }
                     else
                     {
@@ -789,7 +870,26 @@ public static class TokenParser
         {
             case OperationType.Assignment:
                 return new BinaryOperationNode(left, right, OperationType.Assignment);
+            //Fuck you, why is this next one so hard
             case OperationType.Access:
+                {
+                    if (left is BinaryOperationNode bin)
+                    {
+                        if (bin.Type == OperationType.Access)
+                        {
+                            bin.Left = new BinaryOperationNode(bin.Left, bin.Right, bin.Type);
+                            bin.Right = right;
+                            return null;
+                        }
+
+                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
+                        {
+                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Access);
+                            return bin.Right;
+                        }
+                    }
+                }
+
                 return new BinaryOperationNode(left, right, OperationType.Access);
             case OperationType.Addition:
                 {
