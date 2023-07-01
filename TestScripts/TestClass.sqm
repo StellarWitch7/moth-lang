@@ -3,14 +3,14 @@
 wield @test.namespace;
 
 accessible thing TestClass {
-  inaccessible float32 catHeight;
-  inaccessible int32 dogHeight;
+  inaccessible f32 catHeight;
+  inaccessible i32 dogHeight;
   accessible maybe IsCatTallerThanDog;
 
   accessible maybe Calculate() {
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
 	self.catHeight = self.dogHeight * (self.catHeight + 3);
-	//relinquish self.IsCatTallerThanDog; //throws exception as it is not implemented
+	relinquish self.IsCatTallerThanDog;
   }
 }
 
@@ -18,7 +18,8 @@ accessible thing TestClass2 {
   accessible unrelenting maybe TestBool;
 
   accessible void Run(maybe testParam) {
-	TestClass.Calculate();
+	local maybe testingBool;
+	testingBool = TestClass.Calculate();
 	self.TestBool = TestClass.Calculate();
 	
 	whether 4 > 1 {
