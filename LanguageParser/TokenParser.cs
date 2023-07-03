@@ -919,20 +919,31 @@ public static class TokenParser
         switch (opType)
         {
             case OperationType.Assignment:
+                {
+                    if (left is BinaryOperationNode bin)
+                    {
+                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
+                        {
+                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Assignment);
+                            return bin.Right;
+                        }
+                    }
+                }
+
                 return new BinaryOperationNode(left, right, OperationType.Assignment);
-            //Fuck you, why is this next one so hard
             case OperationType.Access:
                 {
                     if (left is BinaryOperationNode bin)
                     {
-                        if (bin.Type == OperationType.Access)
-                        {
-                            bin.Left = new BinaryOperationNode(bin.Left, bin.Right, bin.Type);
-                            bin.Right = right;
-                            return null;
-                        }
+                        //Pain is me
+                        //if (bin.Type == OperationType.Access)
+                        //{
+                        //    bin.Left = new BinaryOperationNode(bin.Left, bin.Right, bin.Type);
+                        //    bin.Right = right;
+                        //    return null;
+                        //}
 
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
+                        if (GetOpPriority(bin.Type) <= GetOpPriority(opType))
                         {
                             bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Access);
                             return bin.Right;
@@ -1166,6 +1177,8 @@ public static class TokenParser
             case OperationType.And:
             case OperationType.NotAnd:
                 return 1;
+            case OperationType.Assignment:
+                return 0;
             default:
                 return 0;
         }
