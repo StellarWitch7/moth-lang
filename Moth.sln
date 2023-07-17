@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33627.172
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moth.Compiler", "LanguageParser\Moth.Compiler.csproj", "{4DA16541-78E7-4304-84E7-A606A8EDDBC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.LunaIDE", "Moth.LunaIDE\Moth.LunaIDE.csproj", "{EA2CA802-D784-428C-AD39-0F236BAD0CF6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.LunaCode", "Moth.LunaIDE\Moth.LunaCode.csproj", "{EA2CA802-D784-428C-AD39-0F236BAD0CF6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
