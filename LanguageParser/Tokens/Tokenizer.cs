@@ -131,8 +131,9 @@ public static class Tokenizer
 						Text = type switch
 						{
 							TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or 
-								TokenType.And or TokenType.NotAnd or TokenType.Or => stream.Peek(2),
-							_ => stream.Peek(1),
+								TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
+								or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
+							_ => stream.Peek(1), // TODO: two character symbols repeat the second character
 						},
 						Type = type,
 					});

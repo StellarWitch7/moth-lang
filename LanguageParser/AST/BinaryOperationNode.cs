@@ -29,7 +29,11 @@ public enum OperationType
     NotEqual,
     And,
     Or,
-    NotAnd,
+    Xor,
     Modulo,
-    Assignment
+    Assignment,
+    LogicalOr,
+    LogicalAnd,
+    LogicalXor,
+    LogicalNand
 }

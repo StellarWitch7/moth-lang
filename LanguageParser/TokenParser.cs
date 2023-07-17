@@ -814,11 +814,11 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.Or:
+                case TokenType.LogicalOr:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Or, lastCreatedNode);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalOr, lastCreatedNode);
                     }
                     else
                     {
@@ -826,11 +826,11 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.And:
+                case TokenType.LogicalXor:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.And, lastCreatedNode);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalXor, lastCreatedNode);
                     }
                     else
                     {
@@ -838,11 +838,23 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.NotAnd:
+                case TokenType.LogicalAnd:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.NotAnd, lastCreatedNode);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalAnd, lastCreatedNode);
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
+                    break;
+                case TokenType.LogicalNand:
+                    if (lastCreatedNode != null)
+                    {
+                        context.MoveNext();
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalNand, lastCreatedNode);
                     }
                     else
                     {
@@ -1154,19 +1166,19 @@ public static class TokenParser
                 }
 
                 return new BinaryOperationNode(left, right, OperationType.And);
-            case OperationType.NotAnd:
+            case OperationType.LogicalNand:
                 {
                     if (left is BinaryOperationNode bin)
                     {
                         if (GetOpPriority(bin.Type) < GetOpPriority(opType))
                         {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.NotAnd);
+                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.LogicalNand);
                             return bin.Right;
                         }
                     }
                 }
 
-                return new BinaryOperationNode(left, right, OperationType.NotAnd);
+                return new BinaryOperationNode(left, right, OperationType.LogicalNand);
             default:
                 throw new UnexpectedTokenException(context.Current.Value);
         }
@@ -1189,11 +1201,12 @@ public static class TokenParser
             case OperationType.NotEqual:
             case OperationType.LessThanOrEqual:
             case OperationType.LargerThanOrEqual:
-            case OperationType.Or:
+            case OperationType.LogicalOr:
+            case OperationType.LogicalXor:
             case OperationType.LessThan:
             case OperationType.LargerThan:
-            case OperationType.And:
-            case OperationType.NotAnd:
+            case OperationType.LogicalAnd:
+            case OperationType.LogicalNand:
                 return 1;
             case OperationType.Assignment:
                 return 0;

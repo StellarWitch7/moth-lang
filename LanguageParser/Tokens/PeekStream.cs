@@ -48,7 +48,6 @@ public struct PeekStream
 
 	public ReadOnlyMemory<char> Peek(int count) => Position + count <= Length ? _text.AsMemory(Position, count) : default;
 
-	//What the fuck does this do
 	public ReadOnlyMemory<char> Peek(Func<char, bool> condition)
 	{
 		var span = _text.AsSpan(Position);

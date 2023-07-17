@@ -57,7 +57,6 @@ public enum TokenType
 	NotEqual,
 	And,
 	Or,
-	NotAnd,
 	Class,
 	If,
 	Var,
