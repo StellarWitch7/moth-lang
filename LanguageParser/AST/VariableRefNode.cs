@@ -2,12 +2,12 @@
 
 public class VariableRefNode : RefNode
 {
-	public RefNode Origin { get; }
 	public string Name { get; }
+	public RefNode Parent { get; }
 
-	public VariableRefNode(string name, RefNode classRef)
-	{
+	public VariableRefNode(string name, RefNode parent)
+    {
 		Name = name;
-		Origin = classRef;
+		Parent = parent;
 	}
 }

@@ -671,6 +671,9 @@ public static class TokenParser
                     context.MoveNext();
                     lastCreatedNode = ProcessExpression(context, lastCreatedNode);
                     return lastCreatedNode;
+                case TokenType.ClosingSquareBrackets:
+                    if (isParent) context.MoveNext();
+                    return lastCreatedNode;
                 case TokenType.Float32:
                     lastCreatedNode = new ConstantNode(float.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
@@ -897,7 +900,57 @@ public static class TokenParser
 
     public static RefNode ProcessAccess(ParseContext context, ClassRefNode classRefNode)
     {
-        throw new NotImplementedException();
+        RefNode newRefNode = classRefNode;
+
+        while (context.Current != null)
+        {
+            switch (context.Current?.Type)
+            {
+                case TokenType.Period:
+                    context.MoveNext();
+                    break;
+                case TokenType.OpeningSquareBrackets:
+                    if (context.GetByIndex(context.Position - 1).Type == TokenType.Period)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
+                    if (newRefNode is ClassRefNode)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
+                    context.MoveNext();
+                    newRefNode = new IndexAccessNode(ProcessExpression(context, null), newRefNode);
+                    break;
+                case TokenType.Name:
+                    if (context.GetByIndex(context.Position - 1).Type != TokenType.Period)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Period);
+                    }
+
+                    string name = context.Current.Value.Text.ToString();
+                    context.MoveNext();
+
+                    switch (context.Current?.Type)
+                    {
+                        case TokenType.Period:
+                            newRefNode = new VariableRefNode(name, newRefNode);
+                            break;
+                        case TokenType.OpeningParentheses:
+                            context.MoveNext();
+                            newRefNode = new MethodCallNode(name, ProcessArgs(context), newRefNode);
+                            context.MoveNext();
+                            break;
+                    }
+
+                    break;
+                default:
+                    return newRefNode;
+            }
+        }
+
+        throw new UnexpectedTokenException(context.Current.Value);
     }
 
     public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)

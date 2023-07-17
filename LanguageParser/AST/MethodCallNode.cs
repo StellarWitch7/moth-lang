@@ -3,13 +3,13 @@
 public class MethodCallNode : RefNode
 {
 	public string Name { get; }
-	public RefNode Origin { get; }
 	public List<ExpressionNode> Arguments { get; }
+	public RefNode Parent { get; }
 
-	public MethodCallNode(string name, RefNode originClass, List<ExpressionNode> arguments)
+	public MethodCallNode(string name, List<ExpressionNode> arguments, RefNode parent)
 	{
 		Name = name;
-		Origin = originClass;
 		Arguments = arguments;
+		Parent = parent;
 	}
 }
