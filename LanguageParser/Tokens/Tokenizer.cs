@@ -87,7 +87,7 @@ public static class Tokenizer
                         '>' when next is '=' => TokenType.LargerThanOrEqual,
                         '+' when next is '+' => TokenType.Increment,
                         '-' when next is '-' => TokenType.Decrement,
-                        '*' when next is '^' => TokenType.Exponential, // TODO: yields an exponential token and a xor token
+                        '*' when next is '^' => TokenType.Exponential,
                         '|' when next is '|' => TokenType.LogicalOr,
                         '^' when next is '|' => TokenType.LogicalXor,
                         '&' when next is '&' => TokenType.LogicalAnd,
@@ -125,19 +125,21 @@ public static class Tokenizer
 							Position = stream.Position,
 						},
 					};
-					
-					tokens.Add(new Token
+
+					var newToken = new Token
 					{
 						Text = type switch
 						{
-							TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or 
+							TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or
 								TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
 								or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
-							_ => stream.Peek(1), // TODO: two character symbols repeat the second character
+							_ => stream.Peek(1),
 						},
 						Type = type,
-					});
-					
+					};
+
+                    tokens.Add(newToken);
+					stream.Position += newToken.Text.Length - 1;
 					break;
 				}
 

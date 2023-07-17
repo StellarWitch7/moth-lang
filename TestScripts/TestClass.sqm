@@ -19,7 +19,7 @@ accessible thing TestClass2 {
 
   accessible void Run(maybe testParam) {
 	local maybe testingBool;
-	testingBool = TestClass.Calculate();
+	self.testingBool = TestClass.Calculate();
 	self.TestBool = TestClass.Calculate();
 	
 	whether 4 > 1 {
