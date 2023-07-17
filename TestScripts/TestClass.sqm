@@ -9,7 +9,7 @@ accessible thing TestClass {
 
   accessible maybe Calculate() {
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
-	self.catHeight = self.dogHeight * (self.catHeight + 3);
+	self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
 	relinquish self.IsCatTallerThanDog;
   }
 }

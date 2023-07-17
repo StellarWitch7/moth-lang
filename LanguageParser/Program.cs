@@ -17,7 +17,7 @@ internal class Program
 
     private void Run()
     {
-        Console.WriteLine("Welcome to the Squyrm shell.");
+        Console.WriteLine("Welcome to the Moth shell.");
         Console.WriteLine("Enter '$/help' to get a list of commands.");
 
         while (_isRunning)

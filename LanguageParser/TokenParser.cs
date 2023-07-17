@@ -847,45 +847,28 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.Name: //TODO this method needs fixing
+                case TokenType.Name:
                     string name = context.Current.Value.Text.ToString();
+                    context.MoveNext();
 
-                    if (lastCreatedNode is RefNode @ref)
+                    if (context.Current?.Type != TokenType.Period)
                     {
-                        context.MoveNext();
-                        
-                        if (context.Current?.Type == TokenType.OpeningParentheses)
-                        {
-                            context.MoveNext();
-                            lastCreatedNode = new MethodCallNode(name, @ref, ProcessArgs(context));
-                        }
-                        else
-                        {
-                            lastCreatedNode = new VariableRefNode(name, @ref);
-                        }
-                    }
-                    else
-                    {
-                        context.MoveNext();
-                        lastCreatedNode = new ClassRefNode(false, name);
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Period);
                     }
 
+                    context.MoveNext();
+                    lastCreatedNode = ProcessAccess(context, new ClassRefNode(false, name));
                     break;
                 case TokenType.This:
-                    lastCreatedNode = new ClassRefNode(true);
                     context.MoveNext();
-                    break;
-                case TokenType.Period:
-                    if (lastCreatedNode != null)
+
+                    if (context.Current?.Type != TokenType.Period)
                     {
-                        context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Access, lastCreatedNode);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Period);
                     }
 
+                    context.MoveNext();
+                    lastCreatedNode = ProcessAccess(context, new ClassRefNode(true));
                     break;
                 case TokenType.AssignmentSeparator:
                     if (lastCreatedNode != null)
@@ -912,7 +895,12 @@ public static class TokenParser
         return lastCreatedNode;
     }
 
-    public static ExpressionNode? ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)
+    public static RefNode ProcessAccess(ParseContext context, ClassRefNode classRefNode)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)
     {
         var right = ProcessExpression(context, left);
 
@@ -931,27 +919,6 @@ public static class TokenParser
                 }
 
                 return new BinaryOperationNode(left, right, OperationType.Assignment);
-            case OperationType.Access:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        //Pain is me
-                        //if (bin.Type == OperationType.Access)
-                        //{
-                        //    bin.Left = new BinaryOperationNode(bin.Left, bin.Right, bin.Type);
-                        //    bin.Right = right;
-                        //    return null;
-                        //}
-
-                        if (GetOpPriority(bin.Type) <= GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Access);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Access);
             case OperationType.Addition:
                 {
                     if (left is BinaryOperationNode bin)
@@ -1156,8 +1123,6 @@ public static class TokenParser
     {
         switch (operationType)
         {
-            case OperationType.Access:
-                return 5;
             case OperationType.Exponential:
                 return 4;
             case OperationType.Modulo:

@@ -65,6 +65,7 @@ public static class Tokenizer
 								"accessible" => TokenType.Public,
                                 "relinquish" => TokenType.Return,
 								"inaccessible" => TokenType.Private,
+								"foreign" => TokenType.Foreign,
 								_ => TokenType.Name,
 							},
 						});
@@ -86,7 +87,7 @@ public static class Tokenizer
                         '>' when next is '=' => TokenType.LargerThanOrEqual,
                         '+' when next is '+' => TokenType.Increment,
                         '-' when next is '-' => TokenType.Decrement,
-                        '^' when next is '^' => TokenType.Exponential,
+                        '*' when next is '^' => TokenType.Exponential,
                         '|' when next is '|' => TokenType.LogicalOr,
                         '^' when next is '|' => TokenType.LogicalXor,
                         '&' when next is '&' => TokenType.LogicalAnd,

@@ -30,7 +30,6 @@ public enum OperationType
     And,
     Or,
     NotAnd,
-    Access,
     Modulo,
     Assignment
 }
