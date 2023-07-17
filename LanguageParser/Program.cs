@@ -1,9 +1,9 @@
 ﻿using System.Text.RegularExpressions;
-using LanguageParser.Tokens;
-using LanguageParser.AST;
+using Moth.Compiler.Tokens;
+using Moth.Compiler.AST;
 using System.Text;
 
-namespace LanguageParser;
+namespace Moth.Compiler;
 
 internal class Program
 {

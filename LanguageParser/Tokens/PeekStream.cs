@@ -1,4 +1,4 @@
-﻿namespace LanguageParser.Tokens;
+﻿namespace Moth.Compiler.Tokens;
 
 public struct PeekStream
 {

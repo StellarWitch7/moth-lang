@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.AST;
+namespace Moth.Compiler.AST;
 
 public class ReturnNode : StatementNode
 {

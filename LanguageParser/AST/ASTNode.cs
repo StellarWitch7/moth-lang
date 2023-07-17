@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Reflection;
 
-namespace LanguageParser.AST;
+namespace Moth.Compiler.AST;
 
 public partial class ASTNode
 {

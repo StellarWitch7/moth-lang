@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.AST
+namespace Moth.Compiler.AST
 {
     internal class MethodDefNode : StatementNode
     {

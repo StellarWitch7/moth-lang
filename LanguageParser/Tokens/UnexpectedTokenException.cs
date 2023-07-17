@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LanguageParser.Tokens;
+namespace Moth.Compiler.Tokens;
 
 public sealed class UnexpectedTokenException : Exception
 {

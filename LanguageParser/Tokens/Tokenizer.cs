@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace LanguageParser.Tokens;
+namespace Moth.Compiler.Tokens;
 
 public static class Tokenizer
 {

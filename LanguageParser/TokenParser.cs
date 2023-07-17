@@ -1,14 +1,14 @@
-﻿using LanguageParser.AST;
+﻿using Moth.Compiler.AST;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using LanguageParser.Tokens;
+using Moth.Compiler.Tokens;
 using System.Collections;
 
-namespace LanguageParser;
+namespace Moth.Compiler;
 
 public static class TokenParser
 {

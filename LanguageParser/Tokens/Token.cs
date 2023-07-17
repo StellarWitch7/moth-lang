@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace LanguageParser.Tokens;
+namespace Moth.Compiler.Tokens;
 
 public readonly struct Token
 {
