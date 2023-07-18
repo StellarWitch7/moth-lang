@@ -8,8 +8,10 @@ accessible thing TestClass {
   accessible maybe IsCatTallerThanDog;
 
   accessible maybe Calculate() {
+    local rope woof;
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
 	  self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
+    woof = "Bread crumb lump";
 	  relinquish self.IsCatTallerThanDog;
   }
 }

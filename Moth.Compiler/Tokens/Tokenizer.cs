@@ -18,166 +18,181 @@ public static class Tokenizer
 				
 				//Skip comments
 				case '/' when stream.Next is '/':
-				{
-					while (stream.MoveNext(out ch))
 					{
-						if (ch != '\n') continue;
+						while (stream.MoveNext(out ch))
+						{
+							if (ch != '\n') continue;
+							break;
+						}
+					
 						break;
 					}
-					
-					break;
-				}
 				
 				//Parse keywords or names
 				case '_':
 				case >= 'a' and <= 'z':
 				case >= 'A' and <= 'Z':
-				{
-					var keyword = stream.Peek(c => char.IsLetterOrDigit(c) || c == '_');
-						tokens.Add(new Token
-						{
-							Text = keyword,
-							Type = keyword.Span switch
+					{
+						var keyword = stream.Peek(c => char.IsLetterOrDigit(c) || c == '_');
+							tokens.Add(new Token
 							{
-								"whether" => TokenType.If,
-								"nix" => TokenType.Null,
-								"fresh" => TokenType.New,
-								"local" => TokenType.Var,
-								"i32" => TokenType.Int32,
-								"f32" => TokenType.Float32,
-								"rope" => TokenType.String,
-								"self" => TokenType.This,
-								"yeet" => TokenType.Throw,
-								"grid" => TokenType.Matrix,
-                                "unrelenting" => TokenType.Constant,
-								"whilst" => TokenType.While,
-								"maybe" => TokenType.Bool,
-								"yes" => TokenType.True,
-								"otherwise" => TokenType.Else,
-								"void" => TokenType.Void,
-								"no" => TokenType.False,
-								"every" => TokenType.For,
-								"within" => TokenType.In,
-								"attempt" => TokenType.Try,
-								"seize" => TokenType.Catch,
-								"thing" => TokenType.Class,
-								"wield" => TokenType.Import,
-								"accessible" => TokenType.Public,
-                                "relinquish" => TokenType.Return,
-								"inaccessible" => TokenType.Private,
-								"foreign" => TokenType.Foreign,
-								_ => TokenType.Name,
-							},
-						});
+								Text = keyword,
+								Type = keyword.Span switch
+								{
+									"whether" => TokenType.If,
+									"nix" => TokenType.Null,
+									"fresh" => TokenType.New,
+									"local" => TokenType.Var,
+									"i32" => TokenType.Int32,
+									"f32" => TokenType.Float32,
+									"rope" => TokenType.String,
+									"self" => TokenType.This,
+									"yeet" => TokenType.Throw,
+									"grid" => TokenType.Matrix,
+									"unrelenting" => TokenType.Constant,
+									"whilst" => TokenType.While,
+									"maybe" => TokenType.Bool,
+									"yes" => TokenType.True,
+									"otherwise" => TokenType.Else,
+									"void" => TokenType.Void,
+									"no" => TokenType.False,
+									"every" => TokenType.For,
+									"within" => TokenType.In,
+									"attempt" => TokenType.Try,
+									"seize" => TokenType.Catch,
+									"thing" => TokenType.Class,
+									"wield" => TokenType.Import,
+									"accessible" => TokenType.Public,
+									"relinquish" => TokenType.Return,
+									"inaccessible" => TokenType.Private,
+									"foreign" => TokenType.Foreign,
+									_ => TokenType.Name,
+								},
+							});
 
-					stream.Position += keyword.Length - 1;
-					break;
-				}
+						stream.Position += keyword.Length - 1;
+						break;
+					}
 
 				// Parse symbols
 				case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
-				{
-					var next = stream.Next;
-					var type = ch switch
 					{
-
-                        '=' when next is '=' => TokenType.Equal,
-                        '!' when next is '=' => TokenType.NotEqual,
-                        '<' when next is '=' => TokenType.LessThanOrEqual,
-                        '>' when next is '=' => TokenType.LargerThanOrEqual,
-                        '+' when next is '+' => TokenType.Increment,
-                        '-' when next is '-' => TokenType.Decrement,
-                        '*' when next is '^' => TokenType.Exponential,
-                        '|' when next is '|' => TokenType.LogicalOr,
-                        '^' when next is '|' => TokenType.LogicalXor,
-                        '&' when next is '&' => TokenType.LogicalAnd,
-                        '~' when next is '&' => TokenType.LogicalNand,
-                        ',' => TokenType.Comma,
-						'.' => TokenType.Period,
-						';' => TokenType.Semicolon,
-						'{' => TokenType.OpeningCurlyBraces,
-						'}' => TokenType.ClosingCurlyBraces,
-						'(' => TokenType.OpeningParentheses,
-						')' => TokenType.ClosingParentheses,
-						'[' => TokenType.OpeningSquareBrackets,
-						']' => TokenType.ClosingSquareBrackets,
-                        '>' => TokenType.LargerThan,
-                        '<' => TokenType.LessThan,
-						'"' => TokenType.DoubleQuote,
-                        '|' => TokenType.Or,
-                        '&' => TokenType.And,
-                        '!' => TokenType.Not,
-                        '^' => TokenType.Xor,
-                        '~' => TokenType.Nand,
-                        '@' => TokenType.NamespaceTag,
-                        '+' => TokenType.Addition,
-						'/' => TokenType.Division,
-						'-' => TokenType.Subtraction,
-						'*' => TokenType.Multiplication,
-						'%' => TokenType.Modulo,
-						'=' => TokenType.AssignmentSeparator,
-
-                        _ => throw new TokenizerException
+						var next = stream.Next;
+						var type = ch switch
 						{
-							Character = ch,
-							Line = stream.CurrentLine,
-							Column = stream.CurrentColumn,
-							Position = stream.Position,
-						},
-					};
 
-					var newToken = new Token
+							'=' when next is '=' => TokenType.Equal,
+							'!' when next is '=' => TokenType.NotEqual,
+							'<' when next is '=' => TokenType.LessThanOrEqual,
+							'>' when next is '=' => TokenType.LargerThanOrEqual,
+							'+' when next is '+' => TokenType.Increment,
+							'-' when next is '-' => TokenType.Decrement,
+							'*' when next is '^' => TokenType.Exponential,
+							'|' when next is '|' => TokenType.LogicalOr,
+							'^' when next is '|' => TokenType.LogicalXor,
+							'&' when next is '&' => TokenType.LogicalAnd,
+							'~' when next is '&' => TokenType.LogicalNand,
+							',' => TokenType.Comma,
+							'.' => TokenType.Period,
+							';' => TokenType.Semicolon,
+							'{' => TokenType.OpeningCurlyBraces,
+							'}' => TokenType.ClosingCurlyBraces,
+							'(' => TokenType.OpeningParentheses,
+							')' => TokenType.ClosingParentheses,
+							'[' => TokenType.OpeningSquareBrackets,
+							']' => TokenType.ClosingSquareBrackets,
+							'>' => TokenType.LargerThan,
+							'<' => TokenType.LessThan,
+							'|' => TokenType.Or,
+							'&' => TokenType.And,
+							'!' => TokenType.Not,
+							'^' => TokenType.Xor,
+							'~' => TokenType.Nand,
+							'@' => TokenType.NamespaceTag,
+							'+' => TokenType.Addition,
+							'/' => TokenType.Division,
+							'-' => TokenType.Subtraction,
+							'*' => TokenType.Multiplication,
+							'%' => TokenType.Modulo,
+							'=' => TokenType.AssignmentSeparator,
+
+							_ => throw new TokenizerException
+							{
+								Character = ch,
+								Line = stream.CurrentLine,
+								Column = stream.CurrentColumn,
+								Position = stream.Position,
+							},
+						};
+
+						var newToken = new Token
+						{
+							Text = type switch
+							{
+								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or
+									TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
+									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
+								_ => stream.Peek(1),
+							},
+							Type = type,
+						};
+
+						tokens.Add(newToken);
+						stream.Position += newToken.Text.Length - 1;
+						break;
+					}
+
+				case '"':
 					{
-						Text = type switch
-						{
-							TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or
-								TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
-								or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
-							_ => stream.Peek(1),
-						},
-						Type = type,
-					};
+						stream.Position++;
+						var @string = stream.Peek(c => c != '"');
 
-                    tokens.Add(newToken);
-					stream.Position += newToken.Text.Length - 1;
-					break;
-				}
+						tokens.Add(new Token
+						{
+							Text = @string,
+							Type = TokenType.LiteralString
+						});
+
+						stream.Position += @string.Length;
+						break;
+					}
 
 				case >= '0' and <= '9':
-				{
-					var number = stream.Peek(c => char.IsDigit(c) || c == '.');
-                    var dots = 0;
-                    var numberSpan = number.Span;
-                    for (var i = 0; i < numberSpan.Length; i++)
-                    {
-                        if (numberSpan[i] == '.') dots++;
-                        if (dots >= 2)
-                            throw new TokenizerException
-                            {
-                                Character = numberSpan[i],
-                                Position = stream.Position + i + 1,
-                                Column = stream.CurrentColumn + i + 1,
-                                Line = stream.CurrentLine,
-                            };
-                    }
-
-                    tokens.Add(new Token
 					{
-						Text = number,
-						Type = number.Span.Contains('.') ? TokenType.Float32 : TokenType.Int32,
-					});
+						var number = stream.Peek(c => char.IsDigit(c) || c == '.');
+						var dots = 0;
+						var numberSpan = number.Span;
+						for (var i = 0; i < numberSpan.Length; i++)
+						{
+							if (numberSpan[i] == '.') dots++;
+							if (dots >= 2)
+								throw new TokenizerException
+								{
+									Character = numberSpan[i],
+									Position = stream.Position + i + 1,
+									Column = stream.CurrentColumn + i + 1,
+									Line = stream.CurrentLine,
+								};
+						}
 
-					stream.Position += number.Length - 1;
-					break;
-				}
+						tokens.Add(new Token
+						{
+							Text = number,
+							Type = number.Span.Contains('.') ? TokenType.LiteralFloat : TokenType.LiteralInt,
+						});
+
+						stream.Position += number.Length - 1;
+						break;
+					}
 				
-				default: throw new TokenizerException
-				{
-					Character = ch,
-					Line = stream.CurrentLine,
-					Column = stream.CurrentColumn,
-					Position = stream.Position,
-				};
+				default:
+					throw new TokenizerException
+					{
+						Character = ch,
+						Line = stream.CurrentLine,
+						Column = stream.CurrentColumn,
+						Position = stream.Position,
+					};
 			}
 
 			stream.MoveNext();

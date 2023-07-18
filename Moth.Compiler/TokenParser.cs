@@ -674,15 +674,15 @@ public static class TokenParser
                 case TokenType.ClosingSquareBrackets:
                     if (isParent) context.MoveNext();
                     return lastCreatedNode;
-                case TokenType.Float32:
+                case TokenType.LiteralFloat:
                     lastCreatedNode = new ConstantNode(float.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
                     break;
-                case TokenType.Int32:
+                case TokenType.LiteralInt:
                     lastCreatedNode = new ConstantNode(BigInteger.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
                     break;
-                case TokenType.String:
+                case TokenType.LiteralString:
                     lastCreatedNode = new ConstantNode(context.Current.Value.Text);
                     context.MoveNext();
                     break;
