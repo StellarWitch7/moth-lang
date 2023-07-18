@@ -682,6 +682,10 @@ public static class TokenParser
                     lastCreatedNode = new ConstantNode(BigInteger.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
                     break;
+                case TokenType.String:
+                    lastCreatedNode = new ConstantNode(context.Current.Value.Text);
+                    context.MoveNext();
+                    break;
                 case TokenType.Addition:
                     if (lastCreatedNode != null)
                     {
@@ -868,7 +872,8 @@ public static class TokenParser
 
                     if (context.Current?.Type != TokenType.Period)
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Period);
+                        lastCreatedNode = new VariableRefNode(name, null, true);
+                        break;
                     }
 
                     context.MoveNext();
@@ -879,7 +884,8 @@ public static class TokenParser
 
                     if (context.Current?.Type != TokenType.Period)
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Period);
+                        lastCreatedNode = new ClassRefNode(true);
+                        break;
                     }
 
                     context.MoveNext();
@@ -952,7 +958,6 @@ public static class TokenParser
                         case TokenType.OpeningParentheses:
                             context.MoveNext();
                             newRefNode = new MethodCallNode(name, ProcessArgs(context), newRefNode);
-                            context.MoveNext();
                             break;
                     }
 
