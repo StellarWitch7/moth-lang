@@ -9,8 +9,8 @@ accessible thing TestClass {
 
   accessible maybe Calculate() {
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
-	self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
-	relinquish self.IsCatTallerThanDog;
+	  self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
+	  relinquish self.IsCatTallerThanDog;
   }
 }
 
@@ -22,8 +22,8 @@ accessible thing TestClass2 {
 	self.testingBool = TestClass.Calculate();
 	self.TestBool = TestClass.Calculate();
 	
-	whether 4 > 1 {
+	whether 4 > 1 { // the parser is still in an expression at this point
       Toot.GetGayness(5).ToString();
-	}
+	  }
   }
 }
