@@ -20,12 +20,17 @@ accessible thing TestClass2 {
   accessible unrelenting maybe TestBool;
 
   accessible void Run(maybe testParam) {
-	local maybe testingBool;
-	testingBool = TestClass.Calculate();
-	self.TestBool = TestClass.Calculate();
+	  local maybe testingBool;
+	  testingBool = TestClass.Calculate();
+	  self.TestBool = TestClass.Calculate();
 	
-	whether 4 > 1 {
+    whether 4 > 1 {
       Toot.GetGayness(5).ToString();
+      relinquish;
 	  }
+  }
+
+  inaccessible TestClass ToString() {
+    relinquish fresh TestClass(2);
   }
 }

@@ -686,6 +686,16 @@ public static class TokenParser
                     lastCreatedNode = new ConstantNode(context.Current.Value.Text);
                     context.MoveNext();
                     break;
+                case TokenType.New:
+                    context.MoveNext();
+
+                    if (context.Current?.Type != TokenType.Name)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+                    }
+
+                    lastCreatedNode = ProcessNew(context);
+                    break;
                 case TokenType.Addition:
                     if (lastCreatedNode != null)
                     {
@@ -914,6 +924,20 @@ public static class TokenParser
         }
 
         return lastCreatedNode;
+    }
+
+    public static MethodCallNode ProcessNew(ParseContext context)
+    {
+        string name = context.Current.Value.Text.ToString();
+        context.MoveNext();
+
+        if (context.Current?.Type != TokenType.OpeningParentheses)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
+        }
+
+        context.MoveNext();
+        return new MethodCallNode(name, ProcessArgs(context), new ClassRefNode(false, name));
     }
 
     public static RefNode ProcessAccess(ParseContext context, ClassRefNode classRefNode)

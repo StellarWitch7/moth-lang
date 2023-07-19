@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Moth.Compiler.Tokens;
 
@@ -74,8 +75,41 @@ public static class Tokenizer
 						break;
 					}
 
-				// Parse symbols
-				case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
+                case '"':
+                    {
+                        stream.Position++;
+						var builder = new StringBuilder();
+
+						while (stream.Current != null)
+						{
+							if (stream.Current == '"')
+							{
+								stream.Position++;
+								break;
+							}
+
+                            if (stream.Current == '\\')
+                            {
+                                stream.Position++;
+                            }
+
+                            builder.Append(stream.Current);
+							stream.Position++;
+						}
+
+						string @string = builder.ToString();
+                        tokens.Add(new Token
+                        {
+                            Text = @string.AsMemory(),
+                            Type = TokenType.LiteralString
+                        });
+
+                        stream.Position += @string.Length;
+                        break;
+                    }
+
+                // Parse symbols
+                case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
 					{
 						var next = stream.Next;
 						var type = ch switch
@@ -139,21 +173,6 @@ public static class Tokenizer
 
 						tokens.Add(newToken);
 						stream.Position += newToken.Text.Length - 1;
-						break;
-					}
-
-				case '"':
-					{
-						stream.Position++;
-						var @string = stream.Peek(c => c != '"');
-
-						tokens.Add(new Token
-						{
-							Text = @string,
-							Type = TokenType.LiteralString
-						});
-
-						stream.Position += @string.Length;
 						break;
 					}
 
