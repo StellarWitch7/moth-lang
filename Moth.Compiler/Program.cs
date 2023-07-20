@@ -2,6 +2,7 @@
 using Moth.Compiler.Tokens;
 using Moth.Compiler.AST;
 using System.Text;
+using LLVMSharp.Interop;
 
 namespace Moth.Compiler;
 
@@ -66,11 +67,12 @@ internal class Program
 	        }
             
 	        Console.WriteLine();
-            PrintTokens(tokens, 0.02f); //Testing
+            PrintTokens(tokens, 0.01f); //Testing
             var scriptAST = TokenParser.ProcessScript(new ParseContext(tokens));
             Console.WriteLine();
-            Console.WriteLine(scriptAST.GetDebugString("  "));
+            Console.WriteLine(scriptAST.GetDebugString("  ")); //Testing
             Console.WriteLine();
+            LLVMCodeGenerator.ConvertScript(new CompilerContext("script"), scriptAST);
 
             _script.Clear();
             return true;
