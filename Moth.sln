@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33627.172
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moth.LunaCode", "Moth.LunaIDE\Moth.LunaCode.csproj", "{EA2CA802-D784-428C-AD39-0F236BAD0CF6}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moth.Compiler", "Moth.Compiler\Moth.Compiler.csproj", "{A936BB7B-5716-4606-AA45-11F5843341DD}"
 EndProject
 Global
@@ -13,10 +11,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EA2CA802-D784-428C-AD39-0F236BAD0CF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EA2CA802-D784-428C-AD39-0F236BAD0CF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EA2CA802-D784-428C-AD39-0F236BAD0CF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EA2CA802-D784-428C-AD39-0F236BAD0CF6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A936BB7B-5716-4606-AA45-11F5843341DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A936BB7B-5716-4606-AA45-11F5843341DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A936BB7B-5716-4606-AA45-11F5843341DD}.Release|Any CPU.ActiveCfg = Release|Any CPU

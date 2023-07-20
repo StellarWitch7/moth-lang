@@ -2,8 +2,6 @@
 
 [Home Page](https://stellarwitch7.github.io)
 
-<img src="https://raw.githubusercontent.com/StellarWitch7/Moth/main/logo.svg" width="70" height="70">
-
 # About
 
 A fun little language parser. Currently not functional. 
