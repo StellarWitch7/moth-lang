@@ -1,14 +1,14 @@
 ﻿using Moth.Compiler.Tokens;
 
-namespace Moth.Compiler;
+namespace Moth.Compiler.AST;
 
 public class ParseContext
 {
-	public readonly int Length;
-	private readonly List<Token> _tokens;
-	public int Position { get; private set; }
+    public readonly int Length;
+    private readonly List<Token> _tokens;
+    public int Position { get; private set; }
 
-	public ParseContext(List<Token> tokens)
+    public ParseContext(List<Token> tokens)
     {
         _tokens = tokens;
         Length = _tokens.Count;
@@ -26,7 +26,7 @@ public class ParseContext
             return _tokens[Position];
         }
     }
-    
+
     public void MoveNext()
     {
         Position++;

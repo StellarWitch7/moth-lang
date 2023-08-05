@@ -2,35 +2,35 @@
 
 wield @test.namespace;
 
-accessible thing TestClass {
-  inaccessible f32 catHeight;
-  inaccessible i32 dogHeight;
-  accessible maybe IsCatTallerThanDog;
+public object TestClass {
+  private f32 catHeight;
+  private i32 dogHeight;
+  public bool IsCatTallerThanDog;
 
-  accessible maybe Calculate() {
-    local rope woof;
+  public bool Calculate() {
+    local string woof;
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
 	  self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
     woof = "Bread crumb lump";
-	  relinquish self.IsCatTallerThanDog;
+	  return self.IsCatTallerThanDog;
   }
 }
 
-accessible thing TestClass2 {
-  accessible unrelenting maybe TestBool;
+public object TestClass2 {
+  public unrelenting bool TestBool;
 
-  accessible void Run(maybe testParam) {
-	  local maybe testingBool;
+  public void Run(bool testParam) {
+	  local bool testingBool;
 	  testingBool = TestClass.Calculate();
 	  self.TestBool = TestClass.Calculate();
 	
-    whether 4 > 1 {
+    if 4 > 1 {
       Toot.GetGayness(5).ToString();
-      relinquish;
+      return;
 	  }
   }
 
-  inaccessible TestClass ToString() {
-    relinquish fresh TestClass(2);
+  private TestClass ToString() {
+    return new TestClass(2);
   }
 }

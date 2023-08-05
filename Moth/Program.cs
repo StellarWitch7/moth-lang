@@ -3,6 +3,7 @@ using Moth.Compiler.Tokens;
 using Moth.Compiler.AST;
 using System.Text;
 using LLVMSharp.Interop;
+using Moth.Compiler.LLVM;
 
 namespace Moth.Compiler;
 

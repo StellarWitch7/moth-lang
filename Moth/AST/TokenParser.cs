@@ -1,5 +1,4 @@
-﻿using Moth.Compiler.AST;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -8,7 +7,7 @@ using System.Threading.Tasks;
 using Moth.Compiler.Tokens;
 using System.Collections;
 
-namespace Moth.Compiler;
+namespace Moth.Compiler.AST;
 
 public static class TokenParser
 {
@@ -62,7 +61,7 @@ public static class TokenParser
                     if (context.Current?.Type == TokenType.Class)
                     {
                         context.MoveNext();
-                        
+
                         if (context.Current?.Type == TokenType.Name)
                         {
                             string className = context.Current.Value.Text.ToString();
@@ -610,7 +609,7 @@ public static class TokenParser
         if (context.Current?.Type == TokenType.Else)
         {
             context.MoveNext();
-            
+
             if (context.Current?.Type == TokenType.If)
             {
                 context.MoveNext();

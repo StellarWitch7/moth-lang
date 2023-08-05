@@ -5,13 +5,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.Compiler;
+namespace Moth.LLVM;
 
 public class CompilerContext
 {
     public LLVMContextRef Context { get; set; }
     public LLVMBuilderRef Builder { get; set; }
     public LLVMModuleRef Module { get; set; }
+    public Dictionary<string, Class> Classes { get; set; }
+    public Dictionary<string, Function> GlobalFunctions { get; set; }
 
     public CompilerContext(string moduleName)
     {
