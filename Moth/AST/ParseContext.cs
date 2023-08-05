@@ -1,6 +1,6 @@
-﻿using Moth.Compiler.Tokens;
+﻿using Moth.Tokens;
 
-namespace Moth.Compiler.AST;
+namespace Moth.AST;
 
 public class ParseContext
 {

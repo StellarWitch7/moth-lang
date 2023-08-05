@@ -1,6 +1,6 @@
 ﻿using System.CodeDom.Compiler;
 
-namespace Moth.Compiler.AST;
+namespace Moth.AST;
 
 public class ConstantNode : ExpressionNode
 {

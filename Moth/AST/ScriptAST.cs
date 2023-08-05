@@ -1,11 +1,11 @@
-﻿using Moth.Compiler.Tokens;
+﻿using Moth.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.Compiler.AST;
+namespace Moth.AST;
 
 public class ScriptAST : ASTNode
 {

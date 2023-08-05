@@ -3,7 +3,7 @@ using System.Collections;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Moth.Compiler.AST;
+namespace Moth.AST;
 
 public partial class ASTNode
 {

@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Moth.Compiler.Tokens;
+namespace Moth.Tokens;
 
 public static class Tokenizer
 {

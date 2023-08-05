@@ -4,10 +4,10 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using Moth.Compiler.Tokens;
+using Moth.Tokens;
 using System.Collections;
 
-namespace Moth.Compiler.AST;
+namespace Moth.AST;
 
 public static class TokenParser
 {

@@ -1,11 +1,11 @@
 ﻿using System.Text.RegularExpressions;
-using Moth.Compiler.Tokens;
-using Moth.Compiler.AST;
+using Moth.Tokens;
+using Moth.AST;
 using System.Text;
 using LLVMSharp.Interop;
-using Moth.Compiler.LLVM;
+using Moth.LLVM;
 
-namespace Moth.Compiler;
+namespace Moth;
 
 internal class Program
 {

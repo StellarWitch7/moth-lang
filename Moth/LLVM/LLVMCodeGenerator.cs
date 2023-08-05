@@ -1,5 +1,5 @@
 ﻿using LLVMSharp.Interop;
-using Moth.Compiler.AST;
+using Moth.AST;
 using System;
 using System.Collections.Generic;
 using System.Linq;

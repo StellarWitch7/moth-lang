@@ -1,4 +1,4 @@
-﻿namespace Moth.Compiler.AST;
+﻿namespace Moth.AST;
 
 public class BinaryOperationNode : ExpressionNode
 {
