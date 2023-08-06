@@ -10,12 +10,12 @@ public class ClassNode : ASTNode
 {
     public string Name { get; }
     public PrivacyType Privacy { get; }
-    public StatementListNode StatementListNode { get; }
+    public ScopeNode Scope { get; }
 
-    public ClassNode(string name, PrivacyType privacy, StatementListNode statementListNode)
+    public ClassNode(string name, PrivacyType privacy, ScopeNode scope)
     {
         Name = name;
         Privacy = privacy;
-        StatementListNode = statementListNode;
+        Scope = scope;
     }
 }

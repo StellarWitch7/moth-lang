@@ -97,5 +97,6 @@ public enum TokenType
     LogicalAnd,
     LogicalNand,
     DoubleQuote,
-    Foreign
+    Foreign,
+    Function
 }

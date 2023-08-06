@@ -25,7 +25,7 @@ public static class LLVMCodeGenerator
 
         List<LLVMTypeRef> types = new List<LLVMTypeRef>();
 
-        foreach (FieldNode field in @class.StatementListNode.StatementNodes.OfType<FieldNode>())
+        foreach (FieldNode field in @class.Scope.Statements.OfType<FieldNode>())
         {
             types.Add(DefToLLVMType(field.Type));
         }
@@ -34,7 +34,7 @@ public static class LLVMCodeGenerator
         var newClass = new Class(newStruct, @class.Privacy);
         compiler.Classes.Add(@class.Name, newClass);
 
-        foreach (MethodDefNode methodDef in @class.StatementListNode.StatementNodes.OfType<MethodDefNode>())
+        foreach (MethodDefNode methodDef in @class.Scope.Statements.OfType<MethodDefNode>())
         {
             ConvertMethod(compiler, newClass, methodDef);
         }
@@ -44,7 +44,7 @@ public static class LLVMCodeGenerator
     {
         List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef> { LLVMTypeRef.CreatePointer(@class.LLVMClass, 0) };
 
-        foreach (ParameterNode param in methodDef.Params.ParameterNodes)
+        foreach (ParameterNode param in methodDef.Params)
         {
             paramTypes.Add(DefToLLVMType(param.Type));
         }

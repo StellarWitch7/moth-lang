@@ -16,6 +16,7 @@ public static class TokenParser
         AssignNamespaceNode assignNamespaceNode;
         List<ImportNode> imports = new List<ImportNode>();
         List<ClassNode> classes = new List<ClassNode>();
+        List<MethodDefNode> funcs = new List<MethodDefNode>();
 
         if (context.Current?.Type == TokenType.NamespaceTag)
         {
@@ -34,6 +35,47 @@ public static class TokenParser
                 case TokenType.Import:
                     context.MoveNext();
                     imports.Add(ProcessImport(context));
+                    break;
+                case TokenType.Function:
+                    context.MoveNext();
+
+                    switch (context.Current?.Type)
+                    {
+                        case TokenType.Bool:
+                            context.MoveNext();
+                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
+                                DefinitionType.Bool));
+                            break;
+                        case TokenType.String:
+                            context.MoveNext();
+                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
+                                DefinitionType.String));
+                            break;
+                        case TokenType.Int32:
+                            context.MoveNext();
+                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
+                                DefinitionType.Int32));
+                            break;
+                        case TokenType.Float32:
+                            context.MoveNext();
+                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
+                                DefinitionType.Float32));
+                            break;
+                        case TokenType.Void:
+                            context.MoveNext();
+                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
+                                DefinitionType.Void));
+                            break;
+                        case TokenType.Name:
+                            string name = context.Current.Value.Text.ToString();
+                            context.MoveNext();
+                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
+                                DefinitionType.ClassObject, new ClassRefNode(false, name)));
+                            break;
+                        default:
+                            throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
                     break;
                 case TokenType.Public:
                     context.MoveNext();
@@ -80,7 +122,7 @@ public static class TokenParser
             }
         }
 
-        return new ScriptAST(assignNamespaceNode, imports, classes);
+        return new ScriptAST(assignNamespaceNode, imports, classes, funcs);
     }
 
     public static NamespaceNode ProcessNamespace(ParseContext context)
@@ -132,7 +174,7 @@ public static class TokenParser
         if (context.Current?.Type == TokenType.OpeningCurlyBraces)
         {
             context.MoveNext();
-            return new ClassNode(name, privacy, ProcessStatementList(context, true));
+            return new ClassNode(name, privacy, ProcessBlock(context, true));
         }
         else
         {
@@ -140,7 +182,7 @@ public static class TokenParser
         }
     }
 
-    public static StatementListNode ProcessStatementList(ParseContext context, bool isClassRoot = false)
+    public static ScopeNode ProcessBlock(ParseContext context, bool isClassRoot = false)
     {
         List<StatementNode> statements = new List<StatementNode>();
 
@@ -152,7 +194,7 @@ public static class TokenParser
                     if (!isClassRoot)
                     {
                         context.MoveNext();
-                        statements.Add(ProcessStatementList(context));
+                        statements.Add(ProcessBlock(context));
                         break;
                     }
                     else
@@ -161,7 +203,7 @@ public static class TokenParser
                     }
                 case TokenType.ClosingCurlyBraces:
                     context.MoveNext();
-                    return new StatementListNode(statements);
+                    return new ScopeNode(statements);
                 case TokenType.If:
                     if (!isClassRoot)
                     {
@@ -466,8 +508,9 @@ public static class TokenParser
             if (context.Current?.Type == TokenType.OpeningCurlyBraces)
             {
                 context.MoveNext();
-                var statements = ProcessStatementList(context);
-                return new MethodDefNode(name, privacyType, defType, @params, statements);
+                var statements = ProcessBlock(context);
+
+                return new MethodDefNode(name, privacyType, defType, @params, statements, classRef);
             }
             else
             {
@@ -477,7 +520,7 @@ public static class TokenParser
         else if (context.Current?.Type == TokenType.Semicolon)
         {
             context.MoveNext();
-            return new FieldNode(name, privacyType, defType, isConstant);
+            return new FieldNode(name, privacyType, defType, isConstant, classRef);
         }
         else
         {
@@ -485,7 +528,7 @@ public static class TokenParser
         }
     }
 
-    public static ParameterListNode ProcessParameterList(ParseContext context)
+    public static List<ParameterNode> ProcessParameterList(ParseContext context)
     {
         List<ParameterNode> @params = new List<ParameterNode>();
 
@@ -495,7 +538,7 @@ public static class TokenParser
             {
                 case TokenType.ClosingParentheses:
                     context.MoveNext();
-                    return new ParameterListNode(@params);
+                    return @params;
                 case TokenType.Comma:
                     context.MoveNext();
                     break;
@@ -599,12 +642,12 @@ public static class TokenParser
     public static IfNode ProcessIf(ParseContext context)
     {
         var condition = ProcessExpression(context, null);
-        var then = ProcessStatementList(context);
+        var then = ProcessBlock(context);
         var @else = ProcessElse(context);
         return new IfNode(condition, then, @else);
     }
 
-    public static StatementListNode? ProcessElse(ParseContext context)
+    public static ScopeNode? ProcessElse(ParseContext context)
     {
         if (context.Current?.Type == TokenType.Else)
         {
@@ -613,7 +656,7 @@ public static class TokenParser
             if (context.Current?.Type == TokenType.If)
             {
                 context.MoveNext();
-                return new StatementListNode(new List<StatementNode>
+                return new ScopeNode(new List<StatementNode>
                 {
                     ProcessIf(context)
                 });
@@ -621,7 +664,7 @@ public static class TokenParser
             else
             {
                 context.MoveNext();
-                return ProcessStatementList(context);
+                return ProcessBlock(context);
             }
         }
         else

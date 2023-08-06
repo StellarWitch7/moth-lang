@@ -2,6 +2,10 @@
 
 wield @test.namespace;
 
+func i32 FloatToInt(f32 float) {
+  return float.Rounded(1);
+}
+
 public object TestClass {
   private f32 catHeight;
   private i32 dogHeight;
@@ -11,13 +15,13 @@ public object TestClass {
     local string woof;
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
 	  self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
-    woof = "Bread crumb lump";
+    //woof = "Bread crumb lump"; //strings break the following return statement? odd
 	  return self.IsCatTallerThanDog;
   }
 }
 
 public object TestClass2 {
-  public unrelenting bool TestBool;
+  public constant bool TestBool;
 
   public void Run(bool testParam) {
 	  local bool testingBool;
