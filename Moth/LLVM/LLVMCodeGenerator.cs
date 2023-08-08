@@ -64,8 +64,10 @@ public static class LLVMCodeGenerator
                 return LLVMTypeRef.Float;
             case DefinitionType.Bool:
                 return LLVMTypeRef.Int1;
+            case DefinitionType.String:
+                return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0); //compiler.Context.GetConstString() for literal strings
             default:
-                throw new NotImplementedException();
+                throw new NotImplementedException(); //can't handle other types D:
         }
     }
 }

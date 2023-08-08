@@ -15,7 +15,7 @@ public object TestClass {
     local string woof;
     self.IsCatTallerThanDog = self.dogHeight < self.catHeight;
 	  self.catHeight = 4 * self.dogHeight *^ (self.catHeight + 3);
-    //woof = "Bread crumb lump"; //strings break the following return statement? odd
+    woof = "Bread \"crumb\" lump";
 	  return self.IsCatTallerThanDog;
   }
 }
@@ -31,7 +31,7 @@ public object TestClass2 {
     if 4 > 1 {
       Toot.GetGayness(5).ToString();
       return;
-	  }
+    }
   }
 
   private TestClass ToString() {

@@ -76,6 +76,7 @@ public static class Tokenizer
 						break;
 					}
 
+				//Parse strings
                 case '"':
                     {
                         stream.Position++;
@@ -85,7 +86,6 @@ public static class Tokenizer
 						{
 							if (stream.Current == '"')
 							{
-								stream.Position++;
 								break;
 							}
 
@@ -105,8 +105,7 @@ public static class Tokenizer
                             Type = TokenType.LiteralString
                         });
 
-                        stream.Position += @string.Length;
-                        break;
+                        break; //TODO: skips the character after the end of the string
                     }
 
                 // Parse symbols
