@@ -107,6 +107,8 @@ public static class LLVMCodeGenerator
     {
         switch (definitionType)
         {
+            case DefinitionType.Void:
+                return LLVMTypeRef.Void;
             case DefinitionType.Int32:
                 return LLVMTypeRef.Int32;
             case DefinitionType.Float32:
