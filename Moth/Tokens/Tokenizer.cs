@@ -62,7 +62,7 @@ public static class Tokenizer
 									"func" => TokenType.Function,
                                     "attempt" => TokenType.Try,
 									"seize" => TokenType.Catch,
-									"object" => TokenType.Class,
+									"class" => TokenType.Class,
 									"wield" => TokenType.Import,
 									"public" => TokenType.Public,
 									"return" => TokenType.Return,
@@ -105,14 +105,14 @@ public static class Tokenizer
                             Type = TokenType.LiteralString
                         });
 
-                        break; //TODO: skips the character after the end of the string
+                        break;
                     }
 
                 // Parse symbols
                 case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
 					{
 						var next = stream.Next;
-						var type = ch switch
+						TokenType? type = ch switch
 						{
 
 							'=' when next is '=' => TokenType.Equal,
@@ -151,12 +151,12 @@ public static class Tokenizer
 							'=' => TokenType.AssignmentSeparator,
 
 							_ => throw new TokenizerException
-							{
-								Character = ch,
-								Line = stream.CurrentLine,
-								Column = stream.CurrentColumn,
-								Position = stream.Position,
-							},
+                            {
+                                Character = ch,
+                                Line = stream.CurrentLine,
+                                Column = stream.CurrentColumn,
+                                Position = stream.Position,
+                            },
 						};
 
 						var newToken = new Token
@@ -168,7 +168,7 @@ public static class Tokenizer
 									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
 								_ => stream.Peek(1),
 							},
-							Type = type,
+							Type = (TokenType)type,
 						};
 
 						tokens.Add(newToken);
@@ -212,6 +212,7 @@ public static class Tokenizer
 						Column = stream.CurrentColumn,
 						Position = stream.Position,
 					};
+					break;
 			}
 
 			stream.MoveNext();

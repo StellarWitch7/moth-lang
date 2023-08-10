@@ -16,94 +16,98 @@ public static class LLVMCodeGenerator
     {
         foreach (var @class in script.ClassNodes)
         {
-            compiler.Classes.Add(@class.Name, ConvertClass(compiler, @class));
+            LLVMTypeRef newStruct = compiler.Context.CreateNamedStruct(@class.Name);
+            compiler.Classes.Add(@class.Name, new Class(newStruct, @class.Privacy));
+        }
+
+        foreach (var @class in script.ClassNodes)
+        {
+            ConvertClass(compiler, @class);
         }
     }
 
-    public static Class ConvertClass(CompilerContext compiler, ClassNode @class)
+    public static void ConvertClass(CompilerContext compiler, ClassNode classNode)
     {
-        LLVMTypeRef newStruct = compiler.Context.CreateNamedStruct(@class.Name);
-
         List<LLVMTypeRef> types = new List<LLVMTypeRef>();
 
-        foreach (FieldNode field in @class.Scope.Statements.OfType<FieldNode>())
+        foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
         {
-            types.Add(DefToLLVMType(field.Type));
+            types.Add(DefToLLVMType(compiler, field.Type, field.TypeObject));
         }
 
-        newStruct.StructSetBody(types.ToArray(), false);
-        var newClass = new Class(newStruct, @class.Privacy);
-        
+        compiler.Classes.TryGetValue(classNode.Name, out Class @class);
+        @class.LLVMClass.StructSetBody(types.ToArray(), false);
 
-        foreach (MethodDefNode methodDef in @class.Scope.Statements.OfType<MethodDefNode>())
+        foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
         {
-            newClass.Functions.Add(methodDef.Name, ConvertMethod(compiler, newClass, methodDef));
-        }
-    }
-
-    public static Function ConvertMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
-    {
-        List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef> { LLVMTypeRef.CreatePointer(@class.LLVMClass, 0) };
-
-        foreach (ParameterNode param in methodDef.Params)
-        {
-            paramTypes.Add(DefToLLVMType(param.Type));
-        }
-
-        var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(methodDef.ReturnType), paramTypes.ToArray());
-        LLVMValueRef func = compiler.Module.AddFunction(methodDef.Name, funcType);
-        @class.Functions.Add(methodDef.Name, new Function(func, methodDef.Privacy));
-    }
-
-    public static Block ConvertBlock(CompilerContext compiler, Function func, ScopeNode scope)
-    {
-        foreach (StatementNode statement in scope.Statements)
-        {
-            if (statement is IfNode @if)
-            {
-                LLVMValueRef condition = ConvertExpression(compiler, @if.Condition); //I don't know what the hell I'm doing
-
-                var then = compiler.Context.AppendBasicBlock(func.LLVMFunc, "then");
-                var @else = compiler.Context.AppendBasicBlock(func.LLVMFunc, "else");
-                var @continue = compiler.Context.AppendBasicBlock(func.LLVMFunc, "continue");
-
-                compiler.Builder.BuildCondBr(condition, then, @else);
-
-                //then
-                {
-                    compiler.Builder.PositionAtEnd(then);
-                    ConvertBlock(compiler, func, @if.Then);
-                    compiler.Builder.BuildBr(@continue);
-                }
-
-                //else
-                {
-                    compiler.Builder.PositionAtEnd(@else);
-
-                    if (@if.Else != null)
-                    {
-                        ConvertBlock(compiler, func, @if.Else);
-                    }
-
-                    compiler.Builder.BuildBr(@continue);
-                }
-
-                //continue
-                {
-                    compiler.Builder.PositionAtEnd(@continue);
-                }
-            }
-            else if (statement is BinaryOperationNode binaryOp)
-            {
-                if (binaryOp.Type != OperationType.Assignment)
-                {
-                    throw new Exception();
-                }
-            }
+           //@class.Functions.Add(methodDef.Name, ConvertMethod(compiler, classNode, methodDef));
         }
     }
 
-    public static LLVMTypeRef DefToLLVMType(DefinitionType definitionType)
+    //public static Function ConvertMethod(CompilerContext compiler, ClassNode classNode, MethodDefNode methodDef)
+    //{
+    //    compiler.Classes.TryGetValue(classNode.Name, out Class @class);
+    //    List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef> { LLVMTypeRef.CreatePointer(@class.LLVMClass, 0) };
+
+    //    foreach (ParameterNode param in methodDef.Params)
+    //    {
+    //        paramTypes.Add(DefToLLVMType(param.Type));
+    //    }
+
+    //    var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(methodDef.ReturnType), paramTypes.ToArray());
+    //    LLVMValueRef func = compiler.Module.AddFunction(methodDef.Name, funcType);
+    //    @class.Functions.Add(methodDef.Name, new Function(func, methodDef.Privacy));
+    //}
+
+    //public static Block ConvertBlock(CompilerContext compiler, Function func, ScopeNode scope)
+    //{
+    //    foreach (StatementNode statement in scope.Statements)
+    //    {
+    //        if (statement is IfNode @if)
+    //        {
+    //            LLVMValueRef condition = ConvertExpression(compiler, @if.Condition); //I don't know what the hell I'm doing
+
+    //            var then = compiler.Context.AppendBasicBlock(func.LLVMFunc, "then");
+    //            var @else = compiler.Context.AppendBasicBlock(func.LLVMFunc, "else");
+    //            var @continue = compiler.Context.AppendBasicBlock(func.LLVMFunc, "continue");
+
+    //            compiler.Builder.BuildCondBr(condition, then, @else);
+
+    //            //then
+    //            {
+    //                compiler.Builder.PositionAtEnd(then);
+    //                ConvertBlock(compiler, func, @if.Then);
+    //                compiler.Builder.BuildBr(@continue);
+    //            }
+
+    //            //else
+    //            {
+    //                compiler.Builder.PositionAtEnd(@else);
+
+    //                if (@if.Else != null)
+    //                {
+    //                    ConvertBlock(compiler, func, @if.Else);
+    //                }
+
+    //                compiler.Builder.BuildBr(@continue);
+    //            }
+
+    //            //continue
+    //            {
+    //                compiler.Builder.PositionAtEnd(@continue);
+    //            }
+    //        }
+    //        else if (statement is BinaryOperationNode binaryOp)
+    //        {
+    //            if (binaryOp.Type != OperationType.Assignment)
+    //            {
+    //                throw new Exception();
+    //            }
+    //        }
+    //    }
+    //}
+
+    public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode classRef = null)
     {
         switch (definitionType)
         {
@@ -117,6 +121,10 @@ public static class LLVMCodeGenerator
                 return LLVMTypeRef.Int1;
             case DefinitionType.String:
                 return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0); //compiler.Context.GetConstString() for literal strings
+            case DefinitionType.ClassObject:
+                compiler.Classes.TryGetValue(classRef.Name, out Class? @class);
+                if (@class == null) throw new Exception("Attempted to reference a class that does not exist in the current environment.");
+                return @class.LLVMClass;
             default:
                 throw new NotImplementedException(); //can't handle other types D:
         }

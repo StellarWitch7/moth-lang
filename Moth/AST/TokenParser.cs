@@ -173,6 +173,7 @@ public static class TokenParser
     {
         if (context.Current?.Type == TokenType.OpeningCurlyBraces)
         {
+            context.CurrentClassName = name;
             context.MoveNext();
             return new ClassNode(name, privacy, ProcessBlock(context, true));
         }
@@ -415,7 +416,7 @@ public static class TokenParser
 
                         if (context.Current?.Type == TokenType.This)
                         {
-                            classRef = new ClassRefNode(true);
+                            classRef = new ClassRefNode(true, context.CurrentClassName);
                             context.MoveNext();
                         }
                         else if (context.Current?.Type == TokenType.Name)
@@ -450,7 +451,7 @@ public static class TokenParser
 
                         if (context.Current?.Type == TokenType.This)
                         {
-                            classRef = new ClassRefNode(true);
+                            classRef = new ClassRefNode(true, context.CurrentClassName);
                             context.MoveNext();
                         }
                         else if (context.Current?.Type == TokenType.Name)
@@ -485,8 +486,8 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static StatementNode ProcessDefinition(ParseContext context, PrivacyType privacyType, bool isConstant,
-        DefinitionType defType, ClassRefNode? classRef = null)
+    public static StatementNode ProcessDefinition(ParseContext context,
+        PrivacyType privacyType, bool isConstant, DefinitionType defType, ClassRefNode? classRef = null)
     {
         string name;
 
@@ -936,12 +937,12 @@ public static class TokenParser
 
                     if (context.Current?.Type != TokenType.Period)
                     {
-                        lastCreatedNode = new ClassRefNode(true);
+                        lastCreatedNode = new ClassRefNode(true, context.CurrentClassName);
                         break;
                     }
 
                     context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new ClassRefNode(true));
+                    lastCreatedNode = ProcessAccess(context, new ClassRefNode(true, context.CurrentClassName));
                     break;
                 case TokenType.AssignmentSeparator:
                     if (lastCreatedNode != null)
@@ -1252,6 +1253,7 @@ public static class TokenParser
                 return new BinaryOperationNode(left, right, OperationType.LogicalNand);
             default:
                 throw new UnexpectedTokenException(context.Current.Value);
+                return null;
         }
     }
 

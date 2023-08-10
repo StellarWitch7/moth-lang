@@ -6,7 +6,7 @@ func i32 FloatToInt(f32 float) {
   return float.Rounded(1);
 }
 
-public object TestClass {
+public class TestClass {
   private f32 catHeight;
   private i32 dogHeight;
   public bool IsCatTallerThanDog;
@@ -20,7 +20,7 @@ public object TestClass {
   }
 }
 
-public object TestClass2 {
+public class TestClass2 {
   public constant bool TestBool;
 
   public void Run(bool testParam) {

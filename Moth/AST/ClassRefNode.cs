@@ -11,7 +11,7 @@ public class ClassRefNode : RefNode
     public string Name { get; }
     public bool IsCurrentClass { get; }
 
-    public ClassRefNode(bool isCurrentClass, string name = "this")
+    public ClassRefNode(bool isCurrentClass, string name)
     {
         Name = name;
         IsCurrentClass = isCurrentClass;
