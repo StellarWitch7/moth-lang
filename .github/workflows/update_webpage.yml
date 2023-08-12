@@ -19,7 +19,7 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source_file: './moth.md'
+          source_file: './docs/moth.md'
           destination_repo: 'StellarWitch7/stellarwitch7.github.io'
           destination_folder: './markdown/'
           user_email: '131844170+StellarWitch7@users.noreply.github.com'
