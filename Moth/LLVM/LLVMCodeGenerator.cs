@@ -16,14 +16,19 @@ public static class LLVMCodeGenerator
     {
         foreach (var @class in script.ClassNodes)
         {
-            LLVMTypeRef newStruct = compiler.Context.CreateNamedStruct(@class.Name);
-            compiler.Classes.Add(@class.Name, new Class(newStruct, @class.Privacy));
+            DefineClass(compiler, @class);
         }
 
         foreach (var @class in script.ClassNodes)
         {
             ConvertClass(compiler, @class);
         }
+    }
+
+    public static void DefineClass(CompilerContext compiler, ClassNode classNode)
+    {
+        LLVMTypeRef newStruct = compiler.Context.CreateNamedStruct(classNode.Name);
+        compiler.Classes.Add(classNode.Name, new Class(newStruct, classNode.Privacy));
     }
 
     public static void ConvertClass(CompilerContext compiler, ClassNode classNode)
@@ -40,24 +45,33 @@ public static class LLVMCodeGenerator
 
         foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
         {
-           //@class.Functions.Add(methodDef.Name, ConvertMethod(compiler, classNode, methodDef));
+            DefineMethod(compiler, @class, methodDef);
+        }
+
+        foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
+        {
+            ConvertMethod(compiler, @class, methodDef);
         }
     }
 
-    //public static Function ConvertMethod(CompilerContext compiler, ClassNode classNode, MethodDefNode methodDef)
-    //{
-    //    compiler.Classes.TryGetValue(classNode.Name, out Class @class);
-    //    List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef> { LLVMTypeRef.CreatePointer(@class.LLVMClass, 0) };
+    public static void DefineMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
+    {
+        List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef> { LLVMTypeRef.CreatePointer(@class.LLVMClass, 0) };
 
-    //    foreach (ParameterNode param in methodDef.Params)
-    //    {
-    //        paramTypes.Add(DefToLLVMType(param.Type));
-    //    }
+        foreach (ParameterNode param in methodDef.Params)
+        {
+            paramTypes.Add(DefToLLVMType(compiler, param.Type, param.TypeRef));
+        }
 
-    //    var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(methodDef.ReturnType), paramTypes.ToArray());
-    //    LLVMValueRef func = compiler.Module.AddFunction(methodDef.Name, funcType);
-    //    @class.Functions.Add(methodDef.Name, new Function(func, methodDef.Privacy));
-    //}
+        var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(compiler, methodDef.ReturnType, methodDef.ReturnObject), paramTypes.ToArray());
+        LLVMValueRef func = compiler.Module.AddFunction(methodDef.Name, funcType);
+        @class.Functions.Add(methodDef.Name, new Function(func, methodDef.Privacy));
+    }
+
+    public static void ConvertMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
+    {
+
+    }
 
     //public static Block ConvertBlock(CompilerContext compiler, Function func, ScopeNode scope)
     //{
