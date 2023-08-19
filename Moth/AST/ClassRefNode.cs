@@ -8,12 +8,10 @@ namespace Moth.AST;
 
 public class ClassRefNode : RefNode
 {
-    public string Name { get; }
     public bool IsCurrentClass { get; }
 
-    public ClassRefNode(bool isCurrentClass, string name)
+    public ClassRefNode(bool isCurrentClass, string name) : base(name)
     {
-        Name = name;
         IsCurrentClass = isCurrentClass;
     }
 }

@@ -8,4 +8,10 @@ namespace Moth.AST;
 
 public class RefNode : ExpressionNode
 {
+    public string Name { get; }
+
+    public RefNode(string name)
+    {
+        Name = name;
+    }
 }

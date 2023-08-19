@@ -2,13 +2,11 @@
 
 public class VariableRefNode : RefNode
 {
-	public string Name { get; }
 	public RefNode Parent { get; }
 	public bool IsLocalVar { get; }
 
-	public VariableRefNode(string name, RefNode parent, bool isLocal = false)
+	public VariableRefNode(string name, RefNode parent, bool isLocal = false) : base(name)
     {
-		Name = name;
 		Parent = parent;
 		IsLocalVar = isLocal;
 	}

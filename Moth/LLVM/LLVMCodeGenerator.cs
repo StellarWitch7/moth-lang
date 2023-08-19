@@ -70,56 +70,93 @@ public static class LLVMCodeGenerator
 
     public static void ConvertMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
     {
-
+        @class.Functions.TryGetValue(methodDef.Name, out Function func);
+        func.LLVMFunc.AppendBasicBlock("");
+        ConvertScope(compiler, func.OpeningScope, methodDef.ExecutionBlock);
     }
 
-    //public static Block ConvertBlock(CompilerContext compiler, Function func, ScopeNode scope)
-    //{
-    //    foreach (StatementNode statement in scope.Statements)
-    //    {
-    //        if (statement is IfNode @if)
-    //        {
-    //            LLVMValueRef condition = ConvertExpression(compiler, @if.Condition); //I don't know what the hell I'm doing
+    public static void ConvertScope(CompilerContext compiler, Scope scope, ScopeNode scopeNode)
+    {
+        compiler.Builder.PositionAtEnd(scope.LLVMBlock);
 
-    //            var then = compiler.Context.AppendBasicBlock(func.LLVMFunc, "then");
-    //            var @else = compiler.Context.AppendBasicBlock(func.LLVMFunc, "else");
-    //            var @continue = compiler.Context.AppendBasicBlock(func.LLVMFunc, "continue");
+        foreach (StatementNode statement in scopeNode.Statements)
+        {
+            if (statement is FieldNode fieldDef)
+            {
+                scope.Variables.Add(fieldDef.Name,
+                    new Variable(compiler.Builder.BuildAlloca(DefToLLVMType(compiler,
+                            fieldDef.Type,
+                            fieldDef.TypeObject),
+                        fieldDef.Name),
+                    fieldDef.Privacy,
+                    fieldDef.IsConstant));
+            }
+            //else if (statement is IfNode @if)
+            //{
+            //    LLVMValueRef condition = ConvertExpression(compiler, @if.Condition); //I don't know what the hell I'm doing
 
-    //            compiler.Builder.BuildCondBr(condition, then, @else);
+            //    var then = compiler.Context.AppendBasicBlock(func.LLVMFunc, "then");
+            //    var @else = compiler.Context.AppendBasicBlock(func.LLVMFunc, "else");
+            //    var @continue = compiler.Context.AppendBasicBlock(func.LLVMFunc, "continue");
 
-    //            //then
-    //            {
-    //                compiler.Builder.PositionAtEnd(then);
-    //                ConvertBlock(compiler, func, @if.Then);
-    //                compiler.Builder.BuildBr(@continue);
-    //            }
+            //    compiler.Builder.BuildCondBr(condition, then, @else);
 
-    //            //else
-    //            {
-    //                compiler.Builder.PositionAtEnd(@else);
+            //    //then
+            //    {
+            //        compiler.Builder.PositionAtEnd(then);
+            //        ConvertScope(compiler, func, @if.Then);
+            //        compiler.Builder.BuildBr(@continue);
+            //    }
 
-    //                if (@if.Else != null)
-    //                {
-    //                    ConvertBlock(compiler, func, @if.Else);
-    //                }
+            //    //else
+            //    {
+            //        compiler.Builder.PositionAtEnd(@else);
 
-    //                compiler.Builder.BuildBr(@continue);
-    //            }
+            //        if (@if.Else != null)
+            //        {
+            //            ConvertScope(compiler, func, @if.Else);
+            //        }
 
-    //            //continue
-    //            {
-    //                compiler.Builder.PositionAtEnd(@continue);
-    //            }
-    //        }
-    //        else if (statement is BinaryOperationNode binaryOp)
-    //        {
-    //            if (binaryOp.Type != OperationType.Assignment)
-    //            {
-    //                throw new Exception();
-    //            }
-    //        }
-    //    }
-    //}
+            //        compiler.Builder.BuildBr(@continue);
+            //    }
+
+            //    //continue
+            //    {
+            //        compiler.Builder.PositionAtEnd(@continue);
+            //    }
+            //}
+            else if (statement is ExpressionNode exprNode)
+            {
+                CompileExpression(compiler, scope, exprNode);
+            }
+        }
+    }
+
+    public static LLVMValueRef CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode exprNode)
+    {
+        if (exprNode is BinaryOperationNode binaryOp)
+        {
+            if (binaryOp.Type == OperationType.Assignment)
+            {
+                if (binaryOp.Left is VariableRefNode varRef)
+                {
+                    if (varRef.IsLocalVar)
+                    {
+                        scope.Variables.TryGetValue(varRef.Name, out Variable @var);
+                        compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), @var.LLVMVariable);
+                    }
+                    else
+                    {
+                        
+                    }
+                }
+            }
+            else if (binaryOp.Type == OperationType.Addition)
+            {
+
+            }
+        }
+    }
 
     public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode classRef = null)
     {

@@ -8,15 +8,16 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Function
+public class Variable
 {
-    public LLVMValueRef LLVMFunc { get; set; }
+    public LLVMValueRef LLVMVariable { get; set; }
     public PrivacyType Privacy { get; set; }
-    public Scope OpeningScope { get; set; }
+    public bool IsConstant { get; set; }
 
-    public Function(LLVMValueRef lLVMFunc, PrivacyType privacy)
+    public Variable(LLVMValueRef lLVMVariable, PrivacyType privacy, bool isConstant)
     {
-        LLVMFunc = lLVMFunc;
+        LLVMVariable = lLVMVariable;
         Privacy = privacy;
+        IsConstant = isConstant;
     }
 }
