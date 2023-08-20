@@ -140,21 +140,55 @@ public static class LLVMCodeGenerator
             {
                 if (binaryOp.Left is VariableRefNode varRef)
                 {
-                    if (varRef.IsLocalVar)
-                    {
-                        scope.Variables.TryGetValue(varRef.Name, out Variable @var);
-                        compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), @var.LLVMVariable);
-                    }
-                    else
-                    {
-                        
-                    }
+                    var @var = ResolveVariableRef(compiler, scope, varRef);
+                    return compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), @var.LLVMVariable);
+                }
+                else
+                {
+                    throw new Exception();
                 }
             }
             else if (binaryOp.Type == OperationType.Addition)
             {
-
+                return compiler.Builder.BuildAdd(CompileExpression(compiler, scope, binaryOp.Left),
+                    CompileExpression(compiler, scope, binaryOp.Right));
             }
+            else if (binaryOp.Type == OperationType.Subtraction)
+            {
+                return compiler.Builder.BuildSub(CompileExpression(compiler, scope, binaryOp.Left),
+                    CompileExpression(compiler, scope, binaryOp.Right));
+            }
+            else if (binaryOp.Type == OperationType.Multiplication)
+            {
+                return compiler.Builder.BuildMul(CompileExpression(compiler, scope, binaryOp.Left),
+                    CompileExpression(compiler, scope, binaryOp.Right));
+            }
+            else if (binaryOp.Type == OperationType.Division) //this one may very well be wrong, look out!
+            {
+                return compiler.Builder.BuildSDiv(CompileExpression(compiler, scope, binaryOp.Left),
+                    CompileExpression(compiler, scope, binaryOp.Right));
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public static Variable ResolveVariableRef(CompilerContext compiler, Scope scope, VariableRefNode varRef)
+    {
+        if (varRef.IsLocalVar)
+        {
+            scope.Variables.TryGetValue(varRef.Name, out Variable @var);
+            return @var;
+        }
+        else
+        {
+            throw new NotImplementedException();
         }
     }
 
