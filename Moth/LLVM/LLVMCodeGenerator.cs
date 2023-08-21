@@ -37,7 +37,7 @@ public static class LLVMCodeGenerator
 
         foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
         {
-            types.Add(DefToLLVMType(compiler, field.Type, field.TypeObject));
+            types.Add(DefToLLVMType(compiler, field.Type, field.TypeRef));
         }
 
         compiler.Classes.TryGetValue(classNode.Name, out Class @class);
@@ -71,11 +71,23 @@ public static class LLVMCodeGenerator
     public static void ConvertMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
     {
         @class.Functions.TryGetValue(methodDef.Name, out Function func);
-        func.LLVMFunc.AppendBasicBlock("");
-        ConvertScope(compiler, func.OpeningScope, methodDef.ExecutionBlock);
+        func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock(""));
+        
+        foreach (ParameterNode param in methodDef.Params)
+        {
+            func.OpeningScope.Variables.Add(param.Name,
+                new Variable(compiler.Builder.BuildAlloca(DefToLLVMType(compiler,
+                        param.Type,
+                        param.TypeRef),
+                    param.Name),
+                PrivacyType.Local,
+                false));
+        }
+
+        ConvertScope(compiler, @class, func.OpeningScope, methodDef.ExecutionBlock);
     }
 
-    public static void ConvertScope(CompilerContext compiler, Scope scope, ScopeNode scopeNode)
+    public static void ConvertScope(CompilerContext compiler, Class @class, Scope scope, ScopeNode scopeNode)
     {
         compiler.Builder.PositionAtEnd(scope.LLVMBlock);
 
@@ -86,10 +98,16 @@ public static class LLVMCodeGenerator
                 scope.Variables.Add(fieldDef.Name,
                     new Variable(compiler.Builder.BuildAlloca(DefToLLVMType(compiler,
                             fieldDef.Type,
-                            fieldDef.TypeObject),
+                            fieldDef.TypeRef),
                         fieldDef.Name),
                     fieldDef.Privacy,
                     fieldDef.IsConstant));
+            }
+            else if (statement is ScopeNode newScopeNode)
+            {
+                var newScope = new Scope(scope.LLVMBlock.InsertBasicBlock(""));
+                newScope.Variables = scope.Variables;
+                ConvertScope(compiler, @class, newScope, newScopeNode);
             }
             //else if (statement is IfNode @if)
             //{
@@ -128,6 +146,10 @@ public static class LLVMCodeGenerator
             else if (statement is ExpressionNode exprNode)
             {
                 CompileExpression(compiler, scope, exprNode);
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
     }

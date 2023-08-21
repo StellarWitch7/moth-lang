@@ -11,4 +11,9 @@ public class Scope
 {
     public LLVMBasicBlockRef LLVMBlock { get; set; }
     public Dictionary<string, Variable> Variables { get; set; }
+
+    public Scope(LLVMBasicBlockRef lLVMBlock)
+    {
+        LLVMBlock = lLVMBlock;
+    }
 }
