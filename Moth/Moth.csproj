@@ -6,12 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StartupObject>Moth.Program</StartupObject>
-    <ApplicationIcon>moth.ico</ApplicationIcon>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="moth.ico" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="libLLVM.runtime.win-x64" Version="16.0.6" />

@@ -1,0 +1,11 @@
+@test.namespace;
+
+public class Test {
+  public void TestMethod(i32 i) {
+    i = i;
+
+    {
+      i = i;
+    }
+  }
+}
