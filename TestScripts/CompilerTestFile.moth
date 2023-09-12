@@ -2,10 +2,12 @@
 
 public class Test {
   public void TestMethod(i32 i) {
-    i = 2;
+    local i32 test;
+    test = i;
 
     {
       i = 4;
+      i = test;
     }
   }
 }

@@ -77,11 +77,11 @@ public static class LLVMCodeGenerator
 
         foreach (ParameterNode param in methodDef.Params)
         {
+            var type = DefToLLVMType(compiler, param.Type, param.TypeRef);
             func.OpeningScope.Variables.Add(param.Name,
-                new Variable(compiler.Builder.BuildAlloca(DefToLLVMType(compiler,
-                        param.Type,
-                        param.TypeRef),
+                new Variable(compiler.Builder.BuildAlloca(type,
                     param.Name),
+                type,
                 PrivacyType.Local,
                 false));
         }
@@ -97,11 +97,11 @@ public static class LLVMCodeGenerator
         {
             if (statement is FieldNode fieldDef)
             {
+                var type = DefToLLVMType(compiler, fieldDef.Type, fieldDef.TypeRef);
                 scope.Variables.Add(fieldDef.Name,
-                    new Variable(compiler.Builder.BuildAlloca(DefToLLVMType(compiler,
-                            fieldDef.Type,
-                            fieldDef.TypeRef),
+                    new Variable(compiler.Builder.BuildAlloca(type,
                         fieldDef.Name),
+                    type,
                     fieldDef.Privacy,
                     fieldDef.IsConstant));
             }
@@ -218,7 +218,8 @@ public static class LLVMCodeGenerator
         }
         else if (exprNode is VariableRefNode varRef)
         {
-            throw new NotImplementedException();
+            var @var = ResolveVariableRef(compiler, scope, varRef);
+            return compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable);
         }
         else
         {

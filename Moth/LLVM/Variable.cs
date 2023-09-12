@@ -11,12 +11,14 @@ namespace Moth.LLVM;
 public class Variable
 {
     public LLVMValueRef LLVMVariable { get; set; }
+    public LLVMTypeRef LLVMType { get; set; }
     public PrivacyType Privacy { get; set; }
     public bool IsConstant { get; set; }
 
-    public Variable(LLVMValueRef lLVMVariable, PrivacyType privacy, bool isConstant)
+    public Variable(LLVMValueRef lLVMVariable, LLVMTypeRef lLVMType, PrivacyType privacy, bool isConstant)
     {
         LLVMVariable = lLVMVariable;
+        LLVMType = lLVMType;
         Privacy = privacy;
         IsConstant = isConstant;
     }
