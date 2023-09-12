@@ -8,10 +8,10 @@ namespace Moth.AST.Node;
 
 public class DecrementVarNode : StatementNode
 {
-    public VariableRefNode VarRef { get; }
+    public RefNode RefNode { get; }
 
-    public DecrementVarNode(VariableRefNode varRef)
+    public DecrementVarNode(RefNode refNode)
     {
-        VarRef = varRef;
+        RefNode = refNode;
     }
 }

@@ -432,7 +432,8 @@ public static class TokenParser
 
                         if (context.Current?.Type == TokenType.Name)
                         {
-                            statements.Add(new IncrementVarNode(new VariableRefNode(context.Current.Value.Text.ToString(), classRef)));
+                            classRef.Child = new VariableRefNode(context.Current.Value.Text.ToString());
+                            statements.Add(new IncrementVarNode(classRef));
                             break;
                         }
                         else
@@ -467,7 +468,8 @@ public static class TokenParser
 
                         if (context.Current?.Type == TokenType.Name)
                         {
-                            statements.Add(new DecrementVarNode(new VariableRefNode(context.Current.Value.Text.ToString(), classRef)));
+                            classRef.Child = new VariableRefNode(context.Current.Value.Text.ToString());
+                            statements.Add(new DecrementVarNode(classRef));
                             break;
                         }
                         else
@@ -926,7 +928,7 @@ public static class TokenParser
 
                     if (context.Current?.Type != TokenType.Period)
                     {
-                        lastCreatedNode = new VariableRefNode(name, null, true);
+                        lastCreatedNode = new VariableRefNode(name, true);
                         break;
                     }
 
@@ -970,7 +972,7 @@ public static class TokenParser
         return lastCreatedNode;
     }
 
-    public static MethodCallNode ProcessNew(ParseContext context)
+    public static RefNode ProcessNew(ParseContext context)
     {
         string name = context.Current.Value.Text.ToString();
         context.MoveNext();
@@ -981,7 +983,9 @@ public static class TokenParser
         }
 
         context.MoveNext();
-        return new MethodCallNode(name, ProcessArgs(context), new ClassRefNode(false, name));
+        var newRefNode = new ClassRefNode(false, name);
+        newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
+        return newRefNode;
     }
 
     public static RefNode ProcessAccess(ParseContext context, ClassRefNode classRefNode)
@@ -1007,7 +1011,8 @@ public static class TokenParser
                     }
 
                     context.MoveNext();
-                    newRefNode = new IndexAccessNode(ProcessExpression(context, null), newRefNode);
+                    newRefNode.Child = new IndexAccessNode(ProcessExpression(context, null));
+                    newRefNode = newRefNode.Child;
                     break;
                 case TokenType.Name:
                     if (context.GetByIndex(context.Position - 1).Type != TokenType.Period)
@@ -1021,14 +1026,15 @@ public static class TokenParser
                     switch (context.Current?.Type)
                     {
                         case TokenType.Period:
-                            newRefNode = new VariableRefNode(name, newRefNode);
+                            newRefNode.Child = new VariableRefNode(name);
                             break;
                         case TokenType.OpeningParentheses:
                             context.MoveNext();
-                            newRefNode = new MethodCallNode(name, ProcessArgs(context), newRefNode);
+                            newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
                             break;
                     }
 
+                    newRefNode = newRefNode.Child;
                     break;
                 default:
                     return newRefNode;
