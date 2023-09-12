@@ -4,14 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.AST;
+namespace Moth.AST.Node;
 
-public class ImportNode : ASTNode
+public class AssignNamespaceNode : ASTNode
 {
     public NamespaceNode NamespaceNode { get; }
 
-    public ImportNode(NamespaceNode namespaceNode)
+    public AssignNamespaceNode(NamespaceNode namespaceNode)
     {
-        this.NamespaceNode = namespaceNode;
+        NamespaceNode = namespaceNode;
     }
 }

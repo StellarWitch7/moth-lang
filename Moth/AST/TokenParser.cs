@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Moth.Tokens;
 using System.Collections;
+using Moth.AST.Node;
 
 namespace Moth.AST;
 
@@ -722,7 +723,7 @@ public static class TokenParser
                     context.MoveNext();
                     break;
                 case TokenType.LiteralInt:
-                    lastCreatedNode = new ConstantNode(BigInteger.Parse(context.Current.Value.Text.Span));
+                    lastCreatedNode = new ConstantNode(int.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
                     break;
                 case TokenType.LiteralString:

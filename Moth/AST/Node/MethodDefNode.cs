@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.AST;
+namespace Moth.AST.Node;
 
 public class MethodDefNode : StatementNode
 {

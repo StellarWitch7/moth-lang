@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.AST;
+namespace Moth.AST.Node;
 
-public class DecrementVarNode : StatementNode
+public class IncrementVarNode : StatementNode
 {
     public VariableRefNode VarRef { get; }
 
-    public DecrementVarNode(VariableRefNode varRef)
+    public IncrementVarNode(VariableRefNode varRef)
     {
         VarRef = varRef;
     }

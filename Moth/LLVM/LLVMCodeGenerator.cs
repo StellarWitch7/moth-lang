@@ -1,5 +1,6 @@
 ﻿using LLVMSharp.Interop;
 using Moth.AST;
+using Moth.AST.Node;
 using Moth.Tokens;
 using System;
 using System.Collections.Generic;
@@ -72,7 +73,8 @@ public static class LLVMCodeGenerator
     {
         @class.Functions.TryGetValue(methodDef.Name, out Function func);
         func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock(""));
-        
+        compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+
         foreach (ParameterNode param in methodDef.Params)
         {
             func.OpeningScope.Variables.Add(param.Name,
@@ -185,7 +187,7 @@ public static class LLVMCodeGenerator
                 return compiler.Builder.BuildMul(CompileExpression(compiler, scope, binaryOp.Left),
                     CompileExpression(compiler, scope, binaryOp.Right));
             }
-            else if (binaryOp.Type == OperationType.Division) //this one may very well be wrong, look out!
+            else if (binaryOp.Type == OperationType.Division) //only for signed ints
             {
                 return compiler.Builder.BuildSDiv(CompileExpression(compiler, scope, binaryOp.Left),
                     CompileExpression(compiler, scope, binaryOp.Right));
@@ -194,6 +196,29 @@ public static class LLVMCodeGenerator
             {
                 throw new NotImplementedException();
             }
+        }
+        else if (exprNode is ConstantNode constNode)
+        {
+            if (constNode.Value is string str)
+            {
+                return compiler.Context.GetConstString(str, false);
+            }
+            else if (constNode.Value is int i32)
+            {
+                return LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32);
+            }
+            else if (constNode.Value is float f32)
+            {
+                return LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        else if (exprNode is VariableRefNode varRef)
+        {
+            throw new NotImplementedException();
         }
         else
         {
@@ -206,6 +231,12 @@ public static class LLVMCodeGenerator
         if (varRef.IsLocalVar)
         {
             scope.Variables.TryGetValue(varRef.Name, out Variable @var);
+
+            if (@var == null)
+            {
+                throw new NotImplementedException();
+            }
+
             return @var;
         }
         else
@@ -214,7 +245,7 @@ public static class LLVMCodeGenerator
         }
     }
 
-    public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode classRef = null)
+    public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode? classRef = null)
     {
         switch (definitionType)
         {

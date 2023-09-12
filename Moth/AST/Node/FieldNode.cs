@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.AST;
+namespace Moth.AST.Node;
 
 public class FieldNode : StatementNode
 {
@@ -26,18 +26,18 @@ public class FieldNode : StatementNode
 
 public enum PrivacyType
 {
-Public,
-Private,
-Local
+    Public,
+    Private,
+    Local
 }
 
 public enum DefinitionType
 {
-Bool,
-Int32,
-Float32,
-String,
-Matrix,
-ClassObject,
-Void
+    Bool,
+    Int32,
+    Float32,
+    String,
+    Matrix,
+    ClassObject,
+    Void
 }

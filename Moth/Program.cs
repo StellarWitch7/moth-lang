@@ -51,8 +51,8 @@ internal class Program
         }
         else if (input.StartsWith("$/run"))
         {
-            try
-            {
+            //try
+            //{
                 List<Token> tokens;
                 if (input.StartsWith("$/run @"))
                 {
@@ -67,38 +67,38 @@ internal class Program
                     tokens = Tokenizer.Tokenize(_script.ToString());
                 }
 
-                try
-                {
+                //try
+                //{
                     Console.WriteLine();
                     var scriptAST = TokenParser.ProcessScript(new ParseContext(tokens));
                     Console.WriteLine();
                     Console.WriteLine(scriptAST.GetDebugString("  ")); //Testing
                     Console.WriteLine();
 
-                    try
-                    {
+                    //try
+                    //{
                         LLVMCodeGenerator.ConvertScript(new CompilerContext("script"), scriptAST);
 
                         _script.Clear();
                         return true;
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Compiler error: {e.Message}");
-                        return false;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Parser error: {e.Message}");
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Tokenizer error: {e.Message}");
-                return false;
-            }
+                    //}
+                    //catch (Exception e)
+                    //{
+                    //    Console.WriteLine($"Compiler error: {e.Message}");
+                    //    return false;
+                    //}
+                //}
+                //catch (Exception e)
+                //{
+                //    Console.WriteLine($"Parser error: {e.Message}");
+                //    return false;
+                //}
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine($"Tokenizer error: {e.Message}");
+            //    return false;
+            //}
         }
         else if (input == "$/clear")
         {
