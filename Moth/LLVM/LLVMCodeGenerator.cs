@@ -43,6 +43,7 @@ public static class LLVMCodeGenerator
 
         compiler.Classes.TryGetValue(classNode.Name, out Class @class);
         @class.LLVMClass.StructSetBody(types.ToArray(), false);
+        compiler.CurrentClass = @class;
 
         foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
         {
@@ -51,7 +52,7 @@ public static class LLVMCodeGenerator
 
         foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
         {
-            ConvertMethod(compiler, @class, methodDef);
+            ConvertMethod(compiler, methodDef);
         }
     }
 
@@ -69,27 +70,31 @@ public static class LLVMCodeGenerator
         @class.Functions.Add(methodDef.Name, new Function(func, methodDef.Privacy));
     }
 
-    public static void ConvertMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
+    public static void ConvertMethod(CompilerContext compiler, MethodDefNode methodDef)
     {
+        var @class = compiler.CurrentClass;
         @class.Functions.TryGetValue(methodDef.Name, out Function func);
         func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock(""));
         compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+        compiler.CurrentFunction = func;
 
         foreach (ParameterNode param in methodDef.Params)
         {
-            var type = DefToLLVMType(compiler, param.Type, param.TypeRef);
+            var lLLVMType = DefToLLVMType(compiler, param.Type, param.TypeRef);
             func.OpeningScope.Variables.Add(param.Name,
-                new Variable(compiler.Builder.BuildAlloca(type,
+                new Variable(compiler.Builder.BuildAlloca(lLLVMType,
                     param.Name),
-                type,
+                lLLVMType,
                 PrivacyType.Local,
+                param.Type,
+                param.TypeRef,
                 false));
         }
 
-        ConvertScope(compiler, @class, func.OpeningScope, methodDef.ExecutionBlock);
+        ConvertScope(compiler, func.OpeningScope, methodDef.ExecutionBlock);
     }
 
-    public static void ConvertScope(CompilerContext compiler, Class @class, Scope scope, ScopeNode scopeNode)
+    public static void ConvertScope(CompilerContext compiler, Scope scope, ScopeNode scopeNode)
     {
         compiler.Builder.PositionAtEnd(scope.LLVMBlock);
 
@@ -97,19 +102,21 @@ public static class LLVMCodeGenerator
         {
             if (statement is FieldNode fieldDef)
             {
-                var type = DefToLLVMType(compiler, fieldDef.Type, fieldDef.TypeRef);
+                var lLVMType = DefToLLVMType(compiler, fieldDef.Type, fieldDef.TypeRef);
                 scope.Variables.Add(fieldDef.Name,
-                    new Variable(compiler.Builder.BuildAlloca(type,
+                    new Variable(compiler.Builder.BuildAlloca(lLVMType,
                         fieldDef.Name),
-                    type,
+                    lLVMType,
                     fieldDef.Privacy,
+                    fieldDef.Type,
+                    fieldDef.TypeRef,
                     fieldDef.IsConstant));
             }
             else if (statement is ScopeNode newScopeNode)
             {
                 var newScope = new Scope(scope.LLVMBlock.InsertBasicBlock(""));
                 newScope.Variables = scope.Variables;
-                ConvertScope(compiler, @class, newScope, newScopeNode);
+                ConvertScope(compiler, newScope, newScopeNode);
             }
             //else if (statement is IfNode @if)
             //{
@@ -162,10 +169,9 @@ public static class LLVMCodeGenerator
         {
             if (binaryOp.Type == OperationType.Assignment)
             {
-                if (binaryOp.Left is VariableRefNode varRef)
+                if (binaryOp.Left is RefNode @ref)
                 {
-                    var @var = ResolveVariableRef(compiler, scope, varRef);
-                    return compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), @var.LLVMVariable);
+                    return compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), CompileRef(compiler, scope, @ref));
                 }
                 else
                 {
@@ -216,10 +222,9 @@ public static class LLVMCodeGenerator
                 throw new NotImplementedException();
             }
         }
-        else if (exprNode is VariableRefNode varRef)
+        else if (exprNode is RefNode @ref)
         {
-            var @var = ResolveVariableRef(compiler, scope, varRef);
-            return compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable);
+            return CompileRef(compiler, scope, @ref);
         }
         else
         {
@@ -227,22 +232,65 @@ public static class LLVMCodeGenerator
         }
     }
 
-    public static Variable ResolveVariableRef(CompilerContext compiler, Scope scope, VariableRefNode varRef)
+    public static LLVMValueRef CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
-        if (varRef.IsLocalVar)
+        object currentLocation;
+
+        if (refNode is VariableRefNode varRef)
         {
-            scope.Variables.TryGetValue(varRef.Name, out Variable @var);
-
-            if (@var == null)
+            if (varRef.IsLocalVar)
             {
-                throw new NotImplementedException();
+                if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
+                {
+                    currentLocation = @var; //do I need to create the BuildLoad2 yet? How it's done:
+                                            //compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable)
+                }
+                else
+                {
+                    throw new Exception("Local variable does not exist in the current scope.");
+                }
             }
-
-            return @var;
+            else
+            {
+                throw new Exception("How in all hell did this manage to happen???? Non-local variable has no origin prefix.");
+            }
+        }
+        else if (refNode is ClassRefNode classRef)
+        {
+            if (classRef.IsCurrentClass)
+            {
+                currentLocation = compiler.CurrentClass;
+            }
+            else
+            {
+                if (compiler.Classes.TryGetValue(classRef.Name, out Class @class))
+                {
+                    currentLocation = @class;
+                }
+                else
+                {
+                    throw new Exception("Class does not exist.");
+                }
+            }
+        }
+        else if (refNode is MethodCallNode methodCall)
+        {
+            throw new NotImplementedException();
         }
         else
         {
-            throw new NotImplementedException();
+            throw new Exception("Pretty sure that doesn't exist... how'd you manage that?"
+                + "Access operation does not begin with a local variable, class, or method call.");
+        }
+
+        refNode = refNode.Child;
+
+        while (refNode.Child != null)
+        {
+            if (refNode is ClassRefNode classRefNode)
+            {
+
+            }
         }
     }
 

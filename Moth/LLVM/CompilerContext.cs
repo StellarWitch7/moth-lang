@@ -14,6 +14,8 @@ public class CompilerContext
     public LLVMModuleRef Module { get; set; }
     public Dictionary<string, Class> Classes { get; set; } = new Dictionary<string, Class>();
     public Dictionary<string, Function> GlobalFunctions { get; set; } = new Dictionary<string, Function>();
+    public Class CurrentClass { get; set; }
+    public Function CurrentFunction { get; set; }
 
     public CompilerContext(string moduleName)
     {
