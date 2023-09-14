@@ -175,7 +175,7 @@ public static class LLVMCodeGenerator
             {
                 if (binaryOp.Left is RefNode @ref)
                 {
-                    return compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), CompileRef(compiler, scope, @ref));
+                    return compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), CompileRef(compiler, scope, @ref).Pointer);
                 }
                 else
                 {
@@ -228,7 +228,7 @@ public static class LLVMCodeGenerator
         }
         else if (exprNode is RefNode @ref)
         {
-            return CompileRef(compiler, scope, @ref);
+            return CompileRef(compiler, scope, @ref).Pointer;
         }
         else
         {
@@ -236,9 +236,10 @@ public static class LLVMCodeGenerator
         }
     }
 
-    public static LLVMValueRef CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
+    public static PointerContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
-        object currentLocation;
+        object currentLocation = null;
+        PointerContext pointerContext = null;
 
         {
             if (refNode is VariableRefNode varRef)
@@ -264,6 +265,7 @@ public static class LLVMCodeGenerator
                 if (classRef.IsCurrentClass)
                 {
                     currentLocation = compiler.CurrentClass;
+                    pointerContext = new PointerContext(compiler.CurrentClass.LLVMClass, /*unknown*/);
                 }
                 else
                 {
@@ -289,7 +291,6 @@ public static class LLVMCodeGenerator
         }
 
         refNode = refNode.Child;
-        LLVMValueRef pointerResult = null;
 
         while (refNode.Child != null)
         {
@@ -299,7 +300,7 @@ public static class LLVMCodeGenerator
                 {
                     if (@var.TypeRef != null)
                     {
-                        pointerResult = compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable);
+                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
 
                         if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
                         {
@@ -325,14 +326,22 @@ public static class LLVMCodeGenerator
                 }
                 else if (currentLocation is Field field)
                 {
-                    pointerResult = compiler.Builder.BuildStructGEP2(/*unknown*/, pointerResult, field.FieldIndex);
-
-                    if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
+                    if (pointerContext != null)
                     {
-                        if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
+                        pointerContext = new PointerContext(field.LLVMType,
+                            compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
+
+                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
                         {
-                            currentLocation = newField;
-                            refNode = refNode.Child;
+                            if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
+                            {
+                                currentLocation = newField;
+                                refNode = refNode.Child;
+                            }
+                            else
+                            {
+                                throw new Exception();
+                            }
                         }
                         else
                         {
@@ -341,7 +350,7 @@ public static class LLVMCodeGenerator
                     }
                     else
                     {
-                        throw new Exception();
+                        throw new Exception("That is just idiotic. You tried accessing a field on... nothing?");
                     }
                 }
                 else
@@ -355,7 +364,7 @@ public static class LLVMCodeGenerator
             }
         }
 
-        return pointerResult;
+        return pointerContext;
     }
 
     public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode? classRef = null)
