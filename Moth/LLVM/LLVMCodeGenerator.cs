@@ -34,15 +34,19 @@ public static class LLVMCodeGenerator
 
     public static void ConvertClass(CompilerContext compiler, ClassNode classNode)
     {
-        List<LLVMTypeRef> types = new List<LLVMTypeRef>();
+        uint index = 0;
+        List<LLVMTypeRef> lLVMTypes = new List<LLVMTypeRef>();
+        compiler.Classes.TryGetValue(classNode.Name, out Class @class);
 
         foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
         {
-            types.Add(DefToLLVMType(compiler, field.Type, field.TypeRef));
+            var lLVMType = DefToLLVMType(compiler, field.Type, field.TypeRef);
+            lLVMTypes.Add(lLVMType);
+            @class.Fields.Add(field.Name, new Field(index, lLVMType, field.Privacy, field.Type, field.TypeRef, field.IsConstant));
+            index++;
         }
 
-        compiler.Classes.TryGetValue(classNode.Name, out Class @class);
-        @class.LLVMClass.StructSetBody(types.ToArray(), false);
+        @class.LLVMClass.StructSetBody(lLVMTypes.ToArray(), false);
         compiler.CurrentClass = @class;
 
         foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
@@ -236,62 +240,122 @@ public static class LLVMCodeGenerator
     {
         object currentLocation;
 
-        if (refNode is VariableRefNode varRef)
         {
-            if (varRef.IsLocalVar)
+            if (refNode is VariableRefNode varRef)
             {
-                if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
+                if (varRef.IsLocalVar)
                 {
-                    currentLocation = @var; //do I need to create the BuildLoad2 yet? How it's done:
-                                            //compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable)
+                    if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
+                    {
+                        currentLocation = @var;
+                    }
+                    else
+                    {
+                        throw new Exception("Local variable does not exist in the current scope.");
+                    }
                 }
                 else
                 {
-                    throw new Exception("Local variable does not exist in the current scope.");
+                    throw new Exception("How in all hell did this manage to happen???? Non-local variable has no origin prefix.");
                 }
             }
-            else
+            else if (refNode is ClassRefNode classRef)
             {
-                throw new Exception("How in all hell did this manage to happen???? Non-local variable has no origin prefix.");
-            }
-        }
-        else if (refNode is ClassRefNode classRef)
-        {
-            if (classRef.IsCurrentClass)
-            {
-                currentLocation = compiler.CurrentClass;
-            }
-            else
-            {
-                if (compiler.Classes.TryGetValue(classRef.Name, out Class @class))
+                if (classRef.IsCurrentClass)
                 {
-                    currentLocation = @class;
+                    currentLocation = compiler.CurrentClass;
                 }
                 else
                 {
-                    throw new Exception("Class does not exist.");
+                    if (compiler.Classes.TryGetValue(classRef.Name, out Class @class))
+                    {
+                        currentLocation = @class;
+                    }
+                    else
+                    {
+                        throw new Exception("Class does not exist.");
+                    }
                 }
             }
-        }
-        else if (refNode is MethodCallNode methodCall)
-        {
-            throw new NotImplementedException();
-        }
-        else
-        {
-            throw new Exception("Pretty sure that doesn't exist... how'd you manage that?"
-                + "Access operation does not begin with a local variable, class, or method call.");
+            else if (refNode is MethodCallNode methodCall)
+            {
+                throw new NotImplementedException();
+            }
+            else
+            {
+                throw new Exception("Pretty sure that doesn't exist... how'd you manage that?"
+                    + "Access operation does not begin with a local variable, class, or method call.");
+            }
         }
 
         refNode = refNode.Child;
+        LLVMValueRef pointerResult = null;
 
         while (refNode.Child != null)
         {
-            if (refNode is ClassRefNode classRefNode)
+            if (refNode is VariableRefNode varRef)
             {
+                if (currentLocation is Variable @var)
+                {
+                    if (@var.TypeRef != null)
+                    {
+                        pointerResult = compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable);
 
+                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
+                        {
+                            if (@class.Fields.TryGetValue(varRef.Name, out Field field))
+                            {
+                                currentLocation = @field;
+                                refNode = refNode.Child;
+                            }
+                            else
+                            {
+                                throw new Exception();
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+                else if (currentLocation is Field field)
+                {
+                    pointerResult = compiler.Builder.BuildStructGEP2(/*unknown*/, pointerResult, field.FieldIndex);
+
+                    if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
+                    {
+                        if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
+                        {
+                            currentLocation = newField;
+                            refNode = refNode.Child;
+                        }
+                        else
+                        {
+                            throw new Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
+
+        return pointerResult;
     }
 
     public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode? classRef = null)

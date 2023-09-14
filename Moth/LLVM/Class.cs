@@ -12,6 +12,7 @@ public class Class
 {
     public LLVMTypeRef LLVMClass { get; set; }
     public PrivacyType Privacy { get; set; }
+    public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
     public Dictionary<string, Function> Functions { get; set; } = new Dictionary<string, Function>();
 
     public Class(LLVMTypeRef lLVMClass, PrivacyType privacy)
