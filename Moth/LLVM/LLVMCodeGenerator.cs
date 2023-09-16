@@ -238,133 +238,135 @@ public static class LLVMCodeGenerator
 
     public static PointerContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
-        object currentLocation = null;
-        PointerContext pointerContext = null;
+        //object currentLocation = null;
+        //PointerContext pointerContext = null;
 
-        {
-            if (refNode is VariableRefNode varRef)
-            {
-                if (varRef.IsLocalVar)
-                {
-                    if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
-                    {
-                        currentLocation = @var;
-                    }
-                    else
-                    {
-                        throw new Exception("Local variable does not exist in the current scope.");
-                    }
-                }
-                else
-                {
-                    throw new Exception("How in all hell did this manage to happen???? Non-local variable has no origin prefix.");
-                }
-            }
-            else if (refNode is ClassRefNode classRef)
-            {
-                if (classRef.IsCurrentClass)
-                {
-                    currentLocation = compiler.CurrentClass;
-                    pointerContext = new PointerContext(compiler.CurrentClass.LLVMClass, /*unknown*/);
-                }
-                else
-                {
-                    if (compiler.Classes.TryGetValue(classRef.Name, out Class @class))
-                    {
-                        currentLocation = @class;
-                    }
-                    else
-                    {
-                        throw new Exception("Class does not exist.");
-                    }
-                }
-            }
-            else if (refNode is MethodCallNode methodCall)
-            {
-                throw new NotImplementedException();
-            }
-            else
-            {
-                throw new Exception("Pretty sure that doesn't exist... how'd you manage that?"
-                    + "Access operation does not begin with a local variable, class, or method call.");
-            }
-        }
+        //{
+        //    if (refNode is VariableRefNode varRef)
+        //    {
+        //        if (varRef.IsLocalVar)
+        //        {
+        //            if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
+        //            {
+        //                currentLocation = @var;
+        //            }
+        //            else
+        //            {
+        //                throw new Exception("Local variable does not exist in the current scope.");
+        //            }
+        //        }
+        //        else
+        //        {
+        //            throw new Exception("How in all hell did this manage to happen???? Non-local variable has no origin prefix.");
+        //        }
+        //    }
+        //    else if (refNode is ClassRefNode classRef)
+        //    {
+        //        if (classRef.IsCurrentClass)
+        //        {
+        //            currentLocation = compiler.CurrentClass;
+        //            pointerContext = new PointerContext(compiler.CurrentClass.LLVMClass, /*unknown*/);
+        //        }
+        //        else
+        //        {
+        //            if (compiler.Classes.TryGetValue(classRef.Name, out Class @class))
+        //            {
+        //                currentLocation = @class;
+        //            }
+        //            else
+        //            {
+        //                throw new Exception("Class does not exist.");
+        //            }
+        //        }
+        //    }
+        //    else if (refNode is MethodCallNode methodCall)
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+        //    else
+        //    {
+        //        throw new Exception("Pretty sure that doesn't exist... how'd you manage that?"
+        //            + "Access operation does not begin with a local variable, class, or method call.");
+        //    }
+        //}
 
-        refNode = refNode.Child;
+        //refNode = refNode.Child;
 
-        while (refNode.Child != null)
-        {
-            if (refNode is VariableRefNode varRef)
-            {
-                if (currentLocation is Variable @var)
-                {
-                    if (@var.TypeRef != null)
-                    {
-                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+        //while (refNode.Child != null)
+        //{
+        //    if (refNode is VariableRefNode varRef)
+        //    {
+        //        if (currentLocation is Variable @var)
+        //        {
+        //            if (@var.TypeRef != null)
+        //            {
+        //                pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
 
-                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
-                        {
-                            if (@class.Fields.TryGetValue(varRef.Name, out Field field))
-                            {
-                                currentLocation = @field;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-                }
-                else if (currentLocation is Field field)
-                {
-                    if (pointerContext != null)
-                    {
-                        pointerContext = new PointerContext(field.LLVMType,
-                            compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
+        //                if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
+        //                {
+        //                    if (@class.Fields.TryGetValue(varRef.Name, out Field field))
+        //                    {
+        //                        currentLocation = @field;
+        //                        refNode = refNode.Child;
+        //                    }
+        //                    else
+        //                    {
+        //                        throw new Exception();
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    throw new Exception();
+        //                }
+        //            }
+        //            else
+        //            {
+        //                throw new NotImplementedException();
+        //            }
+        //        }
+        //        else if (currentLocation is Field field)
+        //        {
+        //            if (pointerContext != null)
+        //            {
+        //                pointerContext = new PointerContext(field.LLVMType,
+        //                    compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
 
-                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
-                        {
-                            if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
-                            {
-                                currentLocation = newField;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("That is just idiotic. You tried accessing a field on... nothing?");
-                    }
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
+        //                if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
+        //                {
+        //                    if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
+        //                    {
+        //                        currentLocation = newField;
+        //                        refNode = refNode.Child;
+        //                    }
+        //                    else
+        //                    {
+        //                        throw new Exception();
+        //                    }
+        //                }
+        //                else
+        //                {
+        //                    throw new Exception();
+        //                }
+        //            }
+        //            else
+        //            {
+        //                throw new Exception("That is just idiotic. You tried accessing a field on... nothing?");
+        //            }
+        //        }
+        //        else
+        //        {
+        //            throw new NotImplementedException();
+        //        }
+        //    }
+        //    else
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+        //}
 
-        return pointerContext;
+        //return pointerContext;
+
+        throw new NotImplementedException();
     }
 
     public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode? classRef = null)
