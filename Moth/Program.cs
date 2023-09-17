@@ -77,7 +77,11 @@ internal class Program
 
                     //try
                     //{
-                        LLVMCodeGenerator.ConvertScript(new CompilerContext("script"), scriptAST);
+                        var compiler = new CompilerContext("script");
+                        LLVMCompiler.CompileScript(compiler, scriptAST);
+                        compiler.Module.Dump(); //Testing
+                        Console.WriteLine(); //Testing
+                        compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction); //Testing
 
                         _script.Clear();
                         return true;

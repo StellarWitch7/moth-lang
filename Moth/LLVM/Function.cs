@@ -11,18 +11,21 @@ namespace Moth.LLVM;
 public class Function
 {
     public LLVMValueRef LLVMFunc { get; set; }
+    public LLVMTypeRef LLVMFuncType { get; set; }
+    public LLVMTypeRef LLVMReturnType { get; set; }
     public PrivacyType Privacy { get; set; }
+    public TypeRefNode ReturnType { get; set; }
     public Scope OpeningScope { get; set; }
     public List<Parameter> Params { get; set; } = new List<Parameter>();
 
-    public Function(LLVMValueRef lLVMFunc, PrivacyType privacy)
+    public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
+        PrivacyType privacy, TypeRefNode returnType, List<Parameter> @params)
     {
         LLVMFunc = lLVMFunc;
+        LLVMFuncType = lLVMFuncType;
+        LLVMReturnType = lLVMReturnType;
         Privacy = privacy;
-    }
-
-    public Function(LLVMValueRef lLVMFunc, PrivacyType privacy, List<Parameter> @params) : this(lLVMFunc, privacy)
-    {
+        ReturnType = returnType;
         Params = @params;
     }
 }

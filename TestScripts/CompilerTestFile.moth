@@ -3,11 +3,12 @@
 public class Test {
   public void TestMethod(i32 i) {
     local i32 test;
-    test = i;
+    test = TestMethod(i * 2);
 
     {
       i = 4 + 3;
       i = test;
+      return;
     }
   }
 }

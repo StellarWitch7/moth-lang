@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public static class LLVMCodeGenerator
+public static class LLVMCompiler
 {
-    public static void ConvertScript(CompilerContext compiler, ScriptAST script)
+    public static void CompileScript(CompilerContext compiler, ScriptAST script)
     {
         foreach (var @class in script.ClassNodes)
         {
@@ -22,7 +22,7 @@ public static class LLVMCodeGenerator
 
         foreach (var @class in script.ClassNodes)
         {
-            ConvertClass(compiler, @class);
+            CompileClass(compiler, @class);
         }
     }
 
@@ -32,7 +32,7 @@ public static class LLVMCodeGenerator
         compiler.Classes.Add(classNode.Name, new Class(newStruct, classNode.Privacy));
     }
 
-    public static void ConvertClass(CompilerContext compiler, ClassNode classNode)
+    public static void CompileClass(CompilerContext compiler, ClassNode classNode)
     {
         uint index = 0;
         List<LLVMTypeRef> lLVMTypes = new List<LLVMTypeRef>();
@@ -56,7 +56,7 @@ public static class LLVMCodeGenerator
 
         foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
         {
-            ConvertMethod(compiler, methodDef);
+            CompileMethod(compiler, methodDef);
         }
     }
 
@@ -74,35 +74,45 @@ public static class LLVMCodeGenerator
             index++;
         }
 
-        var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(compiler, methodDef.ReturnTypeRef), paramTypes.ToArray());
-        LLVMValueRef lLVMFunc = compiler.Module.AddFunction(methodDef.Name, funcType);
-        Function func = new Function(lLVMFunc, methodDef.Privacy, @params);
+        LLVMTypeRef lLVMReturnType = DefToLLVMType(compiler, methodDef.ReturnTypeRef);
+        LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(lLVMReturnType, paramTypes.ToArray());
+        LLVMValueRef lLVMFunc = compiler.Module.AddFunction(methodDef.Name, lLVMFuncType);
+        Function func = new Function(lLVMFunc, lLVMFuncType, lLVMReturnType, methodDef.Privacy, methodDef.ReturnTypeRef, @params);
         func.Params = @params;
         @class.Functions.Add(methodDef.Name, func);
     }
 
-    public static void ConvertMethod(CompilerContext compiler, MethodDefNode methodDef)
+    public static void CompileMethod(CompilerContext compiler, MethodDefNode methodDef)
     {
         var @class = compiler.CurrentClass;
-        @class.Functions.TryGetValue(methodDef.Name, out Function func);
-        func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock(""));
-        compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-        compiler.CurrentFunction = func;
-
-        foreach (Parameter param in compiler.CurrentFunction.Params)
+        
+        if (@class.Functions.TryGetValue(methodDef.Name, out Function func))
         {
-            func.OpeningScope.Variables.Add(param.Name,
-                new Variable(compiler.CurrentFunction.LLVMFunc.Params[param.ParamIndex],
-                    param.LLVMType,
-                    PrivacyType.Local,
-                    param.TypeRef,
-                    false));
-        }
+            func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock(""));
+            compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+            compiler.CurrentFunction = func;
 
-        ConvertScope(compiler, func.OpeningScope, methodDef.ExecutionBlock);
+            foreach (Parameter param in compiler.CurrentFunction.Params)
+            {
+                var paramAsVar = compiler.Builder.BuildAlloca(param.LLVMType, param.Name);
+                compiler.Builder.BuildStore(compiler.CurrentFunction.LLVMFunc.Params[param.ParamIndex], paramAsVar);
+                func.OpeningScope.Variables.Add(param.Name,
+                    new Variable(paramAsVar,
+                        param.LLVMType,
+                        PrivacyType.Local,
+                        param.TypeRef,
+                        false));
+            }
+
+            CompileScope(compiler, func.OpeningScope, methodDef.ExecutionBlock);
+        }
+        else
+        {
+            throw new Exception();
+        }
     }
 
-    public static void ConvertScope(CompilerContext compiler, Scope scope, ScopeNode scopeNode)
+    public static bool CompileScope(CompilerContext compiler, Scope scope, ScopeNode scopeNode)
     {
         compiler.Builder.PositionAtEnd(scope.LLVMBlock);
 
@@ -118,6 +128,8 @@ public static class LLVMCodeGenerator
                 {
                     compiler.Builder.BuildRetVoid();
                 }
+
+                return true;
             }
             else if (statement is FieldNode fieldDef)
             {
@@ -133,8 +145,18 @@ public static class LLVMCodeGenerator
             else if (statement is ScopeNode newScopeNode)
             {
                 var newScope = new Scope(scope.LLVMBlock.InsertBasicBlock(""));
-                newScope.Variables = scope.Variables;
-                ConvertScope(compiler, newScope, newScopeNode);
+                newScope.Variables = scope.Variables; //TODO: fix it? maybe?
+                compiler.Builder.BuildBr(newScope.LLVMBlock);
+                compiler.Builder.PositionAtEnd(newScope.LLVMBlock);
+                
+                if (CompileScope(compiler, newScope, newScopeNode))
+                {
+                    return true;
+                }
+
+                scope.LLVMBlock = newScope.LLVMBlock.InsertBasicBlock("");
+                compiler.Builder.BuildBr(scope.LLVMBlock);
+                compiler.Builder.PositionAtEnd(scope.LLVMBlock);
             }
             //else if (statement is IfNode @if)
             //{
@@ -179,17 +201,30 @@ public static class LLVMCodeGenerator
                 throw new NotImplementedException();
             }
         }
+
+        //if (compiler.CurrentFunction.ReturnType.Type == DefinitionType.Void)
+        //{
+        //    compiler.Builder.BuildRetVoid();
+        //}
+        //else
+        //{
+        //    throw new Exception("Function has no return.");
+        //}
+
+        return false;
     }
 
-    public static LLVMValueRef CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode exprNode)
+    public static LLVMValueRef CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
     {
-        if (exprNode is BinaryOperationNode binaryOp)
+        if (expr is BinaryOperationNode binaryOp)
         {
             if (binaryOp.Type == OperationType.Assignment)
             {
                 if (binaryOp.Left is RefNode @ref)
                 {
-                    return compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), CompileRef(compiler, scope, @ref).Pointer);
+                    var variableAssigned = CompileRef(compiler, scope, @ref).Pointer;
+                    compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), variableAssigned);
+                    return variableAssigned;
                 }
                 else
                 {
@@ -199,7 +234,7 @@ public static class LLVMCodeGenerator
             else if (binaryOp.Type == OperationType.Addition)
             {
                 return compiler.Builder.BuildAdd(CompileExpression(compiler, scope, binaryOp.Left),
-                    CompileExpression(compiler, scope, binaryOp.Right));
+                    CompileExpression(compiler, scope, binaryOp.Right)); //TODO: add a check for pointers to load them
             }
             else if (binaryOp.Type == OperationType.Subtraction)
             {
@@ -221,7 +256,7 @@ public static class LLVMCodeGenerator
                 throw new NotImplementedException();
             }
         }
-        else if (exprNode is ConstantNode constNode)
+        else if (expr is ConstantNode constNode)
         {
             if (constNode.Value is string str)
             {
@@ -240,7 +275,7 @@ public static class LLVMCodeGenerator
                 throw new NotImplementedException();
             }
         }
-        else if (exprNode is RefNode @ref)
+        else if (expr is RefNode @ref)
         {
             return CompileRef(compiler, scope, @ref).Pointer;
         }
@@ -252,9 +287,8 @@ public static class LLVMCodeGenerator
 
     public static PointerContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
-        object currentLocation = null;
-        PointerContext pointerContext = null;
-
+        object currentLocation;
+        PointerContext pointerContext;
         {
             if (refNode is ThisNode)
             {
@@ -291,27 +325,16 @@ public static class LLVMCodeGenerator
             {
                 if (refNode is MethodCallNode methodCall)
                 {
-                    throw new NotImplementedException();
-                }
-                else
-                {
                     if (currentLocation is Variable @var)
                     {
-                        if (@var.TypeRef != null)
-                        {
-                            pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
 
-                            if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
+                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
+                        {
+                            if (@class.Functions.TryGetValue(methodCall.Name, out Function func))
                             {
-                                if (@class.Fields.TryGetValue(refNode.Name, out Field field))
-                                {
-                                    currentLocation = @field;
-                                    refNode = refNode.Child;
-                                }
-                                else
-                                {
-                                    throw new Exception();
-                                }
+                                currentLocation = func;
+                                refNode = refNode.Child;
                             }
                             else
                             {
@@ -320,7 +343,86 @@ public static class LLVMCodeGenerator
                         }
                         else
                         {
-                            throw new NotImplementedException();
+                            throw new Exception();
+                        }
+                    }
+                    else if (currentLocation is Field field)
+                    {
+                        pointerContext = new PointerContext(field.LLVMType,
+                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
+
+                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
+                        {
+                            if (@class.Functions.TryGetValue(methodCall.Name, out Function func))
+                            {
+                                currentLocation = func;
+                                refNode = refNode.Child;
+                            }
+                            else
+                            {
+                                throw new Exception();
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception();
+                        }
+                    }
+                    else if (currentLocation is Function func)
+                    {
+                        List<LLVMValueRef> args = new List<LLVMValueRef>();
+
+                        foreach (ExpressionNode expr in methodCall.Arguments)
+                        {
+                            args.Add(CompileExpression(compiler, scope, expr));
+                        }
+
+                        pointerContext = new PointerContext(func.LLVMReturnType,
+                            compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()));
+
+                        if (compiler.Classes.TryGetValue(func.ReturnType.Name, out Class @class))
+                        {
+                            if (@class.Functions.TryGetValue(methodCall.Name, out Function newFunc))
+                            {
+                                currentLocation = newFunc;
+                                refNode = refNode.Child;
+                            }
+                            else
+                            {
+                                throw new Exception();
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+                else
+                {
+                    if (currentLocation is Variable @var)
+                    {
+                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+
+                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
+                        {
+                            if (@class.Fields.TryGetValue(refNode.Name, out Field field))
+                            {
+                                currentLocation = @field;
+                                refNode = refNode.Child;
+                            }
+                            else
+                            {
+                                throw new Exception();
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception();
                         }
                     }
                     else if (currentLocation is Field field)
