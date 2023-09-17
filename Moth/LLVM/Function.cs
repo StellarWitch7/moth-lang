@@ -20,4 +20,9 @@ public class Function
         LLVMFunc = lLVMFunc;
         Privacy = privacy;
     }
+
+    public Function(LLVMValueRef lLVMFunc, PrivacyType privacy, List<Parameter> @params) : this(lLVMFunc, privacy)
+    {
+        Params = @params;
+    }
 }

@@ -76,7 +76,8 @@ public static class LLVMCodeGenerator
 
         var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(compiler, methodDef.ReturnType, methodDef.ReturnObject), paramTypes.ToArray());
         LLVMValueRef lLVMFunc = compiler.Module.AddFunction(methodDef.Name, funcType);
-        Function func = new Function(lLVMFunc, methodDef.Privacy);
+        Function func = new Function(lLVMFunc, methodDef.Privacy, @params);
+        func.Params = @params;
         @class.Functions.Add(methodDef.Name, func);
     }
 
@@ -253,6 +254,7 @@ public static class LLVMCodeGenerator
                     if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
                     {
                         currentLocation = @var;
+                        pointerContext = new PointerContext(@var.LLVMType, @var.LLVMVariable);
                     }
                     else
                     {
@@ -294,24 +296,31 @@ public static class LLVMCodeGenerator
             }
         }
 
-        refNode = refNode.Child;
-
-        while (refNode.Child != null)
+        if (refNode.Child != null)
         {
-            if (refNode is VariableRefNode varRef)
-            {
-                if (currentLocation is Variable @var)
-                {
-                    if (@var.TypeRef != null)
-                    {
-                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+            refNode = refNode.Child;
 
-                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
+            while (refNode.Child != null)
+            {
+                if (refNode is VariableRefNode varRef)
+                {
+                    if (currentLocation is Variable @var)
+                    {
+                        if (@var.TypeRef != null)
                         {
-                            if (@class.Fields.TryGetValue(varRef.Name, out Field field))
+                            pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+
+                            if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
                             {
-                                currentLocation = @field;
-                                refNode = refNode.Child;
+                                if (@class.Fields.TryGetValue(varRef.Name, out Field field))
+                                {
+                                    currentLocation = @field;
+                                    refNode = refNode.Child;
+                                }
+                                else
+                                {
+                                    throw new Exception();
+                                }
                             }
                             else
                             {
@@ -320,7 +329,36 @@ public static class LLVMCodeGenerator
                         }
                         else
                         {
-                            throw new Exception();
+                            throw new NotImplementedException();
+                        }
+                    }
+                    else if (currentLocation is Field field)
+                    {
+                        if (pointerContext != null)
+                        {
+                            pointerContext = new PointerContext(field.LLVMType,
+                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
+
+                            if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
+                            {
+                                if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
+                                {
+                                    currentLocation = newField;
+                                    refNode = refNode.Child;
+                                }
+                                else
+                                {
+                                    throw new Exception();
+                                }
+                            }
+                            else
+                            {
+                                throw new Exception();
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception("That is just idiotic. You tried accessing a field on... nothing?");
                         }
                     }
                     else
@@ -328,43 +366,10 @@ public static class LLVMCodeGenerator
                         throw new NotImplementedException();
                     }
                 }
-                else if (currentLocation is Field field)
-                {
-                    if (pointerContext != null)
-                    {
-                        pointerContext = new PointerContext(field.LLVMType,
-                            compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
-
-                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
-                        {
-                            if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
-                            {
-                                currentLocation = newField;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("That is just idiotic. You tried accessing a field on... nothing?");
-                    }
-                }
                 else
                 {
                     throw new NotImplementedException();
                 }
-            }
-            else
-            {
-                throw new NotImplementedException();
             }
         }
 
