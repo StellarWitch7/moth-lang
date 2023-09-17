@@ -109,7 +109,18 @@ public static class LLVMCodeGenerator
 
         foreach (StatementNode statement in scopeNode.Statements)
         {
-            if (statement is FieldNode fieldDef)
+            if (statement is ReturnNode @return)
+            {
+                if (@return.ReturnValue != null)
+                {
+                    compiler.Builder.BuildRet(CompileExpression(compiler, scope, @return.ReturnValue));
+                }
+                else
+                {
+                    compiler.Builder.BuildRetVoid();
+                }
+            }
+            else if (statement is FieldNode fieldDef)
             {
                 var lLVMType = DefToLLVMType(compiler, fieldDef.Type, fieldDef.TypeRef);
                 scope.Variables.Add(fieldDef.Name,
