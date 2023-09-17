@@ -39,44 +39,17 @@ public static class TokenParser
                     break;
                 case TokenType.Function:
                     context.MoveNext();
-
-                    switch (context.Current?.Type)
+                    bool isConstant = false;
+                    
+                    if (context.Current?.Type == TokenType.Constant)
                     {
-                        case TokenType.Bool:
-                            context.MoveNext();
-                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
-                                DefinitionType.Bool));
-                            break;
-                        case TokenType.String:
-                            context.MoveNext();
-                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
-                                DefinitionType.String));
-                            break;
-                        case TokenType.Int32:
-                            context.MoveNext();
-                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
-                                DefinitionType.Int32));
-                            break;
-                        case TokenType.Float32:
-                            context.MoveNext();
-                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
-                                DefinitionType.Float32));
-                            break;
-                        case TokenType.Void:
-                            context.MoveNext();
-                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
-                                DefinitionType.Void));
-                            break;
-                        case TokenType.Name:
-                            string name = context.Current.Value.Text.ToString();
-                            context.MoveNext();
-                            funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, false,
-                                DefinitionType.ClassObject, new ClassRefNode(false, name)));
-                            break;
-                        default:
-                            throw new UnexpectedTokenException(context.Current.Value);
+                        isConstant = true;
+                        context.MoveNext();
                     }
 
+                    TypeRefNode typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+                    context.MoveNext();
+                    funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant));
                     break;
                 case TokenType.Public:
                     context.MoveNext();
@@ -217,56 +190,6 @@ public static class TokenParser
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
-                case TokenType.Var:
-                    if (!isClassRoot)
-                    {
-                        bool isConstant = false;
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.Constant)
-                        {
-                            isConstant = true;
-                            context.MoveNext();
-                        }
-
-                        switch (context.Current?.Type)
-                        {
-                            case TokenType.Bool:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
-                                    DefinitionType.Bool));
-                                break;
-                            case TokenType.String:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
-                                    DefinitionType.String));
-                                break;
-                            case TokenType.Int32:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
-                                    DefinitionType.Int32));
-                                break;
-                            case TokenType.Float32:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
-                                    DefinitionType.Float32));
-                                break;
-                            case TokenType.Name:
-                                var classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Local, isConstant,
-                                    DefinitionType.ClassObject, classRef));
-                                break;
-                            default:
-                                throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
-                        break;
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
                 case TokenType.Return:
                     if (!isClassRoot)
                     {
@@ -279,69 +202,23 @@ public static class TokenParser
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
                 case TokenType.Public:
-                    if (isClassRoot)
-                    {
-                        bool isConstant = false;
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.Constant)
-                        {
-                            isConstant = true;
-                            context.MoveNext();
-                        }
-
-                        switch (context.Current?.Type)
-                        {
-                            case TokenType.Bool:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Public, isConstant,
-                                    DefinitionType.Bool));
-                                break;
-                            case TokenType.String:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Public, isConstant,
-                                    DefinitionType.String));
-                                break;
-                            case TokenType.Int32:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Public, isConstant,
-                                    DefinitionType.Int32));
-                                break;
-                            case TokenType.Float32:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Public, isConstant,
-                                    DefinitionType.Float32));
-                                break;
-                            case TokenType.Void:
-                                if (isConstant)
-                                {
-                                    throw new UnexpectedTokenException(context.Current.Value);
-                                }
-
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Public, false,
-                                    DefinitionType.Void));
-                                break;
-                            case TokenType.Name:
-                                var classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Public, isConstant,
-                                    DefinitionType.ClassObject, classRef));
-                                break;
-                            default:
-                                throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
-                        break;
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Var);
-                    }
                 case TokenType.Private:
+                case TokenType.Var:
                     if (isClassRoot)
                     {
+                        PrivacyType privacyType = PrivacyType.Public;
                         bool isConstant = false;
+                        TypeRefNode typeRef;
+
+                        if (context.Current?.Type == TokenType.Private)
+                        {
+                            privacyType = PrivacyType.Private;
+                        }
+                        else if (context.Current?.Type == TokenType.Var)
+                        {
+                            privacyType = PrivacyType.Local;
+                        }
+
                         context.MoveNext();
 
                         if (context.Current?.Type == TokenType.Constant)
@@ -350,48 +227,9 @@ public static class TokenParser
                             context.MoveNext();
                         }
 
-                        switch (context.Current?.Type)
-                        {
-                            case TokenType.Bool:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Private, isConstant,
-                                    DefinitionType.Bool));
-                                break;
-                            case TokenType.String:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Private, isConstant,
-                                    DefinitionType.String));
-                                break;
-                            case TokenType.Int32:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Private, isConstant,
-                                    DefinitionType.Int32));
-                                break;
-                            case TokenType.Float32:
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Private, isConstant,
-                                    DefinitionType.Float32));
-                                break;
-                            case TokenType.Void:
-                                if (isConstant)
-                                {
-                                    throw new UnexpectedTokenException(context.Current.Value);
-                                }
-
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Private, false,
-                                    DefinitionType.Void));
-                                break;
-                            case TokenType.Name:
-                                var classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
-                                context.MoveNext();
-                                statements.Add(ProcessDefinition(context, PrivacyType.Private, isConstant,
-                                    DefinitionType.ClassObject, classRef));
-                                break;
-                            default:
-                                throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
+                        typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+                        context.MoveNext();
+                        statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
                         break;
                     }
                     else
@@ -410,55 +248,21 @@ public static class TokenParser
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
                 case TokenType.Increment:
-                    if (!isClassRoot)
-                    {
-                        ClassRefNode classRef;
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.This)
-                        {
-                            classRef = new ClassRefNode(true, context.CurrentClassName);
-                            context.MoveNext();
-                        }
-                        else if (context.Current?.Type == TokenType.Name)
-                        {
-                            classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
-                            context.MoveNext();
-                        }
-                        else
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
-                        if (context.Current?.Type == TokenType.Name)
-                        {
-                            classRef.Child = new VariableRefNode(context.Current.Value.Text.ToString());
-                            statements.Add(new IncrementVarNode(classRef));
-                            break;
-                        }
-                        else
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
                 case TokenType.Decrement:
                     if (!isClassRoot)
                     {
-                        ClassRefNode classRef;
+                        TokenType type = (TokenType)(context.Current?.Type);
+                        RefNode refNode;
                         context.MoveNext();
 
                         if (context.Current?.Type == TokenType.This)
                         {
-                            classRef = new ClassRefNode(true, context.CurrentClassName);
+                            refNode = new ThisNode();
                             context.MoveNext();
                         }
                         else if (context.Current?.Type == TokenType.Name)
                         {
-                            classRef = new ClassRefNode(false, context.Current.Value.Text.ToString());
+                            refNode = new RefNode(context.Current.Value.Text.ToString());
                             context.MoveNext();
                         }
                         else
@@ -466,16 +270,22 @@ public static class TokenParser
                             throw new UnexpectedTokenException(context.Current.Value);
                         }
 
-                        if (context.Current?.Type == TokenType.Name)
+                        if (context.Current?.Type == TokenType.Period)
                         {
-                            classRef.Child = new VariableRefNode(context.Current.Value.Text.ToString());
-                            statements.Add(new DecrementVarNode(classRef));
-                            break;
+                            context.MoveNext();
+                            refNode = ProcessAccess(context, refNode);
+                        }
+
+                        if (type == TokenType.Decrement)
+                        {
+                            statements.Add(new IncrementVarNode(refNode));
                         }
                         else
                         {
-                            throw new UnexpectedTokenException(context.Current.Value);
+                            statements.Add(new DecrementVarNode(refNode));
                         }
+
+                        break;
                     }
                     else
                     {
@@ -490,7 +300,7 @@ public static class TokenParser
     }
 
     public static StatementNode ProcessDefinition(ParseContext context,
-        PrivacyType privacyType, bool isConstant, DefinitionType defType, ClassRefNode? classRef = null)
+        PrivacyType privacyType, TypeRefNode typeRef, bool isConstant)
     {
         string name;
 
@@ -514,7 +324,7 @@ public static class TokenParser
                 context.MoveNext();
                 var statements = ProcessBlock(context);
 
-                return new MethodDefNode(name, privacyType, defType, @params, statements, classRef);
+                return new MethodDefNode(name, privacyType, typeRef, @params, statements);
             }
             else
             {
@@ -524,7 +334,7 @@ public static class TokenParser
         else if (context.Current?.Type == TokenType.Semicolon)
         {
             context.MoveNext();
-            return new FieldNode(name, privacyType, defType, isConstant, classRef);
+            return new FieldNode(name, privacyType, typeRef, isConstant);
         }
         else
         {
@@ -557,89 +367,18 @@ public static class TokenParser
 
     public static ParameterNode ProcessParameter(ParseContext context)
     {
-        switch (context.Current?.Type)
+        TypeRefNode typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+        context.MoveNext();
+
+        if (context.Current?.Type == TokenType.Name)
         {
-            case TokenType.Bool:
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.Name)
-                {
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    return new ParameterNode(DefinitionType.Bool, name, null);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                }
-            case TokenType.String:
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.Name)
-                {
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    return new ParameterNode(DefinitionType.String, name, null);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                }
-            case TokenType.Int32:
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.Name)
-                {
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    return new ParameterNode(DefinitionType.Int32, name, null);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                }
-            case TokenType.Float32:
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.Name)
-                {
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    return new ParameterNode(DefinitionType.Float32, name, null);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                }
-            case TokenType.Matrix:
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.Name)
-                {
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    return new ParameterNode(DefinitionType.Matrix, name, null);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                }
-            case TokenType.Name:
-                var typeName = new ClassRefNode(false, context.Current.Value.Text.ToString());
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.Name)
-                {
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    return new ParameterNode(DefinitionType.ClassObject, name, typeName);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                }
-            default:
-                throw new UnexpectedTokenException(context.Current.Value);
+            string name = context.Current.Value.Text.ToString();
+            context.MoveNext();
+            return new ParameterNode(name, typeRef);
+        }
+        else
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
     }
 
@@ -928,24 +667,24 @@ public static class TokenParser
 
                     if (context.Current?.Type != TokenType.Period)
                     {
-                        lastCreatedNode = new VariableRefNode(name, true);
+                        lastCreatedNode = new RefNode(name);
                         break;
                     }
 
                     context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new ClassRefNode(false, name));
+                    lastCreatedNode = ProcessAccess(context, new TypeRefNode(DefinitionType.ClassObject, name));
                     break;
                 case TokenType.This:
                     context.MoveNext();
 
                     if (context.Current?.Type != TokenType.Period)
                     {
-                        lastCreatedNode = new ClassRefNode(true, context.CurrentClassName);
+                        lastCreatedNode = new ThisNode();
                         break;
                     }
 
                     context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new ClassRefNode(true, context.CurrentClassName));
+                    lastCreatedNode = ProcessAccess(context, new ThisNode());
                     break;
                 case TokenType.AssignmentSeparator:
                     if (lastCreatedNode != null)
@@ -983,14 +722,14 @@ public static class TokenParser
         }
 
         context.MoveNext();
-        var newRefNode = new ClassRefNode(false, name);
+        var newRefNode = new TypeRefNode(DefinitionType.ClassObject, name);
         newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
         return newRefNode;
     }
 
-    public static RefNode ProcessAccess(ParseContext context, ClassRefNode classRefNode)
+    public static RefNode ProcessAccess(ParseContext context, RefNode refNode)
     {
-        RefNode newRefNode = classRefNode;
+        RefNode newRefNode = refNode;
 
         while (context.Current != null)
         {
@@ -1005,7 +744,7 @@ public static class TokenParser
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
 
-                    if (newRefNode is ClassRefNode)
+                    if (newRefNode is ThisNode)
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
@@ -1026,7 +765,7 @@ public static class TokenParser
                     switch (context.Current?.Type)
                     {
                         case TokenType.Period:
-                            newRefNode.Child = new VariableRefNode(name);
+                            newRefNode.Child = new RefNode(name);
                             break;
                         case TokenType.OpeningParentheses:
                             context.MoveNext();
@@ -1261,6 +1000,36 @@ public static class TokenParser
             default:
                 throw new UnexpectedTokenException(context.Current.Value);
                 return null;
+        }
+    }
+
+    private static TypeRefNode CreateTypeRef(ParseContext context, TokenType typeToken, string typeName)
+    {
+        switch (typeToken)
+        {
+            case TokenType.Bool:
+                return new TypeRefNode(DefinitionType.Bool);
+                break;
+            case TokenType.String:
+                return new TypeRefNode(DefinitionType.String);
+                break;
+            case TokenType.Int32:
+                return new TypeRefNode(DefinitionType.Int32);
+                break;
+            case TokenType.Float32:
+                return new TypeRefNode(DefinitionType.Float32);
+                break;
+            case TokenType.Matrix:
+                return new TypeRefNode(DefinitionType.Matrix);
+                break;
+            case TokenType.Void:
+                return new TypeRefNode(DefinitionType.Void);
+                break;
+            case TokenType.Name:
+                return new TypeRefNode(DefinitionType.ClassObject, typeName);
+                break;
+            default:
+                throw new UnexpectedTokenException(context.Current.Value);
         }
     }
 

@@ -13,15 +13,13 @@ public class Parameter
     public int ParamIndex { get; set; }
     public string Name { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
-    public DefinitionType Type { get; set; }
-    public ClassRefNode TypeRef { get; set; }
+    public TypeRefNode TypeRef { get; set; }
 
-    public Parameter(int paramIndex, string name, LLVMTypeRef lLVMType, DefinitionType type, ClassRefNode typeRef)
+    public Parameter(int paramIndex, string name, LLVMTypeRef lLVMType, TypeRefNode typeRef)
     {
         ParamIndex = paramIndex;
         Name = name;
         LLVMType = lLVMType;
-        Type = type;
         TypeRef = typeRef;
     }
 }

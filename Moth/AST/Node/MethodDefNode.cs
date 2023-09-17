@@ -13,17 +13,15 @@ public class MethodDefNode : StatementNode
     public List<ParameterNode> Params { get; }
     public ScopeNode ExecutionBlock { get; }
     public PrivacyType Privacy { get; }
-    public DefinitionType ReturnType { get; }
-    public ClassRefNode? ReturnObject { get; }
+    public TypeRefNode ReturnTypeRef { get; }
 
-    public MethodDefNode(string name, PrivacyType privacyType, DefinitionType returnType,
-        List<ParameterNode> @params, ScopeNode executionBlock, ClassRefNode? returnObject = null)
+    public MethodDefNode(string name, PrivacyType privacyType, TypeRefNode returnTypeRef,
+        List<ParameterNode> @params, ScopeNode executionBlock)
     {
         Name = name;
         Privacy = privacyType;
-        ReturnType = returnType;
+        ReturnTypeRef = returnTypeRef;
         Params = @params;
         ExecutionBlock = executionBlock;
-        ReturnObject = returnObject;
     }
 }

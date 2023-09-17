@@ -10,17 +10,15 @@ public class FieldNode : StatementNode
 {
     public string Name { get; }
     public PrivacyType Privacy { get; }
-    public DefinitionType Type { get; }
+    public TypeRefNode TypeRef { get; }
     public bool IsConstant { get; }
-    public ClassRefNode? TypeRef { get; }
 
-    public FieldNode(string name, PrivacyType privacy, DefinitionType type, bool isConstant, ClassRefNode? typeObject = null)
+    public FieldNode(string name, PrivacyType privacy, TypeRefNode typeRef, bool isConstant)
     {
         Name = name;
         Privacy = privacy;
-        Type = type;
+        TypeRef = typeRef;
         IsConstant = isConstant;
-        TypeRef = typeObject;
     }
 }
 

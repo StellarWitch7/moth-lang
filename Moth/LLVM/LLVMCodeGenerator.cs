@@ -40,9 +40,9 @@ public static class LLVMCodeGenerator
 
         foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
         {
-            var lLVMType = DefToLLVMType(compiler, field.Type, field.TypeRef);
+            var lLVMType = DefToLLVMType(compiler, field.TypeRef);
             lLVMTypes.Add(lLVMType);
-            @class.Fields.Add(field.Name, new Field(index, lLVMType, field.Privacy, field.Type, field.TypeRef, field.IsConstant));
+            @class.Fields.Add(field.Name, new Field(index, lLVMType, field.Privacy, field.TypeRef, field.IsConstant));
             index++;
         }
 
@@ -68,13 +68,13 @@ public static class LLVMCodeGenerator
 
         foreach (ParameterNode param in methodDef.Params)
         {
-            LLVMTypeRef lLVMType = DefToLLVMType(compiler, param.Type, param.TypeRef);
-            @params.Add(new Parameter(index, param.Name, lLVMType, param.Type, param.TypeRef));
+            LLVMTypeRef lLVMType = DefToLLVMType(compiler, param.TypeRef);
+            @params.Add(new Parameter(index, param.Name, lLVMType, param.TypeRef));
             paramTypes.Add(lLVMType);
             index++;
         }
 
-        var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(compiler, methodDef.ReturnType, methodDef.ReturnObject), paramTypes.ToArray());
+        var funcType = LLVMTypeRef.CreateFunction(DefToLLVMType(compiler, methodDef.ReturnTypeRef), paramTypes.ToArray());
         LLVMValueRef lLVMFunc = compiler.Module.AddFunction(methodDef.Name, funcType);
         Function func = new Function(lLVMFunc, methodDef.Privacy, @params);
         func.Params = @params;
@@ -95,7 +95,6 @@ public static class LLVMCodeGenerator
                 new Variable(compiler.CurrentFunction.LLVMFunc.Params[param.ParamIndex],
                     param.LLVMType,
                     PrivacyType.Local,
-                    param.Type,
                     param.TypeRef,
                     false));
         }
@@ -122,15 +121,14 @@ public static class LLVMCodeGenerator
             }
             else if (statement is FieldNode fieldDef)
             {
-                var lLVMType = DefToLLVMType(compiler, fieldDef.Type, fieldDef.TypeRef);
+                var lLVMType = DefToLLVMType(compiler, fieldDef.TypeRef);
                 scope.Variables.Add(fieldDef.Name,
                     new Variable(compiler.Builder.BuildAlloca(lLVMType,
                         fieldDef.Name),
-                    lLVMType,
-                    fieldDef.Privacy,
-                    fieldDef.Type,
-                    fieldDef.TypeRef,
-                    fieldDef.IsConstant));
+                        lLVMType,
+                        fieldDef.Privacy,
+                        fieldDef.TypeRef,
+                        fieldDef.IsConstant));
             }
             else if (statement is ScopeNode newScopeNode)
             {
@@ -258,52 +256,30 @@ public static class LLVMCodeGenerator
         PointerContext pointerContext = null;
 
         {
-            if (refNode is VariableRefNode varRef)
+            if (refNode is ThisNode)
             {
-                if (varRef.IsLocalVar)
-                {
-                    if (scope.Variables.TryGetValue(varRef.Name, out Variable @var))
-                    {
-                        currentLocation = @var;
-                        pointerContext = new PointerContext(@var.LLVMType, @var.LLVMVariable);
-                    }
-                    else
-                    {
-                        throw new Exception("Local variable does not exist in the current scope.");
-                    }
-                }
-                else
-                {
-                    throw new Exception("How in all hell did this manage to happen???? Non-local variable has no origin prefix.");
-                }
-            }
-            else if (refNode is ClassRefNode classRef)
-            {
-                if (classRef.IsCurrentClass)
-                {
-                    currentLocation = compiler.CurrentClass;
-                    pointerContext = new PointerContext(compiler.CurrentClass.LLVMClass, compiler.CurrentFunction.LLVMFunc.FirstParam);
-                }
-                else
-                {
-                    if (compiler.Classes.TryGetValue(classRef.Name, out Class @class))
-                    {
-                        currentLocation = @class;
-                    }
-                    else
-                    {
-                        throw new Exception("Class does not exist.");
-                    }
-                }
+                currentLocation = compiler.CurrentClass;
+                pointerContext = new PointerContext(compiler.CurrentClass.LLVMClass, compiler.CurrentFunction.LLVMFunc.FirstParam);
             }
             else if (refNode is MethodCallNode methodCall)
             {
                 throw new NotImplementedException();
             }
+            else if (refNode is IndexAccessNode indexAccess)
+            {
+                throw new Exception("Index access before array retrieval.");
+            }
             else
             {
-                throw new Exception("Pretty sure that doesn't exist... how'd you manage that?"
-                    + "Access operation does not begin with a local variable, class, or method call.");
+                if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
+                {
+                    currentLocation = @var;
+                    pointerContext = new PointerContext(@var.LLVMType, @var.LLVMVariable);
+                }
+                else
+                {
+                    throw new Exception("Local variable does not exist.");
+                }
             }
         }
 
@@ -313,7 +289,11 @@ public static class LLVMCodeGenerator
 
             while (refNode.Child != null)
             {
-                if (refNode is VariableRefNode varRef)
+                if (refNode is MethodCallNode methodCall)
+                {
+                    throw new NotImplementedException();
+                }
+                else
                 {
                     if (currentLocation is Variable @var)
                     {
@@ -323,7 +303,7 @@ public static class LLVMCodeGenerator
 
                             if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
                             {
-                                if (@class.Fields.TryGetValue(varRef.Name, out Field field))
+                                if (@class.Fields.TryGetValue(refNode.Name, out Field field))
                                 {
                                     currentLocation = @field;
                                     refNode = refNode.Child;
@@ -352,7 +332,7 @@ public static class LLVMCodeGenerator
 
                             if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
                             {
-                                if (@class.Fields.TryGetValue(varRef.Name, out Field newField))
+                                if (@class.Fields.TryGetValue(refNode.Name, out Field newField))
                                 {
                                     currentLocation = newField;
                                     refNode = refNode.Child;
@@ -377,19 +357,15 @@ public static class LLVMCodeGenerator
                         throw new NotImplementedException();
                     }
                 }
-                else
-                {
-                    throw new NotImplementedException();
-                }
             }
         }
 
         return pointerContext;
     }
 
-    public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, DefinitionType definitionType, ClassRefNode? classRef = null)
+    public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, TypeRefNode typeRef)
     {
-        switch (definitionType)
+        switch (typeRef.Type)
         {
             case DefinitionType.Void:
                 return LLVMTypeRef.Void;
@@ -402,7 +378,7 @@ public static class LLVMCodeGenerator
             case DefinitionType.String:
                 return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0); //compiler.Context.GetConstString() for literal strings
             case DefinitionType.ClassObject:
-                compiler.Classes.TryGetValue(classRef.Name, out Class? @class);
+                compiler.Classes.TryGetValue(typeRef.Name, out Class? @class);
                 if (@class == null) throw new Exception("Attempted to reference a class that does not exist in the current environment.");
                 return @class.LLVMClass;
             default:
