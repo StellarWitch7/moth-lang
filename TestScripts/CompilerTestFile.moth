@@ -6,7 +6,7 @@ public class Test {
     test = i;
 
     {
-      i = 4;
+      i = 4 + 3;
       i = test;
     }
   }

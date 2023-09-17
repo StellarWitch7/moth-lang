@@ -13,6 +13,7 @@ public class Function
     public LLVMValueRef LLVMFunc { get; set; }
     public PrivacyType Privacy { get; set; }
     public Scope OpeningScope { get; set; }
+    public List<Parameter> Params { get; set; } = new List<Parameter>();
 
     public Function(LLVMValueRef lLVMFunc, PrivacyType privacy)
     {
