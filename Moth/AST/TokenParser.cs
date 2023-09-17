@@ -203,39 +203,37 @@ public static class TokenParser
                     }
                 case TokenType.Public:
                 case TokenType.Private:
-                case TokenType.Var:
-                    if (isClassRoot)
+                case TokenType.Local:
+                    PrivacyType privacyType = PrivacyType.Public;
+                    bool isConstant = false;
+                    TypeRefNode typeRef;
+
+                    if (context.Current?.Type == TokenType.Private)
                     {
-                        PrivacyType privacyType = PrivacyType.Public;
-                        bool isConstant = false;
-                        TypeRefNode typeRef;
-
-                        if (context.Current?.Type == TokenType.Private)
-                        {
-                            privacyType = PrivacyType.Private;
-                        }
-                        else if (context.Current?.Type == TokenType.Var)
-                        {
-                            privacyType = PrivacyType.Local;
-                        }
-
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.Constant)
-                        {
-                            isConstant = true;
-                            context.MoveNext();
-                        }
-
-                        typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
-                        context.MoveNext();
-                        statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
-                        break;
+                        privacyType = PrivacyType.Private;
                     }
-                    else
+                    else if (context.Current?.Type == TokenType.Local)
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Var);
+                        if (isClassRoot)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+
+                        privacyType = PrivacyType.Local;
                     }
+
+                    context.MoveNext();
+
+                    if (context.Current?.Type == TokenType.Constant)
+                    {
+                        isConstant = true;
+                        context.MoveNext();
+                    }
+
+                    typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+                    context.MoveNext();
+                    statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
+                    break;
                 case TokenType.This:
                 case TokenType.Name:
                     if (!isClassRoot)
@@ -754,22 +752,19 @@ public static class TokenParser
                     newRefNode = newRefNode.Child;
                     break;
                 case TokenType.Name:
-                    if (context.GetByIndex(context.Position - 1).Type != TokenType.Period)
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Period);
-                    }
-
                     string name = context.Current.Value.Text.ToString();
                     context.MoveNext();
 
                     switch (context.Current?.Type)
                     {
-                        case TokenType.Period:
-                            newRefNode.Child = new RefNode(name);
-                            break;
                         case TokenType.OpeningParentheses:
                             context.MoveNext();
                             newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
+                            break;
+                        case TokenType.OpeningSquareBrackets:
+                            throw new NotImplementedException();
+                        default:
+                            newRefNode.Child = new RefNode(name);
                             break;
                     }
 

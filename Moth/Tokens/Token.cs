@@ -59,7 +59,7 @@ public enum TokenType
 	Or,
 	Class,
 	If,
-	Var,
+	Local,
 	New,
 	Else,
 	Public,
