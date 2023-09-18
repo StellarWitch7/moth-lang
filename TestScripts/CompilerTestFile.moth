@@ -1,13 +1,12 @@
 @test.namespace;
 
 public class Test {
-  public void TestMethod(i32 i) {
-    local i32 test;
-    test = self.TestMethod(i * 2);
+  public Test TestMethod(Test obj) {
+    local Test test;
+    //test = self.TestMethod(test);
 
     {
-      i = 4 + 3;
-      i = test;
+      test = test;
       return;
     }
   }

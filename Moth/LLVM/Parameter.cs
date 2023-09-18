@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Parameter
+public class Parameter : CompilerData
 {
     public int ParamIndex { get; set; }
     public string Name { get; set; }

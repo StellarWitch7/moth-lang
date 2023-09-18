@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Field
+public class Field : CompilerData
 {
     public uint FieldIndex { get; set; }
     public LLVMTypeRef LLVMType { get; set; }

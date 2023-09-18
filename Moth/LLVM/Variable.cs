@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Variable
+public class Variable : CompilerData
 {
     public LLVMValueRef LLVMVariable { get; set; }
     public LLVMTypeRef LLVMType { get; set; }

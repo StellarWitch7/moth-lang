@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Class
+public class Class : CompilerData
 {
     public LLVMTypeRef LLVMClass { get; set; }
     public PrivacyType Privacy { get; set; }

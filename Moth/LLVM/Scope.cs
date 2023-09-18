@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Scope
+public class Scope : CompilerData
 {
     public LLVMBasicBlockRef LLVMBlock { get; set; }
     public Dictionary<string, Variable> Variables { get; set; } = new Dictionary<string, Variable>();

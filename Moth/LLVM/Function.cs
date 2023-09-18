@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class Function
+public class Function : CompilerData
 {
     public LLVMValueRef LLVMFunc { get; set; }
     public LLVMTypeRef LLVMFuncType { get; set; }
@@ -16,10 +16,11 @@ public class Function
     public PrivacyType Privacy { get; set; }
     public TypeRefNode ReturnType { get; set; }
     public Scope OpeningScope { get; set; }
-    public List<Parameter> Params { get; set; } = new List<Parameter>();
+    public List<Parameter> Params { get; set; }
+    public bool IsGlobal { get; set; }
 
     public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
-        PrivacyType privacy, TypeRefNode returnType, List<Parameter> @params)
+        PrivacyType privacy, TypeRefNode returnType, List<Parameter> @params, bool isGlobal = false)
     {
         LLVMFunc = lLVMFunc;
         LLVMFuncType = lLVMFuncType;
@@ -27,5 +28,6 @@ public class Function
         Privacy = privacy;
         ReturnType = returnType;
         Params = @params;
+        IsGlobal = isGlobal;
     }
 }

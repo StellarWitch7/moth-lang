@@ -122,7 +122,7 @@ public static class LLVMCompiler
             {
                 if (@return.ReturnValue != null)
                 {
-                    compiler.Builder.BuildRet(CompileExpression(compiler, scope, @return.ReturnValue).Value);
+                    compiler.Builder.BuildRet(CompileExpression(compiler, scope, @return.ReturnValue).LLVMValue);
                 }
                 else
                 {
@@ -214,7 +214,7 @@ public static class LLVMCompiler
         return false;
     }
 
-    public static ValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
+    public static DefTypedValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
     {
         if (expr is BinaryOperationNode binaryOp)
         {
@@ -222,55 +222,70 @@ public static class LLVMCompiler
             {
                 if (binaryOp.Left is RefNode @ref)
                 {
-                    var variableAssigned = CompileRef(compiler, scope, @ref).Value;
-                    compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right).Value, variableAssigned);
-                    return new ValueContext(/*typeref*/, variableAssigned);
+                    var variableAssigned = CompileRef(compiler, scope, @ref);
+                    compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right).LLVMValue, variableAssigned.LLVMValue);
+                    return new DefTypedValueContext(compiler, variableAssigned.TypeRef, variableAssigned.LLVMValue);
                 }
                 else
                 {
                     throw new Exception();
                 }
             }
-            else if (binaryOp.Type == OperationType.Addition)
-            {
-                return new ValueContext(/*typeref*/, compiler.Builder.BuildAdd(CompileExpression(compiler, scope, binaryOp.Left).Value,
-                    CompileExpression(compiler, scope, binaryOp.Right).Value)); //TODO: add a check for pointers to load them
-            }
-            else if (binaryOp.Type == OperationType.Subtraction)
-            {
-                return new ValueContext(/*typeref*/, compiler.Builder.BuildSub(CompileExpression(compiler, scope, binaryOp.Left).Value,
-                    CompileExpression(compiler, scope, binaryOp.Right).Value));
-            }
-            else if (binaryOp.Type == OperationType.Multiplication)
-            {
-                return new ValueContext(/*typeref*/, compiler.Builder.BuildMul(CompileExpression(compiler, scope, binaryOp.Left).Value,
-                    CompileExpression(compiler, scope, binaryOp.Right).Value));
-            }
-            else if (binaryOp.Type == OperationType.Division) //only for signed ints
-            {
-                return new ValueContext(/*typeref*/, compiler.Builder.BuildSDiv(CompileExpression(compiler, scope, binaryOp.Left).Value,
-                    CompileExpression(compiler, scope, binaryOp.Right).Value));
-            }
             else
             {
-                throw new NotImplementedException();
+                var left = CompileExpression(compiler, scope, binaryOp.Left);
+                var right = CompileExpression(compiler, scope, binaryOp.Right);
+
+                if (left.TypeRef.Type == right.TypeRef.Type && left.TypeRef.Type != DefinitionType.UnknownObject)
+                {
+                    LLVMValueRef leftVal;
+                    LLVMValueRef rightVal;
+                    LLVMValueRef builtVal;
+
+                    leftVal = compiler.Builder.BuildLoad2(left.LLVMType, left.LLVMValue);
+                    rightVal = compiler.Builder.BuildLoad2(right.LLVMType, right.LLVMValue);
+
+                    switch (binaryOp.Type)
+                    {
+                        case OperationType.Addition:
+                            builtVal = compiler.Builder.BuildAdd(leftVal, rightVal);
+                            break;
+                        case OperationType.Subtraction:
+                            builtVal = compiler.Builder.BuildSub(leftVal, rightVal);
+                            break;
+                        case OperationType.Multiplication:
+                            builtVal = compiler.Builder.BuildMul(leftVal, rightVal);
+                            break;
+                        case OperationType.Division:
+                            builtVal = compiler.Builder.BuildSDiv(leftVal, rightVal);
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
+
+                    return new DefTypedValueContext(compiler, left.TypeRef, builtVal);
+                }
+                else
+                {
+                    throw new Exception();
+                }
             }
         }
         else if (expr is ConstantNode constNode)
         {
             if (constNode.Value is string str)
             {
-                return new ValueContext(DefToLLVMType(compiler, new TypeRefNode(DefinitionType.String)),
+                return new DefTypedValueContext(compiler, new TypeRefNode(DefinitionType.String),
                     compiler.Context.GetConstString(str, false));
             }
             else if (constNode.Value is int i32)
             {
-                return new ValueContext(DefToLLVMType(compiler, new TypeRefNode(DefinitionType.Int32)),
+                return new DefTypedValueContext(compiler, new TypeRefNode(DefinitionType.Int32),
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32));
             }
             else if (constNode.Value is float f32)
             {
-                return new ValueContext(DefToLLVMType(compiler, new TypeRefNode(DefinitionType.Float32)),
+                return new DefTypedValueContext(compiler, new TypeRefNode(DefinitionType.Float32),
                     LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
             }
             else
@@ -288,184 +303,149 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode) //TODO: rewrite this method
+    public static DefTypedValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
-        object currentLocation;
-        ValueContext pointerContext;
+        AccessContext context = null;
+
+        while (refNode != null)
         {
             if (refNode is ThisNode)
             {
-                currentLocation = compiler.CurrentClass;
-                pointerContext = new ValueContext(compiler.CurrentClass.LLVMClass, compiler.CurrentFunction.LLVMFunc.FirstParam);
+                if (compiler.CurrentFunction.IsGlobal)
+                {
+                    throw new Exception("Attempted self-instance reference in a global function.");
+                }
+
+                context = new AccessContext(new ValueContext(compiler.CurrentClass.LLVMClass,
+                        compiler.CurrentFunction.LLVMFunc.FirstParam),
+                    compiler.CurrentClass);
+                refNode = refNode.Child;
             }
             else if (refNode is MethodCallNode methodCall)
             {
-                throw new NotImplementedException();
+                if (context == null)
+                {
+                    if (compiler.CurrentFunction.IsGlobal)
+                    {
+                        throw new Exception("Attempted self-instance reference in a global function.");
+                    }
+
+                    context = new AccessContext(new ValueContext(compiler.CurrentClass.LLVMClass,
+                            compiler.CurrentFunction.LLVMFunc.FirstParam),
+                        compiler.CurrentClass);
+                }
+
+                if (context.Class.Functions.TryGetValue(methodCall.Name, out Function func))
+                {
+                    List<LLVMValueRef> args = new List<LLVMValueRef>();
+
+                    foreach (ExpressionNode arg in methodCall.Arguments)
+                    {
+                        var val = CompileExpression(compiler, scope, arg);
+                        args.Add(val.LLVMValue);
+                    }
+
+                    if (compiler.Classes.TryGetValue(func.ReturnType.Name, out Class returnClass))
+                    {
+                        context = new AccessContext(new DefTypedValueContext(compiler,
+                                func.ReturnType,
+                                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray())),
+                            returnClass);
+                        refNode = refNode.Child;
+                    }
+                    else
+                    {
+                        throw new Exception("Called function with invalid return type.");
+                    }
+                }
+                else
+                {
+                    throw new Exception("Function does not exist.");
+                }
             }
             else if (refNode is IndexAccessNode indexAccess)
             {
-                throw new Exception("Index access before array retrieval.");
+                throw new NotImplementedException("Index access is not currently available."); //TODO
             }
             else
             {
-                if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
+                if (context != null)
                 {
-                    currentLocation = @var;
-                    pointerContext = new ValueContext(@var.LLVMType, @var.LLVMVariable);
+                    if (context.Class.Fields.TryGetValue(refNode.Name, out Field field))
+                    {
+                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class fieldClass))
+                        {
+                            context = new AccessContext(new DefTypedValueContext(compiler,
+                                    field.TypeRef,
+                                    compiler.Builder.BuildStructGEP2(context.ValueContext.LLVMType,
+                                        context.ValueContext.Value,
+                                        field.FieldIndex)),
+                                fieldClass);
+                            refNode = refNode.Child;
+                        }
+                        else
+                        {
+                            throw new Exception("Attempted to load a field with an invalid type.");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Field does not exist.");
+                    }
                 }
                 else
                 {
-                    throw new Exception("Local variable does not exist.");
+                    if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
+                    {
+                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class varClass))
+                        {
+                            context = new AccessContext(new DefTypedValueContext(compiler,
+                                    @var.TypeRef,
+                                    compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable)),
+                                varClass);
+                            refNode = refNode.Child;
+                        }
+                        else
+                        {
+                            throw new Exception("Attempted to load a variable with an invalid type.");
+                        }
+                    }
+                    else if (compiler.CurrentClass.Fields.TryGetValue(refNode.Name, out Field field))
+                    {
+                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class fieldClass))
+                        {
+                            context = new AccessContext(new ValueContext(compiler.CurrentClass.LLVMClass,
+                                    compiler.CurrentFunction.LLVMFunc.FirstParam),
+                                compiler.CurrentClass);
+                            context = new AccessContext(new DefTypedValueContext(compiler,
+                                    field.TypeRef,
+                                    compiler.Builder.BuildStructGEP2(context.ValueContext.LLVMType,
+                                        context.ValueContext.Value,
+                                        field.FieldIndex)),
+                                fieldClass);
+                            refNode = refNode.Child;
+                        }
+                        else
+                        {
+                            throw new Exception("Attempted to load a field with an invalid type.");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Variable not found.");
+                    }
                 }
             }
         }
 
-        if (refNode.Child != null)
+        if (context.ValueContext is DefTypedValueContext defTypedContext)
         {
-            refNode = refNode.Child;
-
-            while (refNode.Child != null)
-            {
-                if (refNode is MethodCallNode methodCall)
-                {
-                    if (currentLocation is Variable @var)
-                    {
-                        pointerContext = new ValueContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
-
-                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
-                        {
-                            if (@class.Functions.TryGetValue(methodCall.Name, out Function func))
-                            {
-                                currentLocation = func;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else if (currentLocation is Field field)
-                    {
-                        pointerContext = new ValueContext(field.LLVMType,
-                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Value, field.FieldIndex));
-
-                        if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
-                        {
-                            if (@class.Functions.TryGetValue(methodCall.Name, out Function func))
-                            {
-                                currentLocation = func;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else if (currentLocation is Function func)
-                    {
-                        List<LLVMValueRef> args = new List<LLVMValueRef>();
-
-                        foreach (ExpressionNode expr in methodCall.Arguments)
-                        {
-                            args.Add(CompileExpression(compiler, scope, expr).Value);
-                        }
-
-                        pointerContext = new ValueContext(func.LLVMReturnType,
-                            compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()));
-
-                        if (compiler.Classes.TryGetValue(func.ReturnType.Name, out Class @class))
-                        {
-                            if (@class.Functions.TryGetValue(methodCall.Name, out Function newFunc))
-                            {
-                                currentLocation = newFunc;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-                }
-                else
-                {
-                    if (currentLocation is Variable @var)
-                    {
-                        pointerContext = new ValueContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
-
-                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
-                        {
-                            if (@class.Fields.TryGetValue(refNode.Name, out Field field))
-                            {
-                                currentLocation = @field;
-                                refNode = refNode.Child;
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception();
-                        }
-                    }
-                    else if (currentLocation is Field field)
-                    {
-                        if (pointerContext != null)
-                        {
-                            pointerContext = new ValueContext(field.LLVMType,
-                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Value, field.FieldIndex));
-
-                            if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
-                            {
-                                if (@class.Fields.TryGetValue(refNode.Name, out Field newField))
-                                {
-                                    currentLocation = newField;
-                                    refNode = refNode.Child;
-                                }
-                                else
-                                {
-                                    throw new Exception();
-                                }
-                            }
-                            else
-                            {
-                                throw new Exception();
-                            }
-                        }
-                        else
-                        {
-                            throw new Exception("That is just idiotic. You tried accessing a field on... nothing?");
-                        }
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-                }
-            }
+            return defTypedContext;
         }
-
-        return pointerContext;
+        else
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, TypeRefNode typeRef)

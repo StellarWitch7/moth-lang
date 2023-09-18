@@ -9,12 +9,12 @@ namespace Moth.LLVM;
 
 public class ValueContext
 {
-    public LLVMTypeRef Type { get; set; }
+    public LLVMTypeRef LLVMType { get; set; }
     public LLVMValueRef Value { get; set; }
 
     public ValueContext(LLVMTypeRef type, LLVMValueRef value)
     {
-        this.Type = type;
-        this.Value = value;
+        LLVMType = type;
+        Value = value;
     }
 }
