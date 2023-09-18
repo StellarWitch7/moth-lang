@@ -36,6 +36,6 @@ public enum DefinitionType
     Float32,
     String,
     Matrix,
-    ClassObject,
+    UnknownObject,
     Void
 }

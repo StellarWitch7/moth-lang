@@ -3,7 +3,7 @@
 public class Test {
   public void TestMethod(i32 i) {
     local i32 test;
-    test = TestMethod(i * 2);
+    test = self.TestMethod(i * 2);
 
     {
       i = 4 + 3;

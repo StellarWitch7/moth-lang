@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class PointerContext
+public class ValueContext
 {
     public LLVMTypeRef Type { get; set; }
-    public LLVMValueRef Pointer { get; set; }
+    public LLVMValueRef Value { get; set; }
 
-    public PointerContext(LLVMTypeRef type, LLVMValueRef pointer)
+    public ValueContext(LLVMTypeRef type, LLVMValueRef value)
     {
         this.Type = type;
-        this.Pointer = pointer;
+        this.Value = value;
     }
 }

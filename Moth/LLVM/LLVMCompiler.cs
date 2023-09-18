@@ -122,7 +122,7 @@ public static class LLVMCompiler
             {
                 if (@return.ReturnValue != null)
                 {
-                    compiler.Builder.BuildRet(CompileExpression(compiler, scope, @return.ReturnValue));
+                    compiler.Builder.BuildRet(CompileExpression(compiler, scope, @return.ReturnValue).Value);
                 }
                 else
                 {
@@ -144,7 +144,7 @@ public static class LLVMCompiler
             }
             else if (statement is ScopeNode newScopeNode)
             {
-                var newScope = new Scope(scope.LLVMBlock.InsertBasicBlock(""));
+                var newScope = new Scope(compiler.CurrentFunction.LLVMFunc.AppendBasicBlock(""));
                 newScope.Variables = scope.Variables; //TODO: fix it? maybe?
                 compiler.Builder.BuildBr(newScope.LLVMBlock);
                 compiler.Builder.PositionAtEnd(newScope.LLVMBlock);
@@ -154,7 +154,7 @@ public static class LLVMCompiler
                     return true;
                 }
 
-                scope.LLVMBlock = newScope.LLVMBlock.InsertBasicBlock("");
+                scope.LLVMBlock = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("");
                 compiler.Builder.BuildBr(scope.LLVMBlock);
                 compiler.Builder.PositionAtEnd(scope.LLVMBlock);
             }
@@ -214,7 +214,7 @@ public static class LLVMCompiler
         return false;
     }
 
-    public static LLVMValueRef CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
+    public static ValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
     {
         if (expr is BinaryOperationNode binaryOp)
         {
@@ -222,9 +222,9 @@ public static class LLVMCompiler
             {
                 if (binaryOp.Left is RefNode @ref)
                 {
-                    var variableAssigned = CompileRef(compiler, scope, @ref).Pointer;
-                    compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right), variableAssigned);
-                    return variableAssigned;
+                    var variableAssigned = CompileRef(compiler, scope, @ref).Value;
+                    compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right).Value, variableAssigned);
+                    return new ValueContext(/*typeref*/, variableAssigned);
                 }
                 else
                 {
@@ -233,23 +233,23 @@ public static class LLVMCompiler
             }
             else if (binaryOp.Type == OperationType.Addition)
             {
-                return compiler.Builder.BuildAdd(CompileExpression(compiler, scope, binaryOp.Left),
-                    CompileExpression(compiler, scope, binaryOp.Right)); //TODO: add a check for pointers to load them
+                return new ValueContext(/*typeref*/, compiler.Builder.BuildAdd(CompileExpression(compiler, scope, binaryOp.Left).Value,
+                    CompileExpression(compiler, scope, binaryOp.Right).Value)); //TODO: add a check for pointers to load them
             }
             else if (binaryOp.Type == OperationType.Subtraction)
             {
-                return compiler.Builder.BuildSub(CompileExpression(compiler, scope, binaryOp.Left),
-                    CompileExpression(compiler, scope, binaryOp.Right));
+                return new ValueContext(/*typeref*/, compiler.Builder.BuildSub(CompileExpression(compiler, scope, binaryOp.Left).Value,
+                    CompileExpression(compiler, scope, binaryOp.Right).Value));
             }
             else if (binaryOp.Type == OperationType.Multiplication)
             {
-                return compiler.Builder.BuildMul(CompileExpression(compiler, scope, binaryOp.Left),
-                    CompileExpression(compiler, scope, binaryOp.Right));
+                return new ValueContext(/*typeref*/, compiler.Builder.BuildMul(CompileExpression(compiler, scope, binaryOp.Left).Value,
+                    CompileExpression(compiler, scope, binaryOp.Right).Value));
             }
             else if (binaryOp.Type == OperationType.Division) //only for signed ints
             {
-                return compiler.Builder.BuildSDiv(CompileExpression(compiler, scope, binaryOp.Left),
-                    CompileExpression(compiler, scope, binaryOp.Right));
+                return new ValueContext(/*typeref*/, compiler.Builder.BuildSDiv(CompileExpression(compiler, scope, binaryOp.Left).Value,
+                    CompileExpression(compiler, scope, binaryOp.Right).Value));
             }
             else
             {
@@ -260,15 +260,18 @@ public static class LLVMCompiler
         {
             if (constNode.Value is string str)
             {
-                return compiler.Context.GetConstString(str, false);
+                return new ValueContext(DefToLLVMType(compiler, new TypeRefNode(DefinitionType.String)),
+                    compiler.Context.GetConstString(str, false));
             }
             else if (constNode.Value is int i32)
             {
-                return LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32);
+                return new ValueContext(DefToLLVMType(compiler, new TypeRefNode(DefinitionType.Int32)),
+                    LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32));
             }
             else if (constNode.Value is float f32)
             {
-                return LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32);
+                return new ValueContext(DefToLLVMType(compiler, new TypeRefNode(DefinitionType.Float32)),
+                    LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
             }
             else
             {
@@ -277,7 +280,7 @@ public static class LLVMCompiler
         }
         else if (expr is RefNode @ref)
         {
-            return CompileRef(compiler, scope, @ref).Pointer;
+            return CompileRef(compiler, scope, @ref);
         }
         else
         {
@@ -285,15 +288,15 @@ public static class LLVMCompiler
         }
     }
 
-    public static PointerContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
+    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode) //TODO: rewrite this method
     {
         object currentLocation;
-        PointerContext pointerContext;
+        ValueContext pointerContext;
         {
             if (refNode is ThisNode)
             {
                 currentLocation = compiler.CurrentClass;
-                pointerContext = new PointerContext(compiler.CurrentClass.LLVMClass, compiler.CurrentFunction.LLVMFunc.FirstParam);
+                pointerContext = new ValueContext(compiler.CurrentClass.LLVMClass, compiler.CurrentFunction.LLVMFunc.FirstParam);
             }
             else if (refNode is MethodCallNode methodCall)
             {
@@ -308,7 +311,7 @@ public static class LLVMCompiler
                 if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
                 {
                     currentLocation = @var;
-                    pointerContext = new PointerContext(@var.LLVMType, @var.LLVMVariable);
+                    pointerContext = new ValueContext(@var.LLVMType, @var.LLVMVariable);
                 }
                 else
                 {
@@ -327,7 +330,7 @@ public static class LLVMCompiler
                 {
                     if (currentLocation is Variable @var)
                     {
-                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+                        pointerContext = new ValueContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
 
                         if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
                         {
@@ -348,8 +351,8 @@ public static class LLVMCompiler
                     }
                     else if (currentLocation is Field field)
                     {
-                        pointerContext = new PointerContext(field.LLVMType,
-                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
+                        pointerContext = new ValueContext(field.LLVMType,
+                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Value, field.FieldIndex));
 
                         if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
                         {
@@ -374,10 +377,10 @@ public static class LLVMCompiler
 
                         foreach (ExpressionNode expr in methodCall.Arguments)
                         {
-                            args.Add(CompileExpression(compiler, scope, expr));
+                            args.Add(CompileExpression(compiler, scope, expr).Value);
                         }
 
-                        pointerContext = new PointerContext(func.LLVMReturnType,
+                        pointerContext = new ValueContext(func.LLVMReturnType,
                             compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()));
 
                         if (compiler.Classes.TryGetValue(func.ReturnType.Name, out Class @class))
@@ -406,7 +409,7 @@ public static class LLVMCompiler
                 {
                     if (currentLocation is Variable @var)
                     {
-                        pointerContext = new PointerContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
+                        pointerContext = new ValueContext(@var.LLVMType, compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable));
 
                         if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class @class))
                         {
@@ -429,8 +432,8 @@ public static class LLVMCompiler
                     {
                         if (pointerContext != null)
                         {
-                            pointerContext = new PointerContext(field.LLVMType,
-                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Pointer, field.FieldIndex));
+                            pointerContext = new ValueContext(field.LLVMType,
+                                compiler.Builder.BuildStructGEP2(pointerContext.Type, pointerContext.Value, field.FieldIndex));
 
                             if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class @class))
                             {
@@ -479,7 +482,7 @@ public static class LLVMCompiler
                 return LLVMTypeRef.Int1;
             case DefinitionType.String:
                 return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0); //compiler.Context.GetConstString() for literal strings
-            case DefinitionType.ClassObject:
+            case DefinitionType.UnknownObject:
                 compiler.Classes.TryGetValue(typeRef.Name, out Class? @class);
                 if (@class == null) throw new Exception("Attempted to reference a class that does not exist in the current environment.");
                 return @class.LLVMClass;

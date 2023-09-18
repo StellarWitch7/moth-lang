@@ -10,18 +10,16 @@ public class TypeRefNode : RefNode
 {
     public DefinitionType Type;
 
-    public TypeRefNode(DefinitionType type, string name = null) : base(null)
+    public TypeRefNode(DefinitionType type, string name = "") : base(name)
     {
         Type = type;
 
-        if (type == DefinitionType.ClassObject)
+        if (type == DefinitionType.UnknownObject)
         {
-            if (name == null)
+            if (name == "" || name == null)
             {
                 throw new Exception("Unknown type and no reference string given.");
             }
-
-            base.Name = name;
         }
     }
 }

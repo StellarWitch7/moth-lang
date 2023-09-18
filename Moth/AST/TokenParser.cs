@@ -194,7 +194,7 @@ public static class TokenParser
                     if (!isClassRoot)
                     {
                         context.MoveNext();
-                        statements.Add(new ReturnNode(ProcessExpression(context, null)));
+                        statements.Add(new ReturnNode(ProcessExpression(context, null, false)));
                         break;
                     }
                     else
@@ -238,7 +238,7 @@ public static class TokenParser
                 case TokenType.Name:
                     if (!isClassRoot)
                     {
-                        statements.Add(ProcessExpression(context, null));
+                        statements.Add(ProcessExpression(context, null, false));
                         break;
                     }
                     else
@@ -382,7 +382,7 @@ public static class TokenParser
 
     public static IfNode ProcessIf(ParseContext context)
     {
-        var condition = ProcessExpression(context, null);
+        var condition = ProcessExpression(context, null, true);
         var then = ProcessBlock(context);
         var @else = ProcessElse(context);
         return new IfNode(condition, then, @else);
@@ -420,17 +420,15 @@ public static class TokenParser
 
         while (context.Current != null)
         {
-            if (context.Current?.Type == TokenType.ClosingParentheses) break;
+            if (context.GetByIndex(context.Position - 1).Type == TokenType.ClosingParentheses) break;
             args.Add(ProcessExpression(context, null, true));
         }
 
-        context.MoveNext();
         return args;
     }
 
     // Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
-    // Alternatively, set isParent to true.
-    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode, bool isParameter = false)
+    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode, bool isSubExpr)
     {
         bool isParent = lastCreatedNode == null;
 
@@ -448,11 +446,11 @@ public static class TokenParser
                     if (isParent) context.MoveNext();
                     return lastCreatedNode;
                 case TokenType.ClosingParentheses:
-                    if (!isParameter) context.MoveNext();
+                    if (isSubExpr) context.MoveNext();
                     return lastCreatedNode;
                 case TokenType.OpeningParentheses:
                     context.MoveNext();
-                    lastCreatedNode = ProcessExpression(context, lastCreatedNode);
+                    lastCreatedNode = ProcessExpression(context, lastCreatedNode, true);
                     return lastCreatedNode;
                 case TokenType.ClosingSquareBrackets:
                     if (isParent) context.MoveNext();
@@ -670,7 +668,7 @@ public static class TokenParser
                     }
 
                     context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new TypeRefNode(DefinitionType.ClassObject, name));
+                    lastCreatedNode = ProcessAccess(context, new TypeRefNode(DefinitionType.UnknownObject, name));
                     break;
                 case TokenType.This:
                     context.MoveNext();
@@ -720,7 +718,7 @@ public static class TokenParser
         }
 
         context.MoveNext();
-        var newRefNode = new TypeRefNode(DefinitionType.ClassObject, name);
+        var newRefNode = new TypeRefNode(DefinitionType.UnknownObject, name);
         newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
         return newRefNode;
     }
@@ -748,7 +746,7 @@ public static class TokenParser
                     }
 
                     context.MoveNext();
-                    newRefNode.Child = new IndexAccessNode(ProcessExpression(context, null));
+                    newRefNode.Child = new IndexAccessNode(ProcessExpression(context, null, false)); //TODO: check the validity of the bool
                     newRefNode = newRefNode.Child;
                     break;
                 case TokenType.Name:
@@ -780,7 +778,7 @@ public static class TokenParser
 
     public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)
     {
-        var right = ProcessExpression(context, left);
+        var right = ProcessExpression(context, left, false);
 
         switch (opType)
         {
@@ -994,7 +992,6 @@ public static class TokenParser
                 return new BinaryOperationNode(left, right, OperationType.LogicalNand);
             default:
                 throw new UnexpectedTokenException(context.Current.Value);
-                return null;
         }
     }
 
@@ -1003,26 +1000,19 @@ public static class TokenParser
         switch (typeToken)
         {
             case TokenType.Bool:
-                return new TypeRefNode(DefinitionType.Bool);
-                break;
+                return new TypeRefNode(DefinitionType.Bool, typeName);
             case TokenType.String:
-                return new TypeRefNode(DefinitionType.String);
-                break;
+                return new TypeRefNode(DefinitionType.String, typeName);
             case TokenType.Int32:
-                return new TypeRefNode(DefinitionType.Int32);
-                break;
+                return new TypeRefNode(DefinitionType.Int32, typeName);
             case TokenType.Float32:
-                return new TypeRefNode(DefinitionType.Float32);
-                break;
+                return new TypeRefNode(DefinitionType.Float32, typeName);
             case TokenType.Matrix:
-                return new TypeRefNode(DefinitionType.Matrix);
-                break;
+                return new TypeRefNode(DefinitionType.Matrix, typeName);
             case TokenType.Void:
-                return new TypeRefNode(DefinitionType.Void);
-                break;
+                return new TypeRefNode(DefinitionType.Void, typeName);
             case TokenType.Name:
-                return new TypeRefNode(DefinitionType.ClassObject, typeName);
-                break;
+                return new TypeRefNode(DefinitionType.UnknownObject, typeName);
             default:
                 throw new UnexpectedTokenException(context.Current.Value);
         }
