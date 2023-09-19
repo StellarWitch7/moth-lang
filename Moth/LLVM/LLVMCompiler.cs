@@ -242,8 +242,23 @@ public static class LLVMCompiler
                     LLVMValueRef rightVal;
                     LLVMValueRef builtVal;
 
-                    leftVal = compiler.Builder.BuildLoad2(left.LLVMType, left.LLVMValue);
-                    rightVal = compiler.Builder.BuildLoad2(right.LLVMType, right.LLVMValue);
+                    if (left.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind)
+                    {
+                        leftVal = compiler.Builder.BuildLoad2(left.LLVMType, left.LLVMValue);
+                    }
+                    else
+                    {
+                        leftVal = left.LLVMValue;
+                    }
+
+                    if (right.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind)
+                    {
+                        rightVal = compiler.Builder.BuildLoad2(right.LLVMType, right.LLVMValue);
+                    }
+                    else
+                    {
+                        rightVal = right.LLVMValue;
+                    }
 
                     switch (binaryOp.Type)
                     {

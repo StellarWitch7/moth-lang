@@ -3,11 +3,10 @@
 public class Test {
   public Test TestMethod(Test obj) {
     local Test test;
-    //test = self.TestMethod(test);
 
     {
-      test = test;
-      return;
+      //test = self.TestMethod(test);
+      return test;
     }
   }
 }
