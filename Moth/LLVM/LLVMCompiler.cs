@@ -236,7 +236,7 @@ public static class LLVMCompiler
                 var left = CompileExpression(compiler, scope, binaryOp.Left);
                 var right = CompileExpression(compiler, scope, binaryOp.Right);
 
-                if (left.TypeRef.Type == right.TypeRef.Type && left.TypeRef.Type != DefinitionType.UnknownObject)
+                if (left.TypeRef.Type == right.TypeRef.Type)
                 {
                     LLVMValueRef leftVal;
                     LLVMValueRef rightVal;

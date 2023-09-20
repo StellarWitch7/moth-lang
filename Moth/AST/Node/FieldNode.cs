@@ -28,14 +28,3 @@ public enum PrivacyType
     Private,
     Local
 }
-
-public enum DefinitionType
-{
-    Bool,
-    Int32,
-    Float32,
-    String,
-    Matrix,
-    UnknownObject,
-    Void
-}

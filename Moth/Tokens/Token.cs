@@ -64,17 +64,12 @@ public enum TokenType
 	Else,
 	Public,
 	Private,
-	Void,
 	Return,
 	Null,
 	True,
 	False,
-	Float32,
 	LiteralFloat,
-	Int32,
 	LiteralInt,
-	Bool,
-	String,
 	LiteralString,
 	Import,
 	Throw,
@@ -83,7 +78,6 @@ public enum TokenType
 	Increment,
     OpeningSquareBrackets,
     ClosingSquareBrackets,
-	Matrix,
     For,
     In,
     Catch,
@@ -98,5 +92,6 @@ public enum TokenType
     LogicalNand,
     DoubleQuote,
     Foreign,
-    Function
+    Function,
+	Pi
 }
