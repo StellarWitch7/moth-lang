@@ -44,6 +44,7 @@ public enum TokenType
 	NamespaceTag,
 	Name,
 	Period,
+	Colon,
 	Addition,
 	Subtraction,
 	Multiplication,

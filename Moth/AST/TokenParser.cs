@@ -47,8 +47,9 @@ public static class TokenParser
                         context.MoveNext();
                     }
 
-                    TypeRefNode typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+                    RefNode typeRef = new RefNode(context.Current.Value.Text.ToString());
                     context.MoveNext();
+                    typeRef = ProcessAccess(context, typeRef);
                     funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant));
                     break;
                 case TokenType.Public:
@@ -206,7 +207,8 @@ public static class TokenParser
                 case TokenType.Local:
                     PrivacyType privacyType = PrivacyType.Public;
                     bool isConstant = false;
-                    TypeRefNode typeRef;
+                    bool inferAssign = false;
+                    RefNode typeRef;
 
                     if (context.Current?.Type == TokenType.Private)
                     {
@@ -230,9 +232,31 @@ public static class TokenParser
                         context.MoveNext();
                     }
 
-                    typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+                    typeRef = new RefNode(context.Current.Value.Text.ToString());
                     context.MoveNext();
-                    statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
+                    typeRef = ProcessAccess(context, typeRef);
+
+                    if (context.Current?.Type == TokenType.Colon)
+                    {
+                        inferAssign = true;
+                        context.MoveNext();
+                    }
+
+                    var newStatement = ProcessDefinition(context, privacyType, typeRef, isConstant);
+
+                    if (inferAssign == true)
+                    {
+                        if (newStatement is FieldNode fieldDef)
+                        {
+                            fieldDef.IsInferAssigned = true;
+                        }
+                        else
+                        {
+                            throw new Exception("Tried to infer-assign a definition that is not a variable or field.");
+                        }
+                    }
+
+                    statements.Add(newStatement);
                     break;
                 case TokenType.This:
                 case TokenType.Name:
@@ -298,7 +322,7 @@ public static class TokenParser
     }
 
     public static StatementNode ProcessDefinition(ParseContext context,
-        PrivacyType privacyType, TypeRefNode typeRef, bool isConstant)
+        PrivacyType privacyType, RefNode typeRef, bool isConstant)
     {
         string name;
 
@@ -365,8 +389,9 @@ public static class TokenParser
 
     public static ParameterNode ProcessParameter(ParseContext context)
     {
-        TypeRefNode typeRef = CreateTypeRef(context, (TokenType)(context.Current?.Type), context.Current.Value.Text.ToString());
+        RefNode typeRef = new RefNode(context.Current.Value.Text.ToString());
         context.MoveNext();
+        typeRef = ProcessAccess(context, typeRef);
 
         if (context.Current?.Type == TokenType.Name)
         {
@@ -660,25 +685,9 @@ public static class TokenParser
                 case TokenType.Name:
                     string name = context.Current.Value.Text.ToString();
                     context.MoveNext();
-
-                    if (context.Current?.Type != TokenType.Period)
-                    {
-                        lastCreatedNode = new RefNode(name);
-                        break;
-                    }
-
-                    context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new TypeRefNode(DefinitionType.UnknownObject, name));
+                    lastCreatedNode = ProcessAccess(context, new RefNode(name));
                     break;
                 case TokenType.This:
-                    context.MoveNext();
-
-                    if (context.Current?.Type != TokenType.Period)
-                    {
-                        lastCreatedNode = new ThisNode();
-                        break;
-                    }
-
                     context.MoveNext();
                     lastCreatedNode = ProcessAccess(context, new ThisNode());
                     break;
@@ -718,7 +727,7 @@ public static class TokenParser
         }
 
         context.MoveNext();
-        var newRefNode = new TypeRefNode(DefinitionType.UnknownObject, name);
+        var newRefNode = new RefNode(name); //TODO: this lacks generic class compat?
         newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
         return newRefNode;
     }
@@ -727,49 +736,44 @@ public static class TokenParser
     {
         RefNode newRefNode = refNode;
 
+        if (context.Current?.Type == TokenType.Period)
+        {
+            context.MoveNext();
+        }
+
         while (context.Current != null)
         {
-            switch (context.Current?.Type)
+            if (context.Current?.Type == TokenType.Name)
             {
-                case TokenType.Period:
+                string name = context.Current.Value.Text.ToString();
+                context.MoveNext();
+
+                switch (context.Current?.Type)
+                {
+                    case TokenType.OpeningParentheses:
+                        context.MoveNext();
+                        newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
+                        break;
+                    case TokenType.OpeningSquareBrackets:
+                        context.MoveNext();
+                        newRefNode.Child = new IndexAccessNode(ProcessExpression(context, null, false)); //TODO: check bool validity
+                        newRefNode = newRefNode.Child;
+                        break;
+                    default:
+                        newRefNode.Child = new RefNode(name);
+                        break;
+                }
+
+                newRefNode = newRefNode.Child;
+
+                if (context.Current?.Type == TokenType.Period)
+                {
                     context.MoveNext();
-                    break;
-                case TokenType.OpeningSquareBrackets:
-                    if (context.GetByIndex(context.Position - 1).Type == TokenType.Period)
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    if (newRefNode is ThisNode)
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    context.MoveNext();
-                    newRefNode.Child = new IndexAccessNode(ProcessExpression(context, null, false)); //TODO: check the validity of the bool
-                    newRefNode = newRefNode.Child;
-                    break;
-                case TokenType.Name:
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-
-                    switch (context.Current?.Type)
-                    {
-                        case TokenType.OpeningParentheses:
-                            context.MoveNext();
-                            newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
-                            break;
-                        case TokenType.OpeningSquareBrackets:
-                            throw new NotImplementedException();
-                        default:
-                            newRefNode.Child = new RefNode(name);
-                            break;
-                    }
-
-                    newRefNode = newRefNode.Child;
-                    break;
-                default:
+                }
+                else
+                {
                     return newRefNode;
+                }
             }
         }
 
@@ -990,29 +994,6 @@ public static class TokenParser
                 }
 
                 return new BinaryOperationNode(left, right, OperationType.LogicalNand);
-            default:
-                throw new UnexpectedTokenException(context.Current.Value);
-        }
-    }
-
-    private static TypeRefNode CreateTypeRef(ParseContext context, TokenType typeToken, string typeName)
-    {
-        switch (typeToken)
-        {
-            case TokenType.Bool:
-                return new TypeRefNode(DefinitionType.Bool, typeName);
-            case TokenType.String:
-                return new TypeRefNode(DefinitionType.String, typeName);
-            case TokenType.Int32:
-                return new TypeRefNode(DefinitionType.Int32, typeName);
-            case TokenType.Float32:
-                return new TypeRefNode(DefinitionType.Float32, typeName);
-            case TokenType.Matrix:
-                return new TypeRefNode(DefinitionType.Matrix, typeName);
-            case TokenType.Void:
-                return new TypeRefNode(DefinitionType.Void, typeName);
-            case TokenType.Name:
-                return new TypeRefNode(DefinitionType.UnknownObject, typeName);
             default:
                 throw new UnexpectedTokenException(context.Current.Value);
         }
