@@ -13,9 +13,9 @@ public class MethodDefNode : StatementNode
     public List<ParameterNode> Params { get; }
     public ScopeNode ExecutionBlock { get; }
     public PrivacyType Privacy { get; }
-    public RefNode ReturnTypeRef { get; }
+    public string ReturnTypeRef { get; }
 
-    public MethodDefNode(string name, PrivacyType privacyType, RefNode returnTypeRef,
+    public MethodDefNode(string name, PrivacyType privacyType, string returnTypeRef,
         List<ParameterNode> @params, ScopeNode executionBlock)
     {
         Name = name;

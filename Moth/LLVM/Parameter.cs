@@ -13,13 +13,13 @@ public class Parameter : CompilerData
     public int ParamIndex { get; set; }
     public string Name { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
-    public TypeRefNode TypeRef { get; set; }
+    public Class ClassOfType { get; set; }
 
-    public Parameter(int paramIndex, string name, LLVMTypeRef lLVMType, TypeRefNode typeRef)
+    public Parameter(int paramIndex, string name, LLVMTypeRef lLVMType, Class classOfType)
     {
         ParamIndex = paramIndex;
         Name = name;
         LLVMType = lLVMType;
-        TypeRef = typeRef;
+        ClassOfType = classOfType;
     }
 }

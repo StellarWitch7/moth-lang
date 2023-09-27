@@ -1,0 +1,8 @@
+@namespacey.test;
+
+public class LocalTesting {
+  
+  public i32 RandomMethod() {
+    local (4 + 6): ten;
+  }
+}

@@ -15,16 +15,14 @@ public class Field : CompilerData
     public PrivacyType Privacy { get; set; }
     public Class ClassOfType { get; set; }
     public bool IsConstant { get; set; }
-    public LLVMValueRef DefaultValue { get; }
 
     public Field(uint index, LLVMTypeRef lLVMType, PrivacyType privacy,
-        Class classOfType, bool isConstant, LLVMValueRef defaultValue)
+        Class classOfType, bool isConstant)
     {
         FieldIndex = index;
         LLVMType = lLVMType;
         Privacy = privacy;
         ClassOfType = classOfType;
         IsConstant = isConstant;
-        DefaultValue = defaultValue;
     }
 }
