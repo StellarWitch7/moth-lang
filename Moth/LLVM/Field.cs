@@ -13,16 +13,18 @@ public class Field : CompilerData
     public uint FieldIndex { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
     public PrivacyType Privacy { get; set; }
-    public TypeRefNode TypeRef { get; set; }
+    public Class ClassOfType { get; set; }
     public bool IsConstant { get; set; }
+    public LLVMValueRef DefaultValue { get; }
 
     public Field(uint index, LLVMTypeRef lLVMType, PrivacyType privacy,
-        TypeRefNode typeRef, bool isConstant)
+        Class classOfType, bool isConstant, LLVMValueRef defaultValue)
     {
         FieldIndex = index;
         LLVMType = lLVMType;
         Privacy = privacy;
-        TypeRef = typeRef;
+        ClassOfType = classOfType;
         IsConstant = isConstant;
+        DefaultValue = defaultValue;
     }
 }

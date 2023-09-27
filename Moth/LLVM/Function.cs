@@ -14,19 +14,19 @@ public class Function : CompilerData
     public LLVMTypeRef LLVMFuncType { get; set; }
     public LLVMTypeRef LLVMReturnType { get; set; }
     public PrivacyType Privacy { get; set; }
-    public TypeRefNode ReturnType { get; set; }
+    public Class ClassOfReturnType { get; set; }
     public Scope OpeningScope { get; set; }
     public List<Parameter> Params { get; set; }
     public bool IsGlobal { get; set; }
 
     public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
-        PrivacyType privacy, TypeRefNode returnType, List<Parameter> @params, bool isGlobal = false)
+        PrivacyType privacy, Class classOfReturnType, List<Parameter> @params, bool isGlobal = false)
     {
         LLVMFunc = lLVMFunc;
         LLVMFuncType = lLVMFuncType;
         LLVMReturnType = lLVMReturnType;
         Privacy = privacy;
-        ReturnType = returnType;
+        ClassOfReturnType = classOfReturnType;
         Params = @params;
         IsGlobal = isGlobal;
     }

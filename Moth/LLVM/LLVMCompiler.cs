@@ -38,16 +38,23 @@ public static class LLVMCompiler
         List<LLVMTypeRef> lLVMTypes = new List<LLVMTypeRef>();
         compiler.Classes.TryGetValue(classNode.Name, out Class @class);
 
-        foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
-        {
-            var lLVMType = DefToLLVMType(compiler, field.TypeRef);
-            lLVMTypes.Add(lLVMType);
-            @class.Fields.Add(field.Name, new Field(index, lLVMType, field.Privacy, field.TypeRef, field.IsConstant));
-            index++;
-        }
+        //foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
+        //{
+        //    var type = CompileExpression(compiler, new Scope(compiler.Builder.InsertBlock), field.TypeRef); //TODO: "Builder.InsertBlock"
+        //    LLVMValueRef defaultValue = null;
 
-        @class.LLVMClass.StructSetBody(lLVMTypes.ToArray(), false);
-        compiler.CurrentClass = @class;
+        //    if (field.IsInferAssigned)
+        //    {
+        //        defaultValue = type.LLVMValue;
+        //    }
+
+        //    lLVMTypes.Add(type.LLVMType);
+        //    @class.Fields.Add(field.Name, new Field(index, type.LLVMType, field.Privacy, type.ClassOfType, field.IsConstant, defaultValue));
+        //    index++;
+        //}
+
+        //@class.LLVMClass.StructSetBody(lLVMTypes.ToArray(), false);
+        //compiler.CurrentClass = @class;
 
         foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
         {
@@ -133,14 +140,19 @@ public static class LLVMCompiler
             }
             else if (statement is FieldNode fieldDef)
             {
-                var lLVMType = DefToLLVMType(compiler, fieldDef.TypeRef);
+                var @ref = CompileExpression(compiler, scope, fieldDef.TypeRef);
+                var lLVMVar = compiler.Builder.BuildAlloca(@ref.LLVMType, fieldDef.Name);
                 scope.Variables.Add(fieldDef.Name,
-                    new Variable(compiler.Builder.BuildAlloca(lLVMType,
-                        fieldDef.Name),
-                        lLVMType,
+                    new Variable(lLVMVar,
+                        @ref.LLVMType,
                         fieldDef.Privacy,
-                        fieldDef.TypeRef,
+                        @ref.ClassOfType,
                         fieldDef.IsConstant));
+
+                if (fieldDef.IsInferAssigned)
+                {
+                    compiler.Builder.BuildStore(@ref.LLVMValue, lLVMVar);
+                }
             }
             else if (statement is ScopeNode newScopeNode)
             {
@@ -214,7 +226,7 @@ public static class LLVMCompiler
         return false;
     }
 
-    public static DefTypedValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
+    public static ValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
     {
         if (expr is BinaryOperationNode binaryOp)
         {
@@ -224,7 +236,7 @@ public static class LLVMCompiler
                 {
                     var variableAssigned = CompileRef(compiler, scope, @ref);
                     compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right).LLVMValue, variableAssigned.LLVMValue);
-                    return new DefTypedValueContext(compiler, variableAssigned.TypeRef, variableAssigned.LLVMValue);
+                    return new ValueContext(variableAssigned.LLVMType, variableAssigned.LLVMValue, variableAssigned.ClassOfType);
                 }
                 else
                 {
@@ -236,7 +248,7 @@ public static class LLVMCompiler
                 var left = CompileExpression(compiler, scope, binaryOp.Left);
                 var right = CompileExpression(compiler, scope, binaryOp.Right);
 
-                if (left.TypeRef.Type == right.TypeRef.Type)
+                if (left.ClassOfType == right.ClassOfType)
                 {
                     LLVMValueRef leftVal;
                     LLVMValueRef rightVal;
@@ -278,7 +290,7 @@ public static class LLVMCompiler
                             throw new NotImplementedException();
                     }
 
-                    return new DefTypedValueContext(compiler, left.TypeRef, builtVal);
+                    return new ValueContext(left.LLVMType, builtVal, left.ClassOfType);
                 }
                 else
                 {
@@ -290,18 +302,35 @@ public static class LLVMCompiler
         {
             if (constNode.Value is string str)
             {
-                return new DefTypedValueContext(compiler, new TypeRefNode(DefinitionType.String),
-                    compiler.Context.GetConstString(str, false));
+                if (compiler.Classes.TryGetValue("string", out Class @class)) {
+                    return new ValueContext(@class.LLVMClass, compiler.Context.GetConstString(str, false), @class);
+                }
+                else
+                {
+                    throw new Exception("Critical failure: compiler cannot find the primitive type \"string\".");
+                }
             }
             else if (constNode.Value is int i32)
             {
-                return new DefTypedValueContext(compiler, new TypeRefNode(DefinitionType.Int32),
-                    LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32));
+                if (compiler.Classes.TryGetValue("i32", out Class @class))
+                {
+                    return new ValueContext(@class.LLVMClass, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32), @class);
+                }
+                else
+                {
+                    throw new Exception("Critical failure: compiler cannot find the primitive type \"i32\".");
+                }
             }
             else if (constNode.Value is float f32)
             {
-                return new DefTypedValueContext(compiler, new TypeRefNode(DefinitionType.Float32),
-                    LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
+                if (compiler.Classes.TryGetValue("f32", out Class @class))
+                {
+                    return new ValueContext(@class.LLVMClass, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32), @class);
+                }
+                else
+                {
+                    throw new Exception("Critical failure: compiler cannot find the primitive type \"f32\".");
+                }
             }
             else
             {
@@ -318,7 +347,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static DefTypedValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
+    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
         AccessContext context = null;
 
@@ -360,10 +389,10 @@ public static class LLVMCompiler
                         args.Add(val.LLVMValue);
                     }
 
-                    if (compiler.Classes.TryGetValue(func.ReturnType.Name, out Class returnClass))
+                    if (compiler.Classes.TryGetValue(func.ClassOfReturnType.Name, out Class returnClass))
                     {
                         context = new AccessContext(new DefTypedValueContext(compiler,
-                                func.ReturnType,
+                                func.ClassOfReturnType,
                                 compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray())),
                             returnClass);
                         refNode = refNode.Child;
@@ -393,7 +422,7 @@ public static class LLVMCompiler
                             context = new AccessContext(new DefTypedValueContext(compiler,
                                     field.TypeRef,
                                     compiler.Builder.BuildStructGEP2(context.ValueContext.LLVMType,
-                                        context.ValueContext.Value,
+                                        context.ValueContext.LLVMValue,
                                         field.FieldIndex)),
                                 fieldClass);
                             refNode = refNode.Child;
@@ -412,10 +441,10 @@ public static class LLVMCompiler
                 {
                     if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
                     {
-                        if (compiler.Classes.TryGetValue(@var.TypeRef.Name, out Class varClass))
+                        if (compiler.Classes.TryGetValue(@var.ClassOfType.Name, out Class varClass))
                         {
                             context = new AccessContext(new DefTypedValueContext(compiler,
-                                    @var.TypeRef,
+                                    @var.ClassOfType,
                                     compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable)),
                                 varClass);
                             refNode = refNode.Child;
@@ -435,7 +464,7 @@ public static class LLVMCompiler
                             context = new AccessContext(new DefTypedValueContext(compiler,
                                     field.TypeRef,
                                     compiler.Builder.BuildStructGEP2(context.ValueContext.LLVMType,
-                                        context.ValueContext.Value,
+                                        context.ValueContext.LLVMValue,
                                         field.FieldIndex)),
                                 fieldClass);
                             refNode = refNode.Child;
@@ -460,29 +489,6 @@ public static class LLVMCompiler
         else
         {
             throw new NotImplementedException();
-        }
-    }
-
-    public static LLVMTypeRef DefToLLVMType(CompilerContext compiler, TypeRefNode typeRef)
-    {
-        switch (typeRef.Type)
-        {
-            case DefinitionType.Void:
-                return LLVMTypeRef.Void;
-            case DefinitionType.Int32:
-                return LLVMTypeRef.Int32;
-            case DefinitionType.Float32:
-                return LLVMTypeRef.Float;
-            case DefinitionType.Bool:
-                return LLVMTypeRef.Int1;
-            case DefinitionType.String:
-                return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0); //compiler.Context.GetConstString() for literal strings
-            case DefinitionType.UnknownObject:
-                compiler.Classes.TryGetValue(typeRef.Name, out Class? @class);
-                if (@class == null) throw new Exception("Attempted to reference a class that does not exist in the current environment.");
-                return @class.LLVMClass;
-            default:
-                throw new NotImplementedException(); //can't handle other types D:
         }
     }
 }
