@@ -230,27 +230,36 @@ public static class TokenParser
                         context.MoveNext();
                     }
 
-                    List<TokenType> peek3List = new List<TokenType>();
-
-                    foreach (Token token in context.Peek(2))
+                    if (privacyType == PrivacyType.Local)
                     {
-                        peek3List.Add(token.Type);
+                        List<TokenType> peek3List = new List<TokenType>();
+
+                        foreach (Token token in context.Peek(2))
+                        {
+                            peek3List.Add(token.Type);
+                        }
+
+                        TokenType[] peek3 = peek3List.ToArray();
+
+                        if (peek3.Equals(new TokenType[] { TokenType.Name, TokenType.Name, TokenType.Semicolon }))
+                        {
+                            string typeRef = context.Current.Value.Text.ToString();
+                            context.MoveNext();
+                            statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
+                            break;
+                        }
+                        else
+                        {
+                            ExpressionNode val = ProcessExpression(context, null, TokenType.Colon);
+                            statements.Add(ProcessDefinition(context, privacyType, val, isConstant));
+                            break;
+                        }
                     }
-
-                    TokenType[] peek3 = peek3List.ToArray();
-
-                    if (privacyType == PrivacyType.Local
-                        && peek3.Equals(new TokenType[] { TokenType.Name, TokenType.Name, TokenType.Semicolon }))
+                    else
                     {
                         string typeRef = context.Current.Value.Text.ToString();
                         context.MoveNext();
                         statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
-                        break;
-                    }
-                    else
-                    {
-                        ExpressionNode val = ProcessExpression(context, null, TokenType.Colon);
-                        statements.Add(ProcessDefinition(context, privacyType, val, isConstant));
                         break;
                     }
                 case TokenType.This:
@@ -715,7 +724,7 @@ public static class TokenParser
                     context.MoveNext();
                     lastCreatedNode = ProcessAccess(context, new ThisNode());
                     break;
-                case TokenType.AssignmentSeparator:
+                case TokenType.Assign:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
@@ -798,6 +807,10 @@ public static class TokenParser
                 {
                     return newRefNode;
                 }
+            }
+            else
+            {
+                return newRefNode;
             }
         }
 

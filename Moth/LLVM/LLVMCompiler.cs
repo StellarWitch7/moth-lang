@@ -100,7 +100,7 @@ public static class LLVMCompiler
         
         if (@class.Functions.TryGetValue(methodDef.Name, out Function func))
         {
-            func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock(""));
+            func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
             compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
             compiler.CurrentFunction = func;
 
@@ -116,7 +116,10 @@ public static class LLVMCompiler
                         false));
             }
 
-            CompileScope(compiler, func.OpeningScope, methodDef.ExecutionBlock);
+            if (!CompileScope(compiler, func.OpeningScope, methodDef.ExecutionBlock))
+            {
+                throw new Exception("Function is not guaranteed to return.");
+            }
         }
         else
         {
@@ -184,40 +187,76 @@ public static class LLVMCompiler
                 compiler.Builder.BuildBr(scope.LLVMBlock);
                 compiler.Builder.PositionAtEnd(scope.LLVMBlock);
             }
-            //else if (statement is IfNode @if)
-            //{
-            //    LLVMValueRef condition = ConvertExpression(compiler, @if.Condition); //I don't know what the hell I'm doing
+            else if (statement is IfNode @if)
+            {
+                var condition = CompileExpression(compiler, scope, @if.Condition);
+                var then = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("then");
+                var @else = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("else");
+                LLVMBasicBlockRef @continue = null;
+                bool thenReturned = false;
+                bool elseReturned = false;
 
-            //    var then = compiler.Context.AppendBasicBlock(func.LLVMFunc, "then");
-            //    var @else = compiler.Context.AppendBasicBlock(func.LLVMFunc, "else");
-            //    var @continue = compiler.Context.AppendBasicBlock(func.LLVMFunc, "continue");
+                compiler.Builder.BuildCondBr(condition.LLVMValue, then, @else);
 
-            //    compiler.Builder.BuildCondBr(condition, then, @else);
+                //then
+                {
+                    compiler.Builder.PositionAtEnd(then);
 
-            //    //then
-            //    {
-            //        compiler.Builder.PositionAtEnd(then);
-            //        ConvertScope(compiler, func, @if.Then);
-            //        compiler.Builder.BuildBr(@continue);
-            //    }
+                    {
+                        var newScope = new Scope(then);
+                        newScope.Variables = scope.Variables; //TODO: fix it? maybe?
+                        
+                        if (CompileScope(compiler, newScope, @if.Then))
+                        {
+                            thenReturned = true;
+                        }
+                        else
+                        {
+                            if (@continue == null)
+                            {
+                                @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
+                            }
 
-            //    //else
-            //    {
-            //        compiler.Builder.PositionAtEnd(@else);
+                            compiler.Builder.BuildBr(@continue);
+                        }
+                    }
+                }
 
-            //        if (@if.Else != null)
-            //        {
-            //            ConvertScope(compiler, func, @if.Else);
-            //        }
+                //else
+                {
+                    compiler.Builder.PositionAtEnd(@else);
 
-            //        compiler.Builder.BuildBr(@continue);
-            //    }
+                    if (@if.Else != null)
+                    {
+                        var newScope = new Scope(@else);
+                        newScope.Variables = scope.Variables; //TODO: fix it? maybe?
+                        
+                        if (CompileScope(compiler, newScope, @if.Else))
+                        {
+                            elseReturned = true;
+                        }
+                        else
+                        {
+                            if (@continue == null)
+                            {
+                                @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
+                            }
 
-            //    //continue
-            //    {
-            //        compiler.Builder.PositionAtEnd(@continue);
-            //    }
-            //}
+                            compiler.Builder.BuildBr(@continue);
+                        }
+                    }
+                }
+
+                if (thenReturned && elseReturned)
+                {
+                    return true;
+                }
+                else
+                {
+                    compiler.Builder.PositionAtEnd(@continue);
+                    scope.LLVMBlock = @continue;
+                }
+            }
             else if (statement is ExpressionNode exprNode)
             {
                 CompileExpression(compiler, scope, exprNode);
@@ -226,15 +265,6 @@ public static class LLVMCompiler
             {
                 throw new NotImplementedException();
             }
-        }
-
-        if (compiler.CurrentFunction.LLVMReturnType == LLVMTypeRef.Void)
-        {
-            compiler.Builder.BuildRetVoid();
-        }
-        else
-        {
-            throw new Exception("Function has no return.");
         }
 
         return false;
@@ -299,6 +329,21 @@ public static class LLVMCompiler
                             break;
                         case OperationType.Division:
                             builtVal = compiler.Builder.BuildSDiv(leftVal, rightVal);
+                            break;
+                        case OperationType.Equal:
+                            if (left.LLVMType == LLVMTypeRef.Float)
+                            {
+                                builtVal = compiler.Builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, leftVal, rightVal);
+                            }
+                            else if (left.LLVMType == LLVMTypeRef.Int32)
+                            {
+                                builtVal = compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, leftVal, rightVal);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException();
+                            }
+
                             break;
                         default:
                             throw new NotImplementedException();

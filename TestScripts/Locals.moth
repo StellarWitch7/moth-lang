@@ -1,8 +1,16 @@
-@namespacey.test;
+@namespace.test;
 
 public class LocalTesting {
   
   public i32 RandomMethod() {
-    local (4 + 6): ten;
+    local 4 + 6
+      : ten;
+    
+    if 4 == 10 {
+      return 4;
+    }
+    else {
+      return 10;
+    }
   }
 }

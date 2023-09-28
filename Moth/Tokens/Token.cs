@@ -36,7 +36,7 @@ public enum TokenType
 	ClosingCurlyBraces,
 	OpeningParentheses,
 	ClosingParentheses,
-	AssignmentSeparator,
+	Assign,
 	While,
 	Constant,
 	Comma,

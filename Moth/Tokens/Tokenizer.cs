@@ -121,6 +121,7 @@ public static class Tokenizer
 							'^' when next is '|' => TokenType.LogicalXor,
 							'&' when next is '&' => TokenType.LogicalAnd,
 							'~' when next is '&' => TokenType.LogicalNand,
+							':' => TokenType.Colon,
 							',' => TokenType.Comma,
 							'.' => TokenType.Period,
 							';' => TokenType.Semicolon,
@@ -143,7 +144,7 @@ public static class Tokenizer
 							'-' => TokenType.Subtraction,
 							'*' => TokenType.Multiplication,
 							'%' => TokenType.Modulo,
-							'=' => TokenType.AssignmentSeparator,
+							'=' => TokenType.Assign,
 
 							_ => throw new TokenizerException
                             {
