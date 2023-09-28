@@ -4,8 +4,10 @@ using Moth.Tokens;
 using Moth.AST;
 using Moth.LLVM;
 using LLVMSharp.Interop;
+using CommandLine.Text;
+using CommandLine;
 
-namespace m_compiler;
+namespace Moth_cmd;
 
 internal class Program
 {
@@ -14,7 +16,83 @@ internal class Program
 
     public static void Main(string[] args)
     {
-        
+        Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(options => 
+        {
+            var compiler = new CompilerContext(options.OutputFile);
+            var scripts = new List<ScriptAST>();
+
+            foreach (var filePath in options.InputFiles)
+            {
+                try
+                {
+                    var fileContents = File.ReadAllText(filePath);
+
+                    //Tokenize the contents of the file
+                    try
+                    {
+                        var tokens = Tokenizer.Tokenize(fileContents);
+
+                        //Convert to AST
+                        try
+                        {
+                            var scriptAST = TokenParser.ProcessScript(new ParseContext(tokens));
+                            scripts.Add(scriptAST);
+
+                            if (options.Verbose)
+                            {
+                                Console.WriteLine();
+                                Console.WriteLine(scriptAST.GetDebugString("  "));
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Failed to parse tokens of \"{filePath}\" due to: {e.Message}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e.Message}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Failed to get contents of \"{filePath}\" due to: {e.Message}");
+                }
+            }
+
+            //Compile
+            try
+            {
+                LLVMCompiler.Compile(compiler, scripts.ToArray());
+
+                if (options.Verbose)
+                {
+                    Console.WriteLine();
+                    compiler.Module.Dump();
+                    Console.WriteLine();
+                    compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to compile due to: {e.Message}");
+            }
+        });
+    }
+
+    internal class Options
+    {
+        [Option('v', "verbose", Required = false, HelpText = "Whether to include extensive logging.")]
+        public bool Verbose { get; set; } = false;
+
+        [Option('o', "output", Required = true, HelpText = "The file to output.")]
+        public string OutputFile { get; set; }
+
+        [Option('i', "input", Required = true, HelpText = "The files to compile.")]
+        public List<string> InputFiles { get; set; } = new List<string>();
+
+        [Option("moth-libs", Required = false, HelpText = "External LLVM IR files to include in the compiled program.")]
+        public List<string> MothLibraryFiles { get; set; } = new List<string>();
     }
 
     private void Run()

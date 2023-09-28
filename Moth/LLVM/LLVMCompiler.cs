@@ -13,19 +13,58 @@ namespace Moth.LLVM;
 
 public static class LLVMCompiler
 {
-    public static void DefineScript(CompilerContext compiler, ScriptAST script)
+    public static void Compile(CompilerContext compiler, ScriptAST[] scripts)
     {
-        foreach (var @class in script.ClassNodes)
+        foreach (var script in scripts)
         {
-            DefineClass(compiler, @class);
+            foreach (var @class in script.ClassNodes)
+            {
+                DefineClass(compiler, @class);
+            }
         }
-    }
 
-    public static void CompileScript(CompilerContext compiler, ScriptAST script)
-    {
-        foreach (var @class in script.ClassNodes)
+        foreach (var script in scripts)
         {
-            CompileClass(compiler, @class);
+            foreach (var classNode in script.ClassNodes)
+            {
+                if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
+                {
+                    foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
+                    {
+                        DefineMethod(compiler, @class, methodDef);
+                    }
+                }
+                else
+                {
+                    throw new Exception("Tried to get a class that doesn't exist. This is a critical error that must be reported.");
+                }
+            }
+        }
+
+        foreach (var script in scripts)
+        {
+            foreach (var @class in script.ClassNodes)
+            {
+                CompileClass(compiler, @class);
+            }
+        }
+
+        foreach (var script in scripts)
+        {
+            foreach (var classNode in script.ClassNodes)
+            {
+                if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
+                {
+                    foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
+                    {
+                        CompileMethod(compiler, methodDef);
+                    }
+                }
+                else
+                {
+                    throw new Exception("Tried to get a class that doesn't exist. This is a critical error that must be reported.");
+                }
+            }
         }
     }
 
@@ -39,29 +78,25 @@ public static class LLVMCompiler
     {
         uint index = 0;
         List<LLVMTypeRef> lLVMTypes = new List<LLVMTypeRef>();
-        compiler.Classes.TryGetValue(classNode.Name, out Class @class);
 
-        foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
+        if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
         {
-            if (compiler.Classes.TryGetValue(field.TypeRef, out Class type))
+            foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
             {
-                lLVMTypes.Add(type.LLVMType);
-                @class.Fields.Add(field.Name, new Field(index, type.LLVMType, field.Privacy, type, field.IsConstant));
-                index++;
+                if (compiler.Classes.TryGetValue(field.TypeRef, out Class type))
+                {
+                    lLVMTypes.Add(type.LLVMType);
+                    @class.Fields.Add(field.Name, new Field(index, type.LLVMType, field.Privacy, type, field.IsConstant));
+                    index++;
+                }
             }
+
+            @class.LLVMType.StructSetBody(lLVMTypes.ToArray(), false);
+            compiler.CurrentClass = @class;
         }
-
-        @class.LLVMType.StructSetBody(lLVMTypes.ToArray(), false);
-        compiler.CurrentClass = @class;
-
-        foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
+        else
         {
-            DefineMethod(compiler, @class, methodDef);
-        }
-
-        foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
-        {
-            CompileMethod(compiler, methodDef);
+            throw new Exception("Tried to get a class that doesn't exist. This is a critical error that must be reported.");
         }
     }
 

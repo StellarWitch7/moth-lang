@@ -3,12 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33627.172
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "m-compiler", "m-compiler\m-compiler.csproj", "{C6BB9E5B-143C-495A-90BA-623C4E640CFE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moth_cmd", "Moth_cmd\Moth_cmd.csproj", "{C6BB9E5B-143C-495A-90BA-623C4E640CFE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{45A62957-88A8-419D-98D0-EFD5C901AA06} = {45A62957-88A8-419D-98D0-EFD5C901AA06}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth", "moth\Moth.csproj", "{45A62957-88A8-419D-98D0-EFD5C901AA06}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth", "Moth\Moth.csproj", "{45A62957-88A8-419D-98D0-EFD5C901AA06}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
