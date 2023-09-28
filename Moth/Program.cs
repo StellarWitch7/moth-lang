@@ -78,6 +78,7 @@ internal class Program
                     //try
                     //{
                         var compiler = new CompilerContext("script");
+                        LLVMCompiler.DefineScript(compiler, scriptAST);
                         LLVMCompiler.CompileScript(compiler, scriptAST);
                         compiler.Module.Dump(); //Testing
                         Console.WriteLine(); //Testing

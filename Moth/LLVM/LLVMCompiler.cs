@@ -13,13 +13,16 @@ namespace Moth.LLVM;
 
 public static class LLVMCompiler
 {
-    public static void CompileScript(CompilerContext compiler, ScriptAST script)
+    public static void DefineScript(CompilerContext compiler, ScriptAST script)
     {
         foreach (var @class in script.ClassNodes)
         {
             DefineClass(compiler, @class);
         }
+    }
 
+    public static void CompileScript(CompilerContext compiler, ScriptAST script)
+    {
         foreach (var @class in script.ClassNodes)
         {
             CompileClass(compiler, @class);
