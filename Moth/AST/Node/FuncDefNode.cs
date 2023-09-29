@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class MethodDefNode : StatementNode
+public class FuncDefNode : StatementNode
 {
     public string Name { get; }
     public List<ParameterNode> Params { get; }
@@ -15,7 +15,7 @@ public class MethodDefNode : StatementNode
     public PrivacyType Privacy { get; }
     public string ReturnTypeRef { get; }
 
-    public MethodDefNode(string name, PrivacyType privacyType, string returnTypeRef,
+    public FuncDefNode(string name, PrivacyType privacyType, string returnTypeRef,
         List<ParameterNode> @params, ScopeNode executionBlock)
     {
         Name = name;

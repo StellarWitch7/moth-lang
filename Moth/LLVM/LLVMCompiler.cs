@@ -29,15 +29,20 @@ public static class LLVMCompiler
             {
                 if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
                 {
-                    foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
+                    foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        DefineMethod(compiler, @class, methodDef);
+                        DefineFunction(compiler, funcDefNode, @class);
                     }
                 }
                 else
                 {
-                    throw new Exception("Tried to get a class that doesn't exist. This is a critical error that must be reported.");
+                    throw new Exception("Unnamed critical error. Report ASAP.");
                 }
+            }
+
+            foreach (var funcDefNode in script.GlobalFunctions)
+            {
+                DefineFunction(compiler, funcDefNode);
             }
         }
 
@@ -55,15 +60,20 @@ public static class LLVMCompiler
             {
                 if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
                 {
-                    foreach (MethodDefNode methodDef in classNode.Scope.Statements.OfType<MethodDefNode>())
+                    foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        CompileMethod(compiler, methodDef);
+                        CompileFunction(compiler, funcDefNode, @class);
                     }
                 }
                 else
                 {
-                    throw new Exception("Tried to get a class that doesn't exist. This is a critical error that must be reported.");
+                    throw new Exception("Unnamed critical error. Report ASAP.");
                 }
+            }
+
+            foreach (var funcDefNode in script.GlobalFunctions)
+            {
+                CompileFunction(compiler, funcDefNode);
             }
         }
     }
@@ -92,7 +102,6 @@ public static class LLVMCompiler
             }
 
             @class.LLVMType.StructSetBody(lLVMTypes.ToArray(), false);
-            compiler.CurrentClass = @class;
         }
         else
         {
@@ -100,65 +109,88 @@ public static class LLVMCompiler
         }
     }
 
-    public static void DefineMethod(CompilerContext compiler, Class @class, MethodDefNode methodDef)
+    public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         int index = 1;
         List<Parameter> @params = new List<Parameter>();
-        List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef> { LLVMTypeRef.CreatePointer(@class.LLVMType, 0) };
+        List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
 
-        foreach (ParameterNode param in methodDef.Params)
+        if (@class != null)
         {
-            if (compiler.Classes.TryGetValue(param.TypeRef, out Class type))
-            @params.Add(new Parameter(index, param.Name, type.LLVMType, type));
+            paramTypes.Add(LLVMTypeRef.CreatePointer(@class.LLVMType, 0));
+        }
+
+        foreach (ParameterNode paramNode in funcDefNode.Params)
+        {
+            if (compiler.Classes.TryGetValue(paramNode.TypeRef, out Class type))
+                @params.Add(new Parameter(index, paramNode.Name, type.LLVMType, type));
             paramTypes.Add(type.LLVMType);
             index++;
         }
 
-        if (compiler.Classes.TryGetValue(methodDef.ReturnTypeRef, out Class returnType))
+        if (compiler.Classes.TryGetValue(funcDefNode.ReturnTypeRef, out Class classOfReturnType))
         {
 
-            LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramTypes.ToArray());
-            LLVMValueRef lLVMFunc = compiler.Module.AddFunction(methodDef.Name, lLVMFuncType);
+            LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(classOfReturnType.LLVMType, paramTypes.ToArray());
+            LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcDefNode.Name, lLVMFuncType);
             Function func = new Function(lLVMFunc,
                 lLVMFuncType,
-                returnType.LLVMType,
-                methodDef.Privacy,
-                returnType,
+                classOfReturnType.LLVMType,
+                funcDefNode.Privacy,
+                classOfReturnType,
                 @params);
-            @class.Functions.Add(methodDef.Name, func);
+
+            if (@class != null)
+            {
+                @class.Functions.Add(funcDefNode.Name, func); 
+            }
+            else
+            {
+                compiler.GlobalFunctions.Add(funcDefNode.Name, func);
+            }
         }
     }
 
-    public static void CompileMethod(CompilerContext compiler, MethodDefNode methodDef)
+    public static void CompileFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
-        var @class = compiler.CurrentClass;
-        
-        if (@class.Functions.TryGetValue(methodDef.Name, out Function func))
+        Function func;
+
+        if (funcDefNode.ExecutionBlock == null)
         {
-            func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
-            compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-            compiler.CurrentFunction = func;
-
-            foreach (Parameter param in compiler.CurrentFunction.Params)
-            {
-                var paramAsVar = compiler.Builder.BuildAlloca(param.LLVMType, param.Name);
-                compiler.Builder.BuildStore(compiler.CurrentFunction.LLVMFunc.Params[param.ParamIndex], paramAsVar);
-                func.OpeningScope.Variables.Add(param.Name,
-                    new Variable(paramAsVar,
-                        param.LLVMType,
-                        PrivacyType.Local,
-                        param.ClassOfType,
-                        false));
-            }
-
-            if (!CompileScope(compiler, func.OpeningScope, methodDef.ExecutionBlock))
-            {
-                throw new Exception("Function is not guaranteed to return.");
-            }
+            return;
+        }
+        else if (@class != null && @class.Functions.TryGetValue(funcDefNode.Name, out func))
+        {
+            // Keep empty
+        }
+        else if (compiler.GlobalFunctions.TryGetValue(funcDefNode.Name, out func))
+        {
+            // Keep empty
         }
         else
         {
             throw new Exception();
+        }
+
+        func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
+        compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+        compiler.CurrentFunction = func;
+
+        foreach (Parameter param in compiler.CurrentFunction.Params)
+        {
+            var paramAsVar = compiler.Builder.BuildAlloca(param.LLVMType, param.Name);
+            compiler.Builder.BuildStore(func.LLVMFunc.Params[param.ParamIndex], paramAsVar);
+            func.OpeningScope.Variables.Add(param.Name,
+                new Variable(paramAsVar,
+                    param.LLVMType,
+                    PrivacyType.Local,
+                    param.ClassOfType,
+                    false));
+        }
+
+        if (!CompileScope(compiler, func.OpeningScope, funcDefNode.ExecutionBlock))
+        {
+            throw new Exception("Function is not guaranteed to return.");
         }
     }
 

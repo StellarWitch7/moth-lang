@@ -17,7 +17,7 @@ public static class TokenParser
         AssignNamespaceNode assignNamespaceNode;
         List<ImportNode> imports = new List<ImportNode>();
         List<ClassNode> classes = new List<ClassNode>();
-        List<MethodDefNode> funcs = new List<MethodDefNode>();
+        List<FuncDefNode> funcs = new List<FuncDefNode>();
 
         if (context.Current?.Type == TokenType.NamespaceTag)
         {
@@ -37,7 +37,9 @@ public static class TokenParser
                     context.MoveNext();
                     imports.Add(ProcessImport(context));
                     break;
+                case TokenType.Foreign:
                 case TokenType.Function:
+                    bool isForeign = context.Current?.Type == TokenType.Foreign;
                     context.MoveNext();
                     bool isConstant = false;
                     
@@ -49,7 +51,7 @@ public static class TokenParser
 
                     string typeRef = context.Current.Value.Text.ToString();
                     context.MoveNext();
-                    funcs.Add((MethodDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant));
+                    funcs.Add((FuncDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant, isForeign));
                     break;
                 case TokenType.Public:
                     context.MoveNext();
@@ -206,7 +208,6 @@ public static class TokenParser
                 case TokenType.Local:
                     PrivacyType privacyType = PrivacyType.Public;
                     bool isConstant = false;
-                    bool inferAssign = false;
 
                     if (context.Current?.Type == TokenType.Private)
                     {
@@ -326,7 +327,7 @@ public static class TokenParser
     }
 
     public static StatementNode ProcessDefinition(ParseContext context,
-        PrivacyType privacyType, object typeRef, bool isConstant)
+        PrivacyType privacyType, object typeRef, bool isConstant, bool isForeign = false)
     {
         string name;
 
@@ -347,12 +348,17 @@ public static class TokenParser
                 context.MoveNext();
                 var @params = ProcessParameterList(context);
 
-                if (context.Current?.Type == TokenType.OpeningCurlyBraces)
+                if (!isForeign && context.Current?.Type == TokenType.OpeningCurlyBraces)
                 {
                     context.MoveNext();
-                    var statements = ProcessBlock(context);
+                    var scope = ProcessBlock(context);
 
-                    return new MethodDefNode(name, privacyType, strTypeRef, @params, statements);
+                    return new FuncDefNode(name, privacyType, strTypeRef, @params, scope);
+                }
+                else if (isForeign && context.Current?.Type == TokenType.Semicolon)
+                {
+                    context.MoveNext();
+                    return new FuncDefNode(name, privacyType, strTypeRef, @params, null);
                 }
                 else
                 {

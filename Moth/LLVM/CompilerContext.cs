@@ -13,9 +13,9 @@ public class CompilerContext
     public LLVMContextRef Context { get; set; }
     public LLVMBuilderRef Builder { get; set; }
     public LLVMModuleRef Module { get; set; }
+    public string ModuleName { get; set; }
     public Dictionary<string, Class> Classes { get; set; } = new Dictionary<string, Class>();
     public Dictionary<string, Function> GlobalFunctions { get; set; } = new Dictionary<string, Function>();
-    public Class CurrentClass { get; set; }
     public Function CurrentFunction { get; set; }
 
     public CompilerContext(string moduleName)
@@ -23,6 +23,7 @@ public class CompilerContext
         Context = LLVMContextRef.Global;
         Builder = Context.CreateBuilder();
         Module = Context.CreateModuleWithName(moduleName);
+        ModuleName = moduleName;
 
         InsertDefaultTypes();
     }

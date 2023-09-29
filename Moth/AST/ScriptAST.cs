@@ -13,12 +13,12 @@ public class ScriptAST : ASTNode
     public AssignNamespaceNode AssignNamespaceNode { get; }
     public List<ImportNode> ImportNodes { get; }
     public List<ClassNode> ClassNodes { get; }
-    public List<MethodDefNode> GlobalFunctions { get; }
+    public List<FuncDefNode> GlobalFunctions { get; }
 
     public ScriptAST(AssignNamespaceNode assignNamespaceNode,
         List<ImportNode> importNodes,
         List<ClassNode> classNodes,
-        List<MethodDefNode> globalFuncs)
+        List<FuncDefNode> globalFuncs)
     {
         this.AssignNamespaceNode = assignNamespaceNode;
         this.ImportNodes = importNodes;

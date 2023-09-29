@@ -6,6 +6,7 @@ using Moth.LLVM;
 using LLVMSharp.Interop;
 using CommandLine.Text;
 using CommandLine;
+using System.Diagnostics;
 
 namespace Moth_cmd;
 
@@ -15,6 +16,7 @@ internal class Program
     {
         Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(options => 
         {
+            var dir = Environment.CurrentDirectory;
             var compiler = new CompilerContext(options.OutputFile);
             var scripts = new List<ScriptAST>();
 
@@ -94,6 +96,28 @@ internal class Program
                     compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
                     Console.WriteLine();
                 }
+
+                var arguments = new StringBuilder($"-o {options.OutputFile}");
+                var file = $"{compiler.ModuleName}.bc";
+                var outPath = Path.Join(dir, file);
+
+                if (options.Verbose)
+                {
+                    arguments.Append(" -v");
+                }
+
+                compiler.Module.WriteBitcodeToFile(outPath);
+                arguments.Append(' ');
+                arguments.Append(file);
+
+                var clang = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "clang",
+                    WorkingDirectory = dir,
+                    Arguments = arguments.ToString(),
+                });
+
+                clang.WaitForExit();
             }
             catch (Exception e)
             {
