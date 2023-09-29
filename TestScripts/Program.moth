@@ -1,0 +1,6 @@
+@default.test;
+
+func i32 main() {
+  printf("Hello world!");
+  return 0;
+}

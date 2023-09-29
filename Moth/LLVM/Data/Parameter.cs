@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM.Data;
 
 public class Parameter : CompilerData
 {

@@ -6,20 +6,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM.Data;
 
-public class Field : CompilerData
+public class Variable : CompilerData
 {
-    public uint FieldIndex { get; set; }
+    public LLVMValueRef LLVMVariable { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Class ClassOfType { get; set; }
     public bool IsConstant { get; set; }
 
-    public Field(uint index, LLVMTypeRef lLVMType, PrivacyType privacy,
+    public Variable(LLVMValueRef lLVMVariable, LLVMTypeRef lLVMType, PrivacyType privacy,
         Class classOfType, bool isConstant)
     {
-        FieldIndex = index;
+        LLVMVariable = lLVMVariable;
         LLVMType = lLVMType;
         Privacy = privacy;
         ClassOfType = classOfType;

@@ -252,14 +252,15 @@ public static class TokenParser
                     {
                         List<TokenType> peek3List = new List<TokenType>();
 
-                        foreach (Token token in context.Peek(2))
+                        foreach (Token token in context.Peek(3))
                         {
                             peek3List.Add(token.Type);
                         }
 
                         TokenType[] peek3 = peek3List.ToArray();
+                        TokenType[] comparer = new TokenType[] { TokenType.Name, TokenType.Name, TokenType.Semicolon };
 
-                        if (peek3.Equals(new TokenType[] { TokenType.Name, TokenType.Name, TokenType.Semicolon }))
+                        if (peek3[0] == comparer[0] && peek3[1] == comparer[1] && peek3[2] == comparer[2])
                         {
                             string typeRef = context.Current.Value.Text.ToString();
                             context.MoveNext();

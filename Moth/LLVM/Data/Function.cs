@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM.Data;
 
 public class Function : CompilerData
 {
@@ -21,7 +21,8 @@ public class Function : CompilerData
     public bool IsVariadic { get; set; }
 
     public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
-        PrivacyType privacy, Class classOfReturnType, Class ownerClass, List<Parameter> @params, bool isVariadic)
+        PrivacyType privacy, Class classOfReturnType, Class ownerClass, List<Parameter> @params,
+        bool isVariadic)
     {
         LLVMFunc = lLVMFunc;
         LLVMFuncType = lLVMFuncType;

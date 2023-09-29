@@ -1,0 +1,7 @@
+@default.test;
+
+//foreign void *malloc(u32 size);
+//foreign void free(void *ptr);
+
+foreign variadic i32 printf(string str);
+foreign variadic i32 scanf(string format);

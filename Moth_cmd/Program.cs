@@ -97,7 +97,7 @@ internal class Program
                     Console.WriteLine();
                 }
 
-                var arguments = new StringBuilder($"-o {options.OutputFile}");
+                var arguments = new StringBuilder($"-o {options.OutputFile} -llegacy_stdio_definitions");
                 var file = $"{compiler.ModuleName}.bc";
                 var outPath = Path.Join(dir, file);
 

@@ -1,4 +1,5 @@
 ﻿using LLVMSharp.Interop;
+using Moth.LLVM.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,9 +12,9 @@ public class ValueContext
 {
     public LLVMTypeRef LLVMType { get; set; }
     public LLVMValueRef LLVMValue { get; set; }
-    public Class ClassOfType { get; set; }
+    public Data.Class ClassOfType { get; set; }
 
-    public ValueContext(LLVMTypeRef type, LLVMValueRef value, Class classOfType)
+    public ValueContext(LLVMTypeRef type, LLVMValueRef value, Data.Class classOfType)
     {
         LLVMType = type;
         LLVMValue = value;
