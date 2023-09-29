@@ -25,8 +25,8 @@ internal class Program
 
             foreach (var filePath in options.InputFiles)
             {
-                try
-                {
+                //try
+                //{
                     if (options.Verbose)
                     {
                         Console.WriteLine($"Reading \"{filePath}\"");
@@ -35,8 +35,8 @@ internal class Program
                     var fileContents = File.ReadAllText(filePath);
 
                     //Tokenize the contents of the file
-                    try
-                    {
+                    //try
+                    //{
                         if (options.Verbose)
                         {
                             Console.WriteLine($"Tokenizing \"{filePath}\"");
@@ -45,8 +45,8 @@ internal class Program
                         var tokens = Tokenizer.Tokenize(fileContents);
 
                         //Convert to AST
-                        try
-                        {
+                        //try
+                        //{
                             if (options.Verbose)
                             {
                                 Console.WriteLine($"Generating AST of \"{filePath}\"");
@@ -61,26 +61,26 @@ internal class Program
                                 Console.WriteLine(scriptAST.GetDebugString("  "));
                                 Console.WriteLine();
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine($"Failed to parse tokens of \"{filePath}\" due to: {e.Message}");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e.Message}");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Failed to get contents of \"{filePath}\" due to: {e.Message}");
-                }
+                //        }
+                //        catch (Exception e)
+                //        {
+                //            Console.WriteLine($"Failed to parse tokens of \"{filePath}\" due to: {e.Message}");
+                //        }
+                //    }
+                //    catch (Exception e)
+                //    {
+                //        Console.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e.Message}");
+                //    }
+                //}
+                //catch (Exception e)
+                //{
+                //    Console.WriteLine($"Failed to get contents of \"{filePath}\" due to: {e.Message}");
+                //}
             }
 
             //Compile
-            try
-            {
+            //try
+            //{
                 if (options.Verbose)
                 {
                     Console.WriteLine("Compiling ASTs...");
@@ -118,11 +118,11 @@ internal class Program
                 });
 
                 clang.WaitForExit();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Failed to compile due to: {e.Message}");
-            }
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine($"Failed to compile due to: {e.Message}");
+            //}
         });
     }
 

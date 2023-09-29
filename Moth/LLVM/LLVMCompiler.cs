@@ -4,6 +4,7 @@ using Moth.AST.Node;
 using Moth.Tokens;
 using System;
 using System.Collections.Generic;
+using System.Formats.Asn1;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -131,14 +132,16 @@ public static class LLVMCompiler
         if (compiler.Classes.TryGetValue(funcDefNode.ReturnTypeRef, out Class classOfReturnType))
         {
 
-            LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(classOfReturnType.LLVMType, paramTypes.ToArray());
+            LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(classOfReturnType.LLVMType, paramTypes.ToArray(), funcDefNode.IsVariadic);
             LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcDefNode.Name, lLVMFuncType);
             Function func = new Function(lLVMFunc,
                 lLVMFuncType,
                 classOfReturnType.LLVMType,
                 funcDefNode.Privacy,
                 classOfReturnType,
-                @params);
+                @class,
+                @params,
+                funcDefNode.IsVariadic);
 
             if (@class != null)
             {
@@ -475,148 +478,121 @@ public static class LLVMCompiler
 
     public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
-        throw new NotImplementedException();
+        ValueContext context = null;
 
-        //AccessContext context = null;
+        while (refNode != null)
+        {
+            if (refNode is ThisNode)
+            {
+                if (compiler.CurrentFunction.OwnerClass == null)
+                {
+                    throw new Exception("Attempted self-instance reference in a global function.");
+                }
 
-        //while (refNode != null)
-        //{
-        //    if (refNode is ThisNode)
-        //    {
-        //        if (compiler.CurrentFunction.IsGlobal)
-        //        {
-        //            throw new Exception("Attempted self-instance reference in a global function.");
-        //        }
+                context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
+                    compiler.CurrentFunction.LLVMFunc.FirstParam,
+                    compiler.CurrentFunction.OwnerClass);
+                refNode = refNode.Child;
+            }
+            else if (refNode is MethodCallNode methodCall)
+            {
+                Function func;
 
-        //        context = new AccessContext(new ValueContext(compiler.CurrentClass.LLVMType,
-        //                compiler.CurrentFunction.LLVMFunc.FirstParam),
-        //            compiler.CurrentClass);
-        //        refNode = refNode.Child;
-        //    }
-        //    else if (refNode is MethodCallNode methodCall)
-        //    {
-        //        if (context == null)
-        //        {
-        //            if (compiler.CurrentFunction.IsGlobal)
-        //            {
-        //                throw new Exception("Attempted self-instance reference in a global function.");
-        //            }
+                if (context == null)
+                {
+                    if (compiler.CurrentFunction.OwnerClass != null)
+                    {
+                        context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
+                            compiler.CurrentFunction.LLVMFunc.FirstParam,
+                            compiler.CurrentFunction.OwnerClass);
+                    }
+                }
 
-        //            context = new AccessContext(new ValueContext(compiler.CurrentClass.LLVMType,
-        //                    compiler.CurrentFunction.LLVMFunc.FirstParam),
-        //                compiler.CurrentClass);
-        //        }
+                if (context != null && context.ClassOfType.Functions.TryGetValue(methodCall.Name, out func))
+                {
+                    // Keep empty
+                }
+                else if (context == null && compiler.GlobalFunctions.TryGetValue(methodCall.Name, out func))
+                {
+                    // Keep empty
+                }
+                else
+                {
+                    throw new Exception($"Function \"{methodCall.Name}\" does not exist.");
+                }
 
-        //        if (context.Class.Functions.TryGetValue(methodCall.Name, out Function func))
-        //        {
-        //            List<LLVMValueRef> args = new List<LLVMValueRef>();
+                List<LLVMValueRef> args = new List<LLVMValueRef>();
 
-        //            foreach (ExpressionNode arg in methodCall.Arguments)
-        //            {
-        //                var val = CompileExpression(compiler, scope, arg);
-        //                args.Add(val.LLVMValue);
-        //            }
+                foreach (ExpressionNode arg in methodCall.Arguments)
+                {
+                    var val = CompileExpression(compiler, scope, arg);
+                    args.Add(val.LLVMValue);
+                }
 
-        //            if (compiler.Classes.TryGetValue(func.ClassOfReturnType.Name, out Class returnClass))
-        //            {
-        //                context = new AccessContext(new DefTypedValueContext(compiler,
-        //                        func.ClassOfReturnType,
-        //                        compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray())),
-        //                    returnClass);
-        //                refNode = refNode.Child;
-        //            }
-        //            else
-        //            {
-        //                throw new Exception("Called function with invalid return type.");
-        //            }
-        //        }
-        //        else
-        //        {
-        //            throw new Exception("Function does not exist.");
-        //        }
-        //    }
-        //    else if (refNode is IndexAccessNode indexAccess)
-        //    {
-        //        throw new NotImplementedException("Index access is not currently available."); //TODO
-        //    }
-        //    else
-        //    {
-        //        if (context != null)
-        //        {
-        //            if (context.Class.Fields.TryGetValue(refNode.Name, out Field field))
-        //            {
-        //                if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class fieldClass))
-        //                {
-        //                    context = new AccessContext(new DefTypedValueContext(compiler,
-        //                            field.TypeRef,
-        //                            compiler.Builder.BuildStructGEP2(context.ValueContext.LLVMType,
-        //                                context.ValueContext.LLVMValue,
-        //                                field.FieldIndex)),
-        //                        fieldClass);
-        //                    refNode = refNode.Child;
-        //                }
-        //                else
-        //                {
-        //                    throw new Exception("Attempted to load a field with an invalid type.");
-        //                }
-        //            }
-        //            else
-        //            {
-        //                throw new Exception("Field does not exist.");
-        //            }
-        //        }
-        //        else
-        //        {
-        //            if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
-        //            {
-        //                if (compiler.Classes.TryGetValue(@var.ClassOfType.Name, out Class varClass))
-        //                {
-        //                    context = new AccessContext(new DefTypedValueContext(compiler,
-        //                            @var.ClassOfType,
-        //                            compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable)),
-        //                        varClass);
-        //                    refNode = refNode.Child;
-        //                }
-        //                else
-        //                {
-        //                    throw new Exception("Attempted to load a variable with an invalid type.");
-        //                }
-        //            }
-        //            else if (compiler.CurrentClass.Fields.TryGetValue(refNode.Name, out Field field))
-        //            {
-        //                if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class fieldClass))
-        //                {
-        //                    context = new AccessContext(new ValueContext(compiler.CurrentClass.LLVMType,
-        //                            compiler.CurrentFunction.LLVMFunc.FirstParam),
-        //                        compiler.CurrentClass);
-        //                    context = new AccessContext(new DefTypedValueContext(compiler,
-        //                            field.TypeRef,
-        //                            compiler.Builder.BuildStructGEP2(context.ValueContext.LLVMType,
-        //                                context.ValueContext.LLVMValue,
-        //                                field.FieldIndex)),
-        //                        fieldClass);
-        //                    refNode = refNode.Child;
-        //                }
-        //                else
-        //                {
-        //                    throw new Exception("Attempted to load a field with an invalid type.");
-        //                }
-        //            }
-        //            else
-        //            {
-        //                throw new Exception("Variable not found.");
-        //            }
-        //        }
-        //    }
-        //}
+                context = new ValueContext(func.ClassOfReturnType.LLVMType,
+                    compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()),
+                    func.ClassOfReturnType);
+                refNode = refNode.Child;
+            }
+            else if (refNode is IndexAccessNode indexAccess)
+            {
+                throw new NotImplementedException("Index access is not currently available."); //TODO
+            }
+            else
+            {
+                if (context != null)
+                {
+                    if (context.ClassOfType.Fields.TryGetValue(refNode.Name, out Field field))
+                    {
+                        context = new ValueContext(field.LLVMType,
+                            compiler.Builder.BuildStructGEP2(context.LLVMType,
+                                context.LLVMValue,
+                                field.FieldIndex),
+                            field.ClassOfType);
+                        refNode = refNode.Child;
+                    }
+                    else
+                    {
+                        throw new Exception($"Field \"{refNode.Name}\" does not exist.");
+                    }
+                }
+                else
+                {
+                    if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
+                    {
+                        context = new ValueContext(@var.LLVMType,
+                            compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable),
+                            @var.ClassOfType);
+                        refNode = refNode.Child;
+                    }
+                    else
+                    {
+                        if (compiler.CurrentFunction.OwnerClass != null)
+                        {
+                            context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
+                                compiler.CurrentFunction.LLVMFunc.FirstParam,
+                                compiler.CurrentFunction.OwnerClass);
 
-        //if (context.ValueContext is DefTypedValueContext defTypedContext)
-        //{
-        //    return defTypedContext;
-        //}
-        //else
-        //{
-        //    throw new NotImplementedException();
-        //}
+                            if (context.ClassOfType.Fields.TryGetValue(refNode.Name, out Field field))
+                            {
+                                context = new ValueContext(field.LLVMType,
+                                    compiler.Builder.BuildStructGEP2(context.LLVMType,
+                                        context.LLVMValue,
+                                        field.FieldIndex),
+                                    field.ClassOfType);
+                                refNode = refNode.Child;
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception($"Variable \"{refNode.Name}\" does not exist.");
+                        }
+                        
+                    }
+                }
+            }
+        }
+
+        return context;
     }
 }

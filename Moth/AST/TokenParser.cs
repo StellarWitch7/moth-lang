@@ -42,7 +42,14 @@ public static class TokenParser
                     bool isForeign = context.Current?.Type == TokenType.Foreign;
                     context.MoveNext();
                     bool isConstant = false;
+                    bool isVariadic = false;
                     
+                    if (context.Current?.Type == TokenType.Variadic)
+                    {
+                        isVariadic = true;
+                        context.MoveNext();
+                    }
+
                     if (context.Current?.Type == TokenType.Constant)
                     {
                         isConstant = true;
@@ -51,7 +58,7 @@ public static class TokenParser
 
                     string typeRef = context.Current.Value.Text.ToString();
                     context.MoveNext();
-                    funcs.Add((FuncDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant, isForeign));
+                    funcs.Add((FuncDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant, isForeign, isVariadic));
                     break;
                 case TokenType.Public:
                     context.MoveNext();
@@ -208,6 +215,7 @@ public static class TokenParser
                 case TokenType.Local:
                     PrivacyType privacyType = PrivacyType.Public;
                     bool isConstant = false;
+                    bool isVariadic = false;
 
                     if (context.Current?.Type == TokenType.Private)
                     {
@@ -224,6 +232,15 @@ public static class TokenParser
                     }
 
                     context.MoveNext();
+
+                    if (privacyType != PrivacyType.Local)
+                    {
+                        if (context.Current?.Type == TokenType.Variadic)
+                        {
+                            isVariadic = true;
+                            context.MoveNext();
+                        }
+                    }
 
                     if (context.Current?.Type == TokenType.Constant)
                     {
@@ -246,13 +263,13 @@ public static class TokenParser
                         {
                             string typeRef = context.Current.Value.Text.ToString();
                             context.MoveNext();
-                            statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
+                            statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant, false, false));
                             break;
                         }
                         else
                         {
                             ExpressionNode val = ProcessExpression(context, null, TokenType.Colon);
-                            statements.Add(ProcessDefinition(context, privacyType, val, isConstant));
+                            statements.Add(ProcessDefinition(context, privacyType, val, isConstant, false, false));
                             break;
                         }
                     }
@@ -260,7 +277,7 @@ public static class TokenParser
                     {
                         string typeRef = context.Current.Value.Text.ToString();
                         context.MoveNext();
-                        statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant));
+                        statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant, false, isVariadic));
                         break;
                     }
                 case TokenType.This:
@@ -282,25 +299,13 @@ public static class TokenParser
                         RefNode refNode;
                         context.MoveNext();
 
-                        if (context.Current?.Type == TokenType.This)
+                        if (context.Current?.Type == TokenType.This || context.Current?.Type == TokenType.Name)
                         {
-                            refNode = new ThisNode();
-                            context.MoveNext();
-                        }
-                        else if (context.Current?.Type == TokenType.Name)
-                        {
-                            refNode = new RefNode(context.Current.Value.Text.ToString());
-                            context.MoveNext();
+                            refNode = ProcessAccess(context);
                         }
                         else
                         {
                             throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
-                        if (context.Current?.Type == TokenType.Period)
-                        {
-                            context.MoveNext();
-                            refNode = ProcessAccess(context, refNode);
                         }
 
                         if (type == TokenType.Decrement)
@@ -327,7 +332,7 @@ public static class TokenParser
     }
 
     public static StatementNode ProcessDefinition(ParseContext context,
-        PrivacyType privacyType, object typeRef, bool isConstant, bool isForeign = false)
+        PrivacyType privacyType, object typeRef, bool isConstant, bool isForeign, bool isVariadic)
     {
         string name;
 
@@ -353,12 +358,12 @@ public static class TokenParser
                     context.MoveNext();
                     var scope = ProcessBlock(context);
 
-                    return new FuncDefNode(name, privacyType, strTypeRef, @params, scope);
+                    return new FuncDefNode(name, privacyType, strTypeRef, @params, scope, isVariadic);
                 }
                 else if (isForeign && context.Current?.Type == TokenType.Semicolon)
                 {
                     context.MoveNext();
-                    return new FuncDefNode(name, privacyType, strTypeRef, @params, null);
+                    return new FuncDefNode(name, privacyType, strTypeRef, @params, null, isVariadic);
                 }
                 else
                 {
@@ -528,7 +533,7 @@ public static class TokenParser
                     context.MoveNext();
                     break;
                 case TokenType.LiteralString:
-                    lastCreatedNode = new ConstantNode(context.Current.Value.Text);
+                    lastCreatedNode = new ConstantNode(context.Current.Value.Text.ToString());
                     context.MoveNext();
                     break;
                 case TokenType.New:
@@ -722,13 +727,8 @@ public static class TokenParser
 
                     break;
                 case TokenType.Name:
-                    string name = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new RefNode(name));
-                    break;
                 case TokenType.This:
-                    context.MoveNext();
-                    lastCreatedNode = ProcessAccess(context, new ThisNode());
+                    lastCreatedNode = ProcessAccess(context);
                     break;
                 case TokenType.Assign:
                     if (lastCreatedNode != null)
@@ -771,19 +771,20 @@ public static class TokenParser
         return newRefNode;
     }
 
-    public static RefNode ProcessAccess(ParseContext context, RefNode refNode)
+    public static RefNode ProcessAccess(ParseContext context)
     {
-        RefNode newRefNode = refNode;
+        RefNode newRefNode = null;
 
-        if (context.Current?.Type == TokenType.Period)
+        if (context.Current?.Type == TokenType.This)
         {
-            context.MoveNext();
+            newRefNode = new ThisNode();
         }
 
         while (context.Current != null)
         {
             if (context.Current?.Type == TokenType.Name)
             {
+                RefNode childNode = null;
                 string name = context.Current.Value.Text.ToString();
                 context.MoveNext();
 
@@ -791,19 +792,49 @@ public static class TokenParser
                 {
                     case TokenType.OpeningParentheses:
                         context.MoveNext();
-                        newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
+                        childNode = new MethodCallNode(name, ProcessArgs(context));
+
+                        if (newRefNode == null)
+                        {
+                            newRefNode = childNode;
+                        }
+                        else
+                        {
+                            newRefNode.Child = childNode;
+                            newRefNode = newRefNode.Child;
+                        }
+
                         break;
                     case TokenType.OpeningSquareBrackets:
                         context.MoveNext();
-                        newRefNode.Child = new IndexAccessNode(ProcessExpression(context, null, TokenType.ClosingSquareBrackets)); //TODO: check bool validity
-                        newRefNode = newRefNode.Child;
+                        childNode = new IndexAccessNode(ProcessExpression(context, null, TokenType.ClosingSquareBrackets)); //TODO: check bool validity
+
+                        if (newRefNode == null)
+                        {
+                            newRefNode = childNode;
+                        }
+                        else
+                        {
+                            newRefNode.Child = childNode;
+                            newRefNode = newRefNode.Child;
+                        }
+
                         break;
                     default:
-                        newRefNode.Child = new RefNode(name);
+                        childNode = new RefNode(name);
+
+                        if (newRefNode == null)
+                        {
+                            newRefNode = childNode;
+                        }
+                        else
+                        {
+                            newRefNode.Child = childNode;
+                            newRefNode = newRefNode.Child;
+                        }
+
                         break;
                 }
-
-                newRefNode = newRefNode.Child;
 
                 if (context.Current?.Type == TokenType.Period)
                 {

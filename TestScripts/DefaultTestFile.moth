@@ -1,8 +1,10 @@
 @default.test;
 
 foreign i32 puts(string str);
+foreign variadic i32 printf(string str);
 
 func i32 main() {
+  puts("test");
   return 0;
 }
 

@@ -41,7 +41,8 @@ public static class Tokenizer
 								Type = keyword.Span switch
 								{
 									"if" => TokenType.If,
-									"nix" => TokenType.Null,
+                                    "variadic" => TokenType.Variadic,
+                                    "null" => TokenType.Null,
 									"new" => TokenType.New,
 									"local" => TokenType.Local,
 									"self" => TokenType.This,
@@ -109,7 +110,7 @@ public static class Tokenizer
 						var next = stream.Next;
 						TokenType? type = ch switch
 						{
-
+							'.' when next is '.' => TokenType.Range,
 							'=' when next is '=' => TokenType.Equal,
 							'!' when next is '=' => TokenType.NotEqual,
 							'<' when next is '=' => TokenType.LessThanOrEqual,
@@ -147,12 +148,12 @@ public static class Tokenizer
 							'=' => TokenType.Assign,
 
 							_ => throw new TokenizerException
-                            {
-                                Character = ch,
-                                Line = stream.CurrentLine,
-                                Column = stream.CurrentColumn,
-                                Position = stream.Position,
-                            },
+							{
+								Character = ch,
+								Line = stream.CurrentLine,
+								Column = stream.CurrentColumn,
+								Position = stream.Position,
+							},
 						};
 
 						var newToken = new Token

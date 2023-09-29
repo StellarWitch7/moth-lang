@@ -94,5 +94,7 @@ public enum TokenType
     DoubleQuote,
     Foreign,
     Function,
-	Pi
+	Pi,
+    Range,
+    Variadic
 }
