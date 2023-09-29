@@ -1,4 +1,4 @@
-@namespace.test;
+@default.test;
 
 public class LocalTesting {
   

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Moth_cmd": {
+      "commandName": "Project",
+      "commandLineArgs": "-v -o test.exe -i D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\DefaultTestFile.moth"
+    }
+  }
+}
