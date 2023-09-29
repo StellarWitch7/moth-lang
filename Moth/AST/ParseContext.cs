@@ -6,7 +6,6 @@ public class ParseContext
 {
     public readonly int Length;
     private readonly List<Token> _tokens;
-    public string CurrentClassName;
     public int Position { get; private set; }
 
     public ParseContext(List<Token> tokens)

@@ -14,7 +14,7 @@ public class TestClass {
     public Value :i32;
     private incrementBonus :i32;
     
-    init() {
+    static init() {
         self.Value = 10;
     }
 

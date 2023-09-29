@@ -13,10 +13,10 @@ public class FuncDefNode : StatementNode
     public List<ParameterNode> Params { get; }
     public ScopeNode ExecutionBlock { get; }
     public PrivacyType Privacy { get; }
-    public string ReturnTypeRef { get; }
+    public TypeRefNode ReturnTypeRef { get; }
     public bool IsVariadic { get; }
 
-    public FuncDefNode(string name, PrivacyType privacyType, string returnTypeRef,
+    public FuncDefNode(string name, PrivacyType privacyType, TypeRefNode returnTypeRef,
         List<ParameterNode> @params, ScopeNode executionBlock, bool isVariadic)
     {
         Name = name;

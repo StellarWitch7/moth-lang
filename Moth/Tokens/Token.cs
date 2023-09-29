@@ -41,14 +41,14 @@ public enum TokenType
 	Constant,
 	Comma,
 	Semicolon,
-	NamespaceTag,
+	Namespace,
 	Name,
 	Period,
 	Colon,
-	Addition,
-	Subtraction,
-	Multiplication,
-	Division,
+	Plus,
+	Hyphen,
+	Asterix,
+	ForwardSlash,
 	Exponential,
 	LessThan,
 	LessThanOrEqual,
@@ -96,5 +96,7 @@ public enum TokenType
     Function,
 	Pi,
     Range,
-    Variadic
+    Variadic,
+    DollarSign,
+    Static
 }

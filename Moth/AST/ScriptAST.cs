@@ -10,19 +10,19 @@ namespace Moth.AST;
 
 public class ScriptAST : ASTNode
 {
-    public AssignNamespaceNode AssignNamespaceNode { get; }
-    public List<ImportNode> ImportNodes { get; }
+    public string Namespace { get; }
+    public List<string> Imports { get; }
     public List<ClassNode> ClassNodes { get; }
     public List<FuncDefNode> GlobalFunctions { get; }
 
-    public ScriptAST(AssignNamespaceNode assignNamespaceNode,
-        List<ImportNode> importNodes,
+    public ScriptAST(string @namespace,
+        List<string> imports,
         List<ClassNode> classNodes,
         List<FuncDefNode> globalFuncs)
     {
-        this.AssignNamespaceNode = assignNamespaceNode;
-        this.ImportNodes = importNodes;
-        this.ClassNodes = classNodes;
-        this.GlobalFunctions = globalFuncs;
+        Namespace = @namespace;
+        Imports = imports;
+        ClassNodes = classNodes;
+        GlobalFunctions = globalFuncs;
     }
 }
