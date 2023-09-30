@@ -1,6 +1,5 @@
 ﻿using LLVMSharp.Interop;
 using Moth.AST.Node;
-using Moth.LLVM.Class;
 using Moth.LLVM.Data;
 using System;
 using System.Collections.Generic;

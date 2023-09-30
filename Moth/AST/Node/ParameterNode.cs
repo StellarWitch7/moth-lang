@@ -9,9 +9,9 @@ namespace Moth.AST.Node;
 public class ParameterNode : ASTNode
 {
     public string Name { get; }
-    public string TypeRef { get; }
+    public TypeRefNode TypeRef { get; }
 
-    public ParameterNode(string name, string typeRef)
+    public ParameterNode(string name, TypeRefNode typeRef)
     {
         Name = name;
         TypeRef = typeRef;

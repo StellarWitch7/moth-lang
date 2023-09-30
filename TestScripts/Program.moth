@@ -1,6 +1,6 @@
-@default.test;
+namespace default.test;
 
-func i32 main() {
+func main() :i32 {
   printf("Hello world!");
   return 0;
 }

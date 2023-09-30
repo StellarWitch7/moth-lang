@@ -162,9 +162,10 @@ public static class Tokenizer
 						{
 							Text = type switch
 							{
-								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or
-									TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
-									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
+								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual
+									or TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
+									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement
+									or TokenType.Variadic => stream.Peek(2),
 								_ => stream.Peek(1),
 							},
 							Type = (TokenType)type,

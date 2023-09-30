@@ -6,14 +6,12 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class TypeRefNode
+public class TypeRefNode : RefNode
 {
-    string Type { get; }
-    bool IsPointer { get; }
+    public bool IsPointer { get; }
 
-    public TypeRefNode(string type, bool isPointer)
+    public TypeRefNode(string name, bool isPointer) : base(name)
     {
-        Type = type;
         IsPointer = isPointer;
     }
 }
