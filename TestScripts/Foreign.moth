@@ -1,7 +1,7 @@
 namespace default.test;
 
 foreign malloc(size :u32) :void*;
-foreign free(ptr :void*) :void;
+foreign free(pointer :void*) :void;
 
-foreign printf(str :string, ~/) :i32;
-foreign scanf(format :string, ~/) :i32;
+foreign printf(text :str, ~/) :i32;
+foreign scanf(format :str, ~/) :i32;

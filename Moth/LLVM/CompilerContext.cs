@@ -43,6 +43,6 @@ public class CompilerContext
         Classes.Add("f16", new Data.Class(LLVMTypeRef.Half, PrivacyType.Public));
         Classes.Add("f32", new Data.Class(LLVMTypeRef.Float, PrivacyType.Public));
         Classes.Add("f64", new Data.Class(LLVMTypeRef.Double, PrivacyType.Public));
-        Classes.Add("string", new Data.Class(LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), PrivacyType.Public));
+        Classes.Add("str", new Data.Class(LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), PrivacyType.Public));
     }
 }

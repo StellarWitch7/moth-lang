@@ -485,7 +485,7 @@ public static class LLVMCompiler
         {
             if (constNode.Value is string str)
             {
-                if (compiler.Classes.TryGetValue("string", out Class @class)) {
+                if (compiler.Classes.TryGetValue("str", out Class @class)) {
                     var constStr = compiler.Context.GetConstString(str, false);
                     var global = compiler.Module.AddGlobal(constStr.TypeOf, "");
                     global.Initializer = constStr;
@@ -493,7 +493,7 @@ public static class LLVMCompiler
                 }
                 else
                 {
-                    throw new Exception("Critical failure: compiler cannot find the primitive type \"string\".");
+                    throw new Exception("Critical failure: compiler cannot find the primitive type \"str\".");
                 }
             }
             else if (constNode.Value is int i32)
@@ -533,7 +533,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
+    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode) //TODO: add support for statics
     {
         ValueContext context = null;
 

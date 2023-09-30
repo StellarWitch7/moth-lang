@@ -762,22 +762,6 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static RefNode ProcessNew(ParseContext context)
-    {
-        string name = context.Current.Value.Text.ToString();
-        context.MoveNext();
-
-        if (context.Current?.Type != TokenType.OpeningParentheses)
-        {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
-        }
-
-        context.MoveNext();
-        var newRefNode = new RefNode(name); //TODO: this lacks generic class compat?
-        newRefNode.Child = new MethodCallNode(name, ProcessArgs(context));
-        return newRefNode;
-    }
-
     public static RefNode ProcessAccess(ParseContext context)
     {
         RefNode newRefNode = null;
@@ -785,6 +769,19 @@ public static class TokenParser
         if (context.Current?.Type == TokenType.This)
         {
             newRefNode = new ThisNode();
+        }
+        else if (context.Current?.Type == TokenType.Colon)
+        {
+            newRefNode = ProcessTypeRef(context);
+
+            if (context.Current?.Type == TokenType.Period)
+            {
+                context.MoveNext();
+            }
+            else
+            {
+                return newRefNode;
+            }
         }
 
         while (context.Current != null)

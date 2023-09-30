@@ -6,7 +6,7 @@ import Test.Other.Cat;
 foreign printf(:i32, ~/) :i32; // This is a comment talking about this foreign function definition.
 
 func Add(left :i32, right :i32) :i32 {
-    local result :i32 = left + right;
+    local result := left + right;
     return result;
 }
 
@@ -24,7 +24,7 @@ public class TestClass {
         return;
     }
 
-    public ToString() :string {
+    public ToString() :str {
         return $"Value: {self.Value}$";
     }
 }

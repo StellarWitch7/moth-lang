@@ -61,7 +61,6 @@ public enum TokenType
 	Class,
 	If,
 	Local,
-	New,
 	Else,
 	Public,
 	Private,

@@ -12,45 +12,45 @@ namespace Moth_cmd;
 
 internal class Program
 {
-    public static void Main(string[] args)
+    static void Main(string[] args)
     {
+        var dir = Environment.CurrentDirectory;
+        Logger logger = new Logger("moth");
+
         Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(options => 
         {
-            var dir = Environment.CurrentDirectory;
             var compiler = new CompilerContext(options.OutputFile);
             var scripts = new List<ScriptAST>();
 
-            Console.WriteLine($"Building {options.OutputFile}...");
-            Console.WriteLine();
+            logger.WriteLine($"Building {options.OutputFile}...");
 
             foreach (var filePath in options.InputFiles)
             {
-                //try
-                //{
+                try
+                {
                     if (options.Verbose)
                     {
-                        Console.WriteLine($"Reading \"{filePath}\"");
+                        logger.WriteLine($"Reading \"{filePath}\"");
                     }
 
                     var fileContents = File.ReadAllText(filePath);
 
                     //Tokenize the contents of the file
-                    //try
-                    //{
+                    try
+                    {
                         if (options.Verbose)
                         {
-                            Console.WriteLine($"Tokenizing \"{filePath}\"");
+                            logger.WriteLine($"Tokenizing \"{filePath}\"");
                         }
 
                         var tokens = Tokenizer.Tokenize(fileContents);
 
                         //Convert to AST
-                        //try
-                        //{
+                        try
+                        {
                             if (options.Verbose)
                             {
-                                Console.WriteLine($"Generating AST of \"{filePath}\"");
-                                Console.WriteLine();
+                                logger.WriteLine($"Generating AST of \"{filePath}\"");
                             }
 
                             var scriptAST = TokenParser.ProcessScript(new ParseContext(tokens));
@@ -58,71 +58,95 @@ internal class Program
 
                             if (options.Verbose)
                             {
-                                Console.WriteLine(scriptAST.GetDebugString("  "));
-                                Console.WriteLine();
+                                logger.WriteSeparator();
+                                logger.WriteUnsignedLine(scriptAST.GetDebugString("  "));
+                                logger.WriteSeparator();
                             }
-                //        }
-                //        catch (Exception e)
-                //        {
-                //            Console.WriteLine($"Failed to parse tokens of \"{filePath}\" due to: {e.Message}");
-                //        }
-                //    }
-                //    catch (Exception e)
-                //    {
-                //        Console.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e.Message}");
-                //    }
-                //}
-                //catch (Exception e)
-                //{
-                //    Console.WriteLine($"Failed to get contents of \"{filePath}\" due to: {e.Message}");
-                //}
+                        }
+                        catch (Exception e)
+                        {
+                            logger.WriteLine($"Failed to parse tokens of \"{filePath}\" due to: {e}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        logger.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.WriteLine($"Failed to get contents of \"{filePath}\" due to: {e}");
+                }
             }
 
             //Compile
-            //try
-            //{
-                if (options.Verbose)
-                {
-                    Console.WriteLine("Compiling ASTs...");
-                    Console.WriteLine();
-                }
-
+            try
+            {
+                logger.WriteLine("Compiling to LLVM IR...");
                 LLVMCompiler.Compile(compiler, scripts.ToArray());
 
                 if (options.Verbose)
                 {
-                    compiler.Module.Dump();
-                    Console.WriteLine();
-                    compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
-                    Console.WriteLine();
+                    logger.WriteSeparator();
+                    logger.WriteUnsignedLine(compiler.Module.PrintToString());
+                    logger.WriteSeparator();
                 }
 
-                var arguments = new StringBuilder($"-o {options.OutputFile} -llegacy_stdio_definitions");
-                var file = $"{compiler.ModuleName}.bc";
-                var outPath = Path.Join(dir, file);
+                compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
 
-                if (options.Verbose)
+                //Send to Clang
+                try
                 {
-                    arguments.Append(" -v");
+                    logger.WriteLine("Sending IR to Clang...");
+                    logger.WriteSeparator();
+
+                    var arguments = new StringBuilder($"-o {options.OutputFile} -llegacy_stdio_definitions");
+                    var file = $"{compiler.ModuleName}.bc";
+                    var outPath = Path.Join(dir, file);
+
+                    if (options.Verbose)
+                    {
+                        arguments.Append(" -v");
+                    }
+
+                    compiler.Module.WriteBitcodeToFile(outPath);
+                    arguments.Append(' ');
+                    arguments.Append(file);
+
+                    var clang = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "clang",
+                        WorkingDirectory = dir,
+                        Arguments = arguments.ToString(),
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                    });
+
+                    Logger clangLogger = new Logger("clang");
+
+                    clang.WaitForExit();
+                    clangLogger.WriteUnsignedLine(clang.StandardOutput.ReadToEnd());
+                    clangLogger.WriteUnsignedLine(clang.StandardError.ReadToEnd());
+                    clangLogger.WriteSeparator();
+                    clangLogger.WriteLine($"Exited with code {clang.ExitCode}");
                 }
-
-                compiler.Module.WriteBitcodeToFile(outPath);
-                arguments.Append(' ');
-                arguments.Append(file);
-
-                var clang = Process.Start(new ProcessStartInfo
+                catch (Exception e)
                 {
-                    FileName = "clang",
-                    WorkingDirectory = dir,
-                    Arguments = arguments.ToString(),
-                });
+                    logger.WriteLine($"Failed to interact with Clang due to: {e}");
+                }
+            }
+            catch (Exception e)
+            {
+                logger.WriteLine($"Failed to compile due to: {e}");
 
-                clang.WaitForExit();
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine($"Failed to compile due to: {e.Message}");
-            //}
+                if (!options.Verbose)
+                {
+                    logger.WriteLine("Dumping LLVM IR for reviewal...");
+                    logger.WriteSeparator();
+                    logger.WriteLine(compiler.Module.PrintToString());
+                    logger.WriteSeparator();
+                }
+            }
         });
     }
 

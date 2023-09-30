@@ -42,7 +42,6 @@ public static class Tokenizer
 								{
 									"if" => TokenType.If,
                                     "null" => TokenType.Null,
-									"new" => TokenType.New, //TODO: remove
 									"local" => TokenType.Local,
 									"self" => TokenType.This,
 									"namespace" => TokenType.Namespace,
