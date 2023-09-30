@@ -14,15 +14,13 @@ public class Variable : CompilerData
     public LLVMTypeRef LLVMType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Class ClassOfType { get; set; }
-    public bool IsConstant { get; set; }
 
     public Variable(LLVMValueRef lLVMVariable, LLVMTypeRef lLVMType, PrivacyType privacy,
-        Class classOfType, bool isConstant)
+        Class classOfType)
     {
         LLVMVariable = lLVMVariable;
         LLVMType = lLVMType;
         Privacy = privacy;
         ClassOfType = classOfType;
-        IsConstant = isConstant;
     }
 }

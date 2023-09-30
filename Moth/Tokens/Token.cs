@@ -98,5 +98,6 @@ public enum TokenType
     Range,
     Variadic,
     DollarSign,
-    Static
+    Static,
+    InferAssign
 }

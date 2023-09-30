@@ -91,12 +91,23 @@ public static class LLVMCompiler
 
         if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
         {
-            foreach (FieldNode field in classNode.Scope.Statements.OfType<FieldNode>())
+            foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
             {
-                if (compiler.Classes.TryGetValue(field.TypeRef, out Class type))
+                if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class type))
                 {
-                    lLVMTypes.Add(type.LLVMType);
-                    @class.Fields.Add(field.Name, new Field(index, type.LLVMType, field.Privacy, type, field.IsConstant));
+                    LLVMTypeRef fieldLLVMType;
+
+                    if (field.TypeRef.IsPointer)
+                    {
+                        fieldLLVMType = LLVMTypeRef.CreatePointer(type.LLVMType, 0);
+                    }
+                    else
+                    {
+                        fieldLLVMType = type.LLVMType;
+                    }
+
+                    lLVMTypes.Add(fieldLLVMType);
+                    @class.Fields.Add(field.Name, new Field(index, fieldLLVMType, field.Privacy, type));
                     index++;
                 }
             }
@@ -213,8 +224,7 @@ public static class LLVMCompiler
                 new Variable(paramAsVar,
                     param.LLVMType,
                     PrivacyType.Local,
-                    param.ClassOfType,
-                    false));
+                    param.ClassOfType));
         }
 
         if (!CompileScope(compiler, func.OpeningScope, funcDefNode.ExecutionBlock))
@@ -242,29 +252,47 @@ public static class LLVMCompiler
 
                 return true;
             }
-            else if (statement is FieldNode fieldDef)
+            else if (statement is FieldDefNode fieldDef)
             {
-                if (fieldDef is InferredLocalDefNode inferredDef)
+                if (fieldDef is InferredLocalDefNode inferredLocalDef)
                 {
-                    var result = CompileExpression(compiler, scope, inferredDef.DefaultValue);
-                    var lLVMVar = compiler.Builder.BuildAlloca(result.LLVMType, fieldDef.Name);
-                    compiler.Builder.BuildStore(result.LLVMValue, lLVMVar);
+                    var defaultVal = CompileExpression(compiler, scope, inferredLocalDef.DefaultValue);
+                    var lLVMVar = compiler.Builder.BuildAlloca(defaultVal.LLVMType, fieldDef.Name);
+                    compiler.Builder.BuildStore(defaultVal.LLVMValue, lLVMVar);
                     scope.Variables.Add(fieldDef.Name,
                         new Variable(lLVMVar,
-                            result.LLVMType,
+                            defaultVal.LLVMType,
                             fieldDef.Privacy,
-                            result.ClassOfType,
-                            fieldDef.IsConstant));
+                            defaultVal.ClassOfType));
                 }
-                else if (compiler.Classes.TryGetValue(fieldDef.TypeRef, out Class type))
+                else if (compiler.Classes.TryGetValue(fieldDef.TypeRef.Name, out Class type))
                 {
-                    var lLVMVar = compiler.Builder.BuildAlloca(type.LLVMType, fieldDef.Name);
+                    LLVMTypeRef varLLVMType;
+
+                    if (fieldDef.TypeRef.IsPointer)
+                    {
+                        varLLVMType = LLVMTypeRef.CreatePointer(type.LLVMType, 0);
+                    }
+                    else
+                    {
+                        varLLVMType = type.LLVMType;
+                    }
+
+                    var lLVMVar = compiler.Builder.BuildAlloca(varLLVMType, fieldDef.Name);
                     scope.Variables.Add(fieldDef.Name,
                         new Variable(lLVMVar,
-                            type.LLVMType,
+                            varLLVMType,
                             fieldDef.Privacy,
-                            type,
-                            fieldDef.IsConstant));
+                            type));
+
+                    if (fieldDef is LocalDefNode localDef)
+                    {
+                        compiler.Builder.BuildStore(CompileExpression(compiler, scope, localDef.DefaultValue).LLVMValue, lLVMVar);
+                    }
+                }
+                else
+                {
+                    throw new Exception("Failure at: \"Moth.LLVM.LLVMCompiler#CompileScope(CompilerContext, Scope, ScopeNode)\"");
                 }
             }
             else if (statement is ScopeNode newScopeNode)

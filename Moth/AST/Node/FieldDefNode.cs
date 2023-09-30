@@ -6,19 +6,17 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class FieldNode : StatementNode
+public class FieldDefNode : StatementNode
 {
     public string Name { get; }
     public PrivacyType Privacy { get; }
-    public string TypeRef { get; }
-    public bool IsConstant { get; }
+    public TypeRefNode TypeRef { get; }
 
-    public FieldNode(string name, PrivacyType privacy, string typeRef, bool isConstant)
+    public FieldDefNode(string name, PrivacyType privacy, TypeRefNode typeRef)
     {
         Name = name;
         Privacy = privacy;
         TypeRef = typeRef;
-        IsConstant = isConstant;
     }
 }
 
@@ -26,5 +24,8 @@ public enum PrivacyType
 {
     Public,
     Private,
-    Local
+    Local,
+    Static,
+    Global,
+    Foreign
 }
