@@ -1,7 +1,7 @@
-@default.test;
+namespace default.test;
 
-//foreign void *malloc(u32 size);
-//foreign void free(void *ptr);
+foreign malloc(size :u32) :void*;
+foreign free(ptr :void*) :void;
 
-foreign variadic i32 printf(string str);
-foreign variadic i32 scanf(string format);
+foreign printf(str :string, ~/) :i32;
+foreign scanf(format :string, ~/) :i32;

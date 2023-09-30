@@ -1,0 +1,30 @@
+namespace Test;
+
+import Test.Other;
+import Test.Other.Cat;
+
+foreign printf(:i32, ~/) :i32; // This is a comment talking about this foreign function definition.
+
+func Add(left :i32, right :i32) :i32 {
+    local result :i32 = left + right;
+    return result;
+}
+
+public class TestClass {
+    public Value :i32;
+    private incrementBonus :i32;
+    
+    static init() {
+        self.Value = 10;
+    }
+
+    public IncreaseValue() :void {
+        self.Value = Add(self.Value, self.incrementBonus);
+        ++self.Value;
+        return;
+    }
+
+    public ToString() :string {
+        return $"Value: {self.Value}$";
+    }
+}

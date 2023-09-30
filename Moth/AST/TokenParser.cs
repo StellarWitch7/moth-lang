@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Moth.Tokens;
 using System.Collections;
 using Moth.AST.Node;
+using System.Diagnostics.Metrics;
+using System.Xml.Linq;
 
 namespace Moth.AST;
 
@@ -14,73 +16,47 @@ public static class TokenParser
 {
     public static ScriptAST ProcessScript(ParseContext context)
     {
-        AssignNamespaceNode assignNamespaceNode;
-        List<ImportNode> imports = new List<ImportNode>();
-        List<ClassNode> classes = new List<ClassNode>();
+        string @namespace;
+        List<string> imports = new List<string>();
         List<FuncDefNode> funcs = new List<FuncDefNode>();
+        List<ClassNode> classes = new List<ClassNode>();
 
-        if (context.Current?.Type == TokenType.NamespaceTag)
+        if (context.Current?.Type == TokenType.Namespace)
         {
             context.MoveNext();
-            assignNamespaceNode = ProcessNamespaceAssignment(context);
+            @namespace = ProcessNamespace(context);
         }
         else
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.NamespaceTag);
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Namespace);
         }
 
         while (context.Current != null)
         {
             switch (context.Current?.Type)
             {
-                case TokenType.Import:
-                    context.MoveNext();
-                    imports.Add(ProcessImport(context));
-                    break;
                 case TokenType.Foreign:
                 case TokenType.Function:
-                    bool isForeign = context.Current?.Type == TokenType.Foreign;
-                    context.MoveNext();
-                    bool isConstant = false;
-                    bool isVariadic = false;
-                    
-                    if (context.Current?.Type == TokenType.Variadic)
+                    var result = ProcessDefinition(context);
+
+                    if (result is FuncDefNode func)
                     {
-                        isVariadic = true;
-                        context.MoveNext();
-                    }
-
-                    if (context.Current?.Type == TokenType.Constant)
-                    {
-                        isConstant = true;
-                        context.MoveNext();
-                    }
-
-                    string typeRef = context.Current.Value.Text.ToString();
-                    context.MoveNext();
-                    funcs.Add((FuncDefNode)ProcessDefinition(context, PrivacyType.Public, typeRef, isConstant, isForeign, isVariadic));
-                    break;
-                case TokenType.Public:
-                    context.MoveNext();
-
-                    if (context.Current?.Type == TokenType.Class)
-                    {
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.Name)
-                        {
-                            string className = context.Current.Value.Text.ToString();
-                            context.MoveNext();
-                            classes.Add(ProcessClass(context, PrivacyType.Public, className));
-                        }
+                        funcs.Add(func);
+                        break;
                     }
                     else
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Class);
+                        throw new Exception("Result of foreign/func was not a function.");
+                    }
+                case TokenType.Public:
+                case TokenType.Private:
+                    PrivacyType privacyType = PrivacyType.Public;
+
+                    if (context.Current?.Type == TokenType.Private)
+                    {
+                        privacyType = PrivacyType.Private;
                     }
 
-                    break;
-                case TokenType.Private:
                     context.MoveNext();
 
                     if (context.Current?.Type == TokenType.Class)
@@ -91,7 +67,7 @@ public static class TokenParser
                         {
                             string className = context.Current.Value.Text.ToString();
                             context.MoveNext();
-                            classes.Add(ProcessClass(context, PrivacyType.Private, className));
+                            classes.Add(ProcessClass(context, privacyType, className));
                         }
                     }
                     else
@@ -105,27 +81,28 @@ public static class TokenParser
             }
         }
 
-        return new ScriptAST(assignNamespaceNode, imports, classes, funcs);
+        return new ScriptAST(@namespace, imports, classes, funcs);
     }
 
-    public static NamespaceNode ProcessNamespace(ParseContext context)
+    public static string ProcessNamespace(ParseContext context)
     {
-        List<string> @namespace = new List<string>();
+        var builder = new StringBuilder();
 
         while (context.Current != null)
         {
             switch (context.Current?.Type)
             {
+                case TokenType.Period:
+                    builder.Append('.');
+                    context.MoveNext();
+                    break;
+                case TokenType.Name:
+                    builder.Append(context.Current.Value.Text.ToString());
+                    context.MoveNext();
+                    break;
                 case TokenType.Semicolon:
                     context.MoveNext();
-                    return new NamespaceNode(@namespace);
-                case TokenType.Name:
-                    @namespace.Add(context.Current.Value.Text.ToString());
-                    context.MoveNext();
-                    break;
-                case TokenType.Period:
-                    context.MoveNext();
-                    break;
+                    return builder.ToString();
                 default:
                     throw new UnexpectedTokenException(context.Current.Value);
             }
@@ -134,29 +111,10 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static AssignNamespaceNode ProcessNamespaceAssignment(ParseContext context)
-    {
-        return new AssignNamespaceNode(ProcessNamespace(context));
-    }
-
-    public static ImportNode ProcessImport(ParseContext context)
-    {
-        if (context.Current?.Type == TokenType.NamespaceTag)
-        {
-            context.MoveNext();
-            return new ImportNode(ProcessNamespace(context));
-        }
-        else
-        {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.NamespaceTag);
-        }
-    }
-
     public static ClassNode ProcessClass(ParseContext context, PrivacyType privacy, string name)
     {
         if (context.Current?.Type == TokenType.OpeningCurlyBraces)
         {
-            context.CurrentClassName = name;
             context.MoveNext();
             return new ClassNode(name, privacy, ProcessBlock(context, true));
         }
@@ -166,7 +124,7 @@ public static class TokenParser
         }
     }
 
-    public static ScopeNode ProcessBlock(ParseContext context, bool isClassRoot = false)
+    public static ScopeNode ProcessBlock(ParseContext context, bool isClassRoot = false) //TODO: Rewrite time!
     {
         List<StatementNode> statements = new List<StatementNode>();
 
@@ -174,6 +132,9 @@ public static class TokenParser
         {
             switch (context.Current?.Type)
             {
+                case TokenType.ClosingCurlyBraces:
+                    context.MoveNext();
+                    return new ScopeNode(statements);
                 case TokenType.OpeningCurlyBraces:
                     if (!isClassRoot)
                     {
@@ -185,9 +146,6 @@ public static class TokenParser
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
-                case TokenType.ClosingCurlyBraces:
-                    context.MoveNext();
-                    return new ScopeNode(statements);
                 case TokenType.If:
                     if (!isClassRoot)
                     {
@@ -203,90 +161,43 @@ public static class TokenParser
                     if (!isClassRoot)
                     {
                         context.MoveNext();
-                        statements.Add(new ReturnNode(ProcessExpression(context, null, TokenType.Semicolon)));
-                        break;
+                        statements.Add(new ReturnNode(ProcessExpression(context, null)));
+
+                        if (context.Current?.Type != TokenType.Semicolon)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                        }
+                        else
+                        {
+                            context.MoveNext();
+                            break;
+                        }
                     }
                     else
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
+                case TokenType.Static:
                 case TokenType.Public:
                 case TokenType.Private:
                 case TokenType.Local:
-                    PrivacyType privacyType = PrivacyType.Public;
-                    bool isConstant = false;
-                    bool isVariadic = false;
-
-                    if (context.Current?.Type == TokenType.Private)
-                    {
-                        privacyType = PrivacyType.Private;
-                    }
-                    else if (context.Current?.Type == TokenType.Local)
-                    {
-                        if (isClassRoot)
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
-                        privacyType = PrivacyType.Local;
-                    }
-
-                    context.MoveNext();
-
-                    if (privacyType != PrivacyType.Local)
-                    {
-                        if (context.Current?.Type == TokenType.Variadic)
-                        {
-                            isVariadic = true;
-                            context.MoveNext();
-                        }
-                    }
-
-                    if (context.Current?.Type == TokenType.Constant)
-                    {
-                        isConstant = true;
-                        context.MoveNext();
-                    }
-
-                    if (privacyType == PrivacyType.Local)
-                    {
-                        List<TokenType> peek3List = new List<TokenType>();
-
-                        foreach (Token token in context.Peek(3))
-                        {
-                            peek3List.Add(token.Type);
-                        }
-
-                        TokenType[] peek3 = peek3List.ToArray();
-                        TokenType[] comparer = new TokenType[] { TokenType.Name, TokenType.Name, TokenType.Semicolon };
-
-                        if (peek3[0] == comparer[0] && peek3[1] == comparer[1] && peek3[2] == comparer[2])
-                        {
-                            string typeRef = context.Current.Value.Text.ToString();
-                            context.MoveNext();
-                            statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant, false, false));
-                            break;
-                        }
-                        else
-                        {
-                            ExpressionNode val = ProcessExpression(context, null, TokenType.Colon);
-                            statements.Add(ProcessDefinition(context, privacyType, val, isConstant, false, false));
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        string typeRef = context.Current.Value.Text.ToString();
-                        context.MoveNext();
-                        statements.Add(ProcessDefinition(context, privacyType, typeRef, isConstant, false, isVariadic));
-                        break;
-                    }
+                    statements.Add(ProcessDefinition(context));
+                    break;
                 case TokenType.This:
                 case TokenType.Name:
                     if (!isClassRoot)
                     {
-                        statements.Add(ProcessExpression(context, null, TokenType.Semicolon));
-                        break;
+                        statements.Add(ProcessExpression(context, null));
+
+                        if (context.Current?.Type != TokenType.Semicolon)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                        }
+                        else
+                        {
+                            context.MoveNext();
+                            break;
+                        }
                     }
                     else
                     {
@@ -332,61 +243,110 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static StatementNode ProcessDefinition(ParseContext context,
-        PrivacyType privacyType, object typeRef, bool isConstant, bool isForeign, bool isVariadic)
+    public static StatementNode ProcessDefinition(ParseContext context)
     {
-        string name;
+        PrivacyType privacy;
 
-        if (context.Current?.Type == TokenType.Name)
+        if (context.Current?.Type == TokenType.Foreign)
         {
-            name = context.Current.Value.Text.ToString();
-            context.MoveNext();
+            privacy = PrivacyType.Foreign;
+        }
+        else if (context.Current?.Type == TokenType.Function)
+        {
+            privacy = PrivacyType.Global;
+        }
+        else if (context.Current?.Type == TokenType.Static)
+        {
+            privacy = PrivacyType.Static;
+        }
+        else if (context.Current?.Type == TokenType.Public)
+        {
+            privacy = PrivacyType.Public;
+        }
+        else if (context.Current?.Type == TokenType.Private)
+        {
+            privacy = PrivacyType.Private;
+        }
+        else if (context.Current?.Type == TokenType.Local)
+        {
+            privacy = PrivacyType.Local;
         }
         else
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            throw new UnexpectedTokenException(context.Current.Value);
         }
 
-        if (typeRef is string strTypeRef)
+        context.MoveNext();
+
+        if (context.Current?.Type == TokenType.Name)
         {
+            string name = context.Current.Value.Text.ToString();
+            context.MoveNext();
+
             if (context.Current?.Type == TokenType.OpeningParentheses)
             {
                 context.MoveNext();
-                var @params = ProcessParameterList(context);
+                var @params = ProcessParameterList(context, out bool isVariadic);
+                var retTypeRef = ProcessTypeRef(context);
 
-                if (!isForeign && context.Current?.Type == TokenType.OpeningCurlyBraces)
+                if (privacy != PrivacyType.Foreign && context.Current?.Type == TokenType.OpeningCurlyBraces)
                 {
                     context.MoveNext();
-                    var scope = ProcessBlock(context);
-
-                    return new FuncDefNode(name, privacyType, strTypeRef, @params, scope, isVariadic);
+                    return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessBlock(context), isVariadic);
                 }
-                else if (isForeign && context.Current?.Type == TokenType.Semicolon)
+                else if (privacy == PrivacyType.Foreign && context.Current?.Type == TokenType.Semicolon)
                 {
                     context.MoveNext();
-                    return new FuncDefNode(name, privacyType, strTypeRef, @params, null, isVariadic);
+                    return new FuncDefNode(name, privacy, retTypeRef, @params, null, isVariadic);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                }
+            }
+            else if (context.Current?.Type == TokenType.Colon)
+            {
+                var typeRef = ProcessTypeRef(context);
+
+                if (context.Current?.Type == TokenType.Semicolon)
+                {
+                    context.MoveNext();
+                    return new FieldDefNode(name, privacy, typeRef);
+                }
+                else if (context.Current?.Type == TokenType.Assign)
+                {
+                    context.MoveNext();
+                    var value = ProcessExpression(context, null);
+
+                    if (context.Current?.Type == TokenType.Semicolon)
+                    {
+                        context.MoveNext();
+                        return new LocalDefNode(name, privacy, typeRef, value);
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                    }
                 }
                 else
                 {
                     throw new UnexpectedTokenException(context.Current.Value);
                 }
             }
-            else if (context.Current?.Type == TokenType.Semicolon)
+            else if (privacy == PrivacyType.Local && context.Current?.Type == TokenType.InferAssign)
             {
                 context.MoveNext();
-                return new FieldNode(name, privacyType, strTypeRef, isConstant);
-            }
-            else
-            {
-                throw new UnexpectedTokenException(context.Current.Value);
-            }
-        }
-        else if (typeRef is ExpressionNode expr)
-        {
-            if (context.Current?.Type == TokenType.Semicolon)
-            {
-                context.MoveNext();
-                return new InferredLocalDefNode(name, privacyType, isConstant, expr);
+                var value = ProcessExpression(context, null);
+
+                if (context.Current?.Type == TokenType.Semicolon)
+                {
+                    context.MoveNext();
+                    return new InferredLocalDefNode(name, privacy, value);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                }
             }
             else
             {
@@ -395,13 +355,14 @@ public static class TokenParser
         }
         else
         {
-            throw new Exception("Failed to parse definition.");
-        }
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+        }        
     }
 
-    public static List<ParameterNode> ProcessParameterList(ParseContext context)
+    public static List<ParameterNode> ProcessParameterList(ParseContext context, out bool isVariadic)
     {
         List<ParameterNode> @params = new List<ParameterNode>();
+        isVariadic = false;
 
         while (context.Current != null)
         {
@@ -414,7 +375,22 @@ public static class TokenParser
                     context.MoveNext();
                     break;
                 default:
-                    @params.Add(ProcessParameter(context));
+                    var param = ProcessParameter(context, out bool b);
+
+                    if (param == null && b)
+                    {
+                        isVariadic = true;
+
+                        if (context.Current?.Type != TokenType.ClosingParentheses)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+                        }
+                    }
+                    else if (param != null)
+                    {
+                        @params.Add(param);
+                    }
+
                     break;
             }
         }
@@ -422,35 +398,40 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static ParameterNode ProcessParameter(ParseContext context)
+    public static ParameterNode ProcessParameter(ParseContext context, out bool isVariadic)
     {
-        string typeRef;
+        string name;
+        isVariadic = false;
 
         if (context.Current?.Type == TokenType.Name)
         {
-            typeRef = context.Current.Value.Text.ToString();
+            name = context.Current.Value.Text.ToString();
             context.MoveNext();
+        }
+        else if (context.Current?.Type == TokenType.Variadic)
+        {
+            context.MoveNext();
+            isVariadic = true;
+            return null;
         }
         else
         {
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
 
-        if (context.Current?.Type == TokenType.Name)
-        {
-            string name = context.Current.Value.Text.ToString();
-            context.MoveNext();
-            return new ParameterNode(name, typeRef);
-        }
-        else
-        {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-        }
+        return new ParameterNode(name, ProcessTypeRef(context));
     }
 
     public static IfNode ProcessIf(ParseContext context)
     {
-        var condition = ProcessExpression(context, null, TokenType.OpeningCurlyBraces);
+        var condition = ProcessExpression(context, null);
+
+        if (context.Current?.Type != TokenType.OpeningCurlyBraces)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+        }
+
+        context.MoveNext();
         var then = ProcessBlock(context);
         var @else = ProcessElse(context);
         return new IfNode(condition, then, @else);
@@ -488,43 +469,78 @@ public static class TokenParser
 
         while (context.Current != null)
         {
-            if (context.GetByIndex(context.Position - 1).Type == TokenType.ClosingParentheses) break;
-            args.Add(ProcessExpression(context, null, new TokenType[] { TokenType.ClosingParentheses, TokenType.Comma }));
+            if (context.Current?.Type == TokenType.ClosingParentheses)
+            {
+                context.MoveNext();
+                break;
+            }
+            args.Add(ProcessExpression(context, null));
+            
+            if (context.Current?.Type == TokenType.ClosingParentheses)
+            {
+                context.MoveNext();
+                break;
+            }
+            else if (context.Current?.Type != TokenType.Comma)
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+            }
+
+            context.MoveNext();
         }
 
         return args;
     }
 
-    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode, TokenType terminator)
+    public static TypeRefNode ProcessTypeRef(ParseContext context)
     {
-        return ProcessExpression(context, lastCreatedNode, new TokenType[] { terminator });
+        if (context.Current?.Type == TokenType.Colon)
+        {
+            context.MoveNext();
+
+            if (context.Current?.Type == TokenType.Name)
+            {
+                string retTypeName = context.Current.Value.Text.ToString();
+                bool isPointer = false;
+                context.MoveNext();
+
+                if (context.Current?.Type == TokenType.Asterix)
+                {
+                    isPointer = true;
+                    context.MoveNext();
+                }
+
+                return new TypeRefNode(retTypeName, isPointer);
+            }
+            else
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            }
+        }
+        else
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Colon);
+        }
     }
 
     // Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
-    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode, TokenType[] terminators)
+    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode)
     {
-        bool isParent = lastCreatedNode == null;
-
         while (context.Current != null)
         {
-            foreach (TokenType terminator in terminators)
-            {
-                if (context.Current?.Type == terminator)
-                {
-                    if (isParent) context.MoveNext();
-                    return lastCreatedNode;
-                }
-            }
-
             switch (context.Current?.Type)
             {
                 case TokenType.OpeningParentheses:
                     context.MoveNext();
-                    lastCreatedNode = ProcessExpression(context, lastCreatedNode, TokenType.ClosingParentheses);
-                    return lastCreatedNode;
-                case TokenType.ClosingSquareBrackets:
-                    if (isParent) context.MoveNext();
-                    return lastCreatedNode;
+                    lastCreatedNode = ProcessExpression(context, lastCreatedNode);
+
+                    if (context.Current?.Type != TokenType.ClosingParentheses)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+                    }
+
+                    context.MoveNext();
+                    break;
                 case TokenType.LiteralFloat:
                     lastCreatedNode = new ConstantNode(float.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
@@ -537,21 +553,11 @@ public static class TokenParser
                     lastCreatedNode = new ConstantNode(context.Current.Value.Text.ToString());
                     context.MoveNext();
                     break;
-                case TokenType.New:
-                    context.MoveNext();
-
-                    if (context.Current?.Type != TokenType.Name)
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-                    }
-
-                    lastCreatedNode = ProcessNew(context);
-                    break;
-                case TokenType.Addition:
+                case TokenType.Plus:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Addition, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Addition, lastCreatedNode);
                     }
                     else
                     {
@@ -559,11 +565,11 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.Subtraction:
+                case TokenType.Hyphen:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Subtraction, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Subtraction, lastCreatedNode);
                     }
                     else
                     {
@@ -571,11 +577,11 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.Multiplication:
+                case TokenType.Asterix:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, lastCreatedNode);
                     }
                     else
                     {
@@ -583,11 +589,11 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.Division:
+                case TokenType.ForwardSlash:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Division, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Division, lastCreatedNode);
                     }
                     else
                     {
@@ -599,7 +605,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Exponential, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Exponential, lastCreatedNode);
                     }
                     else
                     {
@@ -611,7 +617,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Equal, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Equal, lastCreatedNode);
                     }
                     else
                     {
@@ -623,7 +629,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.NotEqual, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.NotEqual, lastCreatedNode);
                     }
                     else
                     {
@@ -635,7 +641,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LargerThan, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LargerThan, lastCreatedNode);
                     }
                     else
                     {
@@ -647,7 +653,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LessThan, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LessThan, lastCreatedNode);
                     }
                     else
                     {
@@ -659,7 +665,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LargerThanOrEqual, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LargerThanOrEqual, lastCreatedNode);
                     }
                     else
                     {
@@ -671,7 +677,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LessThanOrEqual, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LessThanOrEqual, lastCreatedNode);
                     }
                     else
                     {
@@ -683,7 +689,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalOr, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalOr, lastCreatedNode);
                     }
                     else
                     {
@@ -695,7 +701,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalXor, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalXor, lastCreatedNode);
                     }
                     else
                     {
@@ -707,7 +713,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalAnd, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalAnd, lastCreatedNode);
                     }
                     else
                     {
@@ -719,7 +725,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalNand, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalNand, lastCreatedNode);
                     }
                     else
                     {
@@ -735,7 +741,7 @@ public static class TokenParser
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Assignment, lastCreatedNode, terminators);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Assignment, lastCreatedNode);
                     }
                     else
                     {
@@ -744,16 +750,16 @@ public static class TokenParser
 
                     break;
                 default:
-                    throw new UnexpectedTokenException(context.Current.Value);
+                    if (lastCreatedNode == null)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
+                    return lastCreatedNode;
             }
         }
 
-        if (lastCreatedNode == null)
-        {
-            throw new UnexpectedTokenException(context.Current.Value);
-        }
-
-        return lastCreatedNode;
+        throw new UnexpectedTokenException(context.Current.Value);
     }
 
     public static RefNode ProcessNew(ParseContext context)
@@ -808,7 +814,14 @@ public static class TokenParser
                         break;
                     case TokenType.OpeningSquareBrackets:
                         context.MoveNext();
-                        childNode = new IndexAccessNode(ProcessExpression(context, null, TokenType.ClosingSquareBrackets)); //TODO: check bool validity
+                        childNode = new IndexAccessNode(ProcessExpression(context, null));
+
+                        if (context.Current?.Type != TokenType.ClosingSquareBrackets)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
+                        }
+
+                        context.MoveNext();
 
                         if (newRefNode == null)
                         {
@@ -855,10 +868,9 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType,
-        ExpressionNode left, TokenType[] terminators)
+    public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)
     {
-        var right = ProcessExpression(context, left, terminators);
+        var right = ProcessExpression(context, left);
 
         switch (opType)
         {

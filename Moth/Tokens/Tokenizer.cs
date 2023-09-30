@@ -41,11 +41,11 @@ public static class Tokenizer
 								Type = keyword.Span switch
 								{
 									"if" => TokenType.If,
-                                    "variadic" => TokenType.Variadic,
                                     "null" => TokenType.Null,
-									"new" => TokenType.New,
+									"new" => TokenType.New, //TODO: remove
 									"local" => TokenType.Local,
 									"self" => TokenType.This,
+									"namespace" => TokenType.Namespace,
 									"throw" => TokenType.Throw,
 									"constant" => TokenType.Constant,
 									"while" => TokenType.While,
@@ -61,6 +61,7 @@ public static class Tokenizer
 									"class" => TokenType.Class,
 									"wield" => TokenType.Import,
 									"public" => TokenType.Public,
+									"static" => TokenType.Static,
 									"return" => TokenType.Return,
 									"private" => TokenType.Private,
 									"foreign" => TokenType.Foreign,
@@ -122,6 +123,8 @@ public static class Tokenizer
 							'^' when next is '|' => TokenType.LogicalXor,
 							'&' when next is '&' => TokenType.LogicalAnd,
 							'~' when next is '&' => TokenType.LogicalNand,
+							'~' when next is '/' => TokenType.Variadic,
+							':' when next is '=' => TokenType.InferAssign,
 							':' => TokenType.Colon,
 							',' => TokenType.Comma,
 							'.' => TokenType.Period,
@@ -137,13 +140,13 @@ public static class Tokenizer
 							'|' => TokenType.Or,
 							'&' => TokenType.And,
 							'!' => TokenType.Not,
+							'$' => TokenType.DollarSign,
 							'^' => TokenType.Xor,
 							'~' => TokenType.Nand,
-							'@' => TokenType.NamespaceTag,
-							'+' => TokenType.Addition,
-							'/' => TokenType.Division,
-							'-' => TokenType.Subtraction,
-							'*' => TokenType.Multiplication,
+							'+' => TokenType.Plus,
+							'/' => TokenType.ForwardSlash,
+							'-' => TokenType.Hyphen,
+							'*' => TokenType.Asterix,
 							'%' => TokenType.Modulo,
 							'=' => TokenType.Assign,
 
@@ -160,9 +163,10 @@ public static class Tokenizer
 						{
 							Text = type switch
 							{
-								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual or
-									TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
-									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement => stream.Peek(2),
+								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual
+									or TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
+									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement
+									or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),
 							},
 							Type = (TokenType)type,

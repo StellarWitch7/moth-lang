@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class InferredLocalDefNode : FieldNode
+public class InferredLocalDefNode : LocalDefNode
 {
-    public ExpressionNode DefaultValue { get; set; }
-
-    public InferredLocalDefNode(string name, PrivacyType privacy, bool isConstant, ExpressionNode defaultVal)
-        : base(name, privacy, string.Empty, isConstant)
+    public InferredLocalDefNode(string name, PrivacyType privacy, ExpressionNode defaultVal)
+        : base(name, privacy, null, defaultVal)
     {
-        DefaultValue = defaultVal;
     }
 }
