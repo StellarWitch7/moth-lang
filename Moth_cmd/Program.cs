@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Text;
+using Moth;
 using Moth.Tokens;
 using Moth.AST;
 using Moth.LLVM;
@@ -118,15 +119,15 @@ internal class Program
                         FileName = "clang",
                         WorkingDirectory = dir,
                         Arguments = arguments.ToString(),
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
+                        //RedirectStandardOutput = true,
+                        //RedirectStandardError = true,
                     });
 
                     Logger clangLogger = new Logger("clang");
 
-                    clang.WaitForExit();
-                    clangLogger.WriteUnsignedLine(clang.StandardOutput.ReadToEnd());
-                    clangLogger.WriteUnsignedLine(clang.StandardError.ReadToEnd());
+                    clang.WaitForExit(); //TODO: write characters as they come in?
+                    //clangLogger.WriteUnsignedLine(clang.StandardOutput.ReadToEnd());
+                    //clangLogger.WriteUnsignedLine(clang.StandardError.ReadToEnd());
                     clangLogger.WriteSeparator();
                     clangLogger.WriteLine($"Exited with code {clang.ExitCode}");
                 }

@@ -15,7 +15,8 @@ public class CompilerContext
     public LLVMBuilderRef Builder { get; set; }
     public LLVMModuleRef Module { get; set; }
     public string ModuleName { get; set; }
-    public Dictionary<string, Data.Class> Classes { get; set; } = new Dictionary<string, Data.Class>();
+    public Logger Logger { get; } = new Logger("moth/compiler");
+    public Dictionary<string, Class> Classes { get; set; } = new Dictionary<string, Class>();
     public Dictionary<string, Function> GlobalFunctions { get; set; } = new Dictionary<string, Function>();
     public Function CurrentFunction { get; set; }
 
@@ -31,18 +32,33 @@ public class CompilerContext
 
     private void InsertDefaultTypes()
     {
-        Classes.Add("void", new Data.Class(LLVMTypeRef.Void, PrivacyType.Public));
-        Classes.Add("bool", new Int(LLVMTypeRef.Int1, PrivacyType.Public, false));
-        Classes.Add("char", new Int(LLVMTypeRef.Int8, PrivacyType.Public, false));
-        Classes.Add("u16", new Int(LLVMTypeRef.Int16, PrivacyType.Public, false));
-        Classes.Add("u32", new Int(LLVMTypeRef.Int32, PrivacyType.Public, false));
-        Classes.Add("u64", new Int(LLVMTypeRef.Int64, PrivacyType.Public, false));
-        Classes.Add("i16", new Int(LLVMTypeRef.Int16, PrivacyType.Public, true));
-        Classes.Add("i32", new Int(LLVMTypeRef.Int32, PrivacyType.Public, true));
-        Classes.Add("i64", new Int(LLVMTypeRef.Int64, PrivacyType.Public, true));
-        Classes.Add("f16", new Data.Class(LLVMTypeRef.Half, PrivacyType.Public));
-        Classes.Add("f32", new Data.Class(LLVMTypeRef.Float, PrivacyType.Public));
-        Classes.Add("f64", new Data.Class(LLVMTypeRef.Double, PrivacyType.Public));
-        Classes.Add("str", new Data.Class(LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), PrivacyType.Public));
+        Classes.Add(Primitive.Void, new Class(this, Primitive.Void, LLVMTypeRef.Void, PrivacyType.Public));
+        Classes.Add(Primitive.String, new Class(this, Primitive.String, LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), PrivacyType.Public));
+        Classes.Add(Primitive.Float16, new Class(this, Primitive.Float16, LLVMTypeRef.Half, PrivacyType.Public));
+        Classes.Add(Primitive.Float32, new Class(this, Primitive.Float32, LLVMTypeRef.Float, PrivacyType.Public));
+        Classes.Add(Primitive.Float64, new Class(this, Primitive.Float64, LLVMTypeRef.Double, PrivacyType.Public));
+        Classes.Add(Primitive.Bool, new Int(this, Primitive.Bool, LLVMTypeRef.Int1, PrivacyType.Public, false));
+        Classes.Add(Primitive.Char, new Int(this, Primitive.Char, LLVMTypeRef.Int8, PrivacyType.Public, false));
+        Classes.Add(Primitive.UnsignedInt16, new Int(this, Primitive.UnsignedInt16, LLVMTypeRef.Int16, PrivacyType.Public, false));
+        Classes.Add(Primitive.UnsignedInt32, new Int(this, Primitive.UnsignedInt32, LLVMTypeRef.Int32, PrivacyType.Public, false));
+        Classes.Add(Primitive.UnsignedInt64, new Int(this, Primitive.UnsignedInt64, LLVMTypeRef.Int64, PrivacyType.Public, false));
+        Classes.Add(Primitive.SignedInt16, new Int(this, Primitive.SignedInt16, LLVMTypeRef.Int16, PrivacyType.Public, true));
+        Classes.Add(Primitive.SignedInt32, new Int(this, Primitive.SignedInt32, LLVMTypeRef.Int32, PrivacyType.Public, true));
+        Classes.Add(Primitive.SignedInt64, new Int(this, Primitive.SignedInt64, LLVMTypeRef.Int64, PrivacyType.Public, true));
+
+        foreach (Class @class in Classes.Values)
+        {
+            @class.AddBuiltins(this);
+        }
+    }
+
+    public void Warn(string message)
+    {
+        Log($"Warning: {message}");
+    }
+
+    public void Log(string message)
+    {
+        Logger.WriteLine(message);
     }
 }

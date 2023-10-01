@@ -9,11 +9,12 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM.Data;
 
-public class Int : Data.Class
+public class Int : Class
 {
     public bool IsSigned { get; set; }
 
-    public Int(LLVMTypeRef lLVMClass, PrivacyType privacy, bool isSigned) : base(lLVMClass, privacy)
+    public Int(CompilerContext compiler, string name, LLVMTypeRef lLVMClass, PrivacyType privacy, bool isSigned)
+        : base(compiler, name, lLVMClass, privacy)
     {
         IsSigned = isSigned;
     }

@@ -15,13 +15,13 @@ public class Function : CompilerData
     public LLVMTypeRef LLVMReturnType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Class ClassOfReturnType { get; set; }
-    public Class OwnerClass { get; set; }
+    public Class? OwnerClass { get; set; }
     public Scope OpeningScope { get; set; }
     public List<Parameter> Params { get; set; }
     public bool IsVariadic { get; set; }
 
     public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
-        PrivacyType privacy, Class classOfReturnType, Class ownerClass, List<Parameter> @params,
+        PrivacyType privacy, Class classOfReturnType, Class? ownerClass, List<Parameter> @params,
         bool isVariadic)
     {
         LLVMFunc = lLVMFunc;

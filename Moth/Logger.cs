@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Moth_cmd;
+namespace Moth;
 
-internal class Logger
+public class Logger
 {
     static string LogDirectory { get; } = Path.Join(Environment.CurrentDirectory, "logs");
     static string LogFile { get; } = Path.Join(LogDirectory, "latest.log");

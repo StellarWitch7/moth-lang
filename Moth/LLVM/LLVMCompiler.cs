@@ -81,7 +81,9 @@ public static class LLVMCompiler
     public static void DefineClass(CompilerContext compiler, ClassNode classNode)
     {
         LLVMTypeRef newStruct = compiler.Context.CreateNamedStruct(classNode.Name);
-        compiler.Classes.Add(classNode.Name, new Class(newStruct, classNode.Privacy));
+        Class newClass = new Class(compiler, classNode.Name, newStruct, classNode.Privacy);
+        compiler.Classes.Add(classNode.Name, newClass);
+        newClass.AddBuiltins(compiler);
     }
 
     public static void CompileClass(CompilerContext compiler, ClassNode classNode)
@@ -182,7 +184,7 @@ public static class LLVMCompiler
 
             if (@class != null)
             {
-                @class.Functions.Add(funcDefNode.Name, func); 
+                @class.Methods.Add(funcDefNode.Name, func); 
             }
             else
             {
@@ -195,11 +197,11 @@ public static class LLVMCompiler
     {
         Function func;
 
-        if (funcDefNode.ExecutionBlock == null)
+        if (funcDefNode.Privacy == PrivacyType.Foreign && funcDefNode.ExecutionBlock == null)
         {
             return;
         }
-        else if (@class != null && @class.Functions.TryGetValue(funcDefNode.Name, out func))
+        else if (@class != null && @class.Methods.TryGetValue(funcDefNode.Name, out func))
         {
             // Keep empty
         }
@@ -551,6 +553,17 @@ public static class LLVMCompiler
                     compiler.CurrentFunction.OwnerClass);
                 refNode = refNode.Child;
             }
+            else if (refNode is TypeRefNode typeRef)
+            {
+                if (compiler.Classes.TryGetValue(typeRef.Name, out Class @class))
+                {
+                    throw new NotImplementedException();
+                }
+                else
+                {
+                    throw new Exception($"Type \"{typeRef.Name}\" does not exist.");
+                }
+            }
             else if (refNode is MethodCallNode methodCall)
             {
                 Function func;
@@ -565,7 +578,7 @@ public static class LLVMCompiler
                     }
                 }
 
-                if (context != null && context.ClassOfType.Functions.TryGetValue(methodCall.Name, out func))
+                if (context != null && context.ClassOfType.Methods.TryGetValue(methodCall.Name, out func))
                 {
                     // Keep empty
                 }
