@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <StartupObject>Moth_cmd.Program</StartupObject>
     <AssemblyName>moth-cmd</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

@@ -13,7 +13,7 @@ namespace Moth_cmd;
 
 internal class Program
 {
-    static void Main(string[] args)
+    unsafe static void Main(string[] args)
     {
         var dir = Environment.CurrentDirectory;
         Logger logger = new Logger("moth");
@@ -24,6 +24,12 @@ internal class Program
             var scripts = new List<ScriptAST>();
 
             logger.WriteLine($"Building {options.OutputFile}...");
+            LLVM.LinkInMCJIT();
+            LLVM.InitializeAllTargetInfos();
+            LLVM.InitializeAllTargets();
+            LLVM.InitializeAllTargetMCs();
+            LLVM.InitializeAllAsmParsers();
+            LLVM.InitializeAllAsmPrinters();
 
             foreach (var filePath in options.InputFiles)
             {
@@ -98,21 +104,27 @@ internal class Program
                 //Send to Clang
                 try
                 {
-                    logger.WriteLine("Sending IR to Clang...");
-                    logger.WriteSeparator();
+                    var file = $"out.asm";
+                    var arguments = new StringBuilder($"-o {options.OutputFile} {file} -llegacy_stdio_definitions");
 
-                    var arguments = new StringBuilder($"-o {options.OutputFile} -llegacy_stdio_definitions");
-                    var file = $"{compiler.ModuleName}.bc";
-                    var outPath = Path.Join(dir, file);
+                    var path = Path.Join(dir, file);
+                    var cpu = new string(LLVM.GetHostCPUName());
+                    var features = new string(LLVM.GetHostCPUFeatures());
+
+                    var optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelNone; //TODO: add argument to configure this level
+                    var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
+                    var machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple, cpu, features, optLevel,
+                        LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
+
+                    logger.WriteLine($"Writing to object file \"{path}\"");
+                    machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMAssemblyFile);
+                    logger.WriteLine($"Sending to Clang...");
+                    logger.WriteSeparator();
 
                     if (options.Verbose)
                     {
                         arguments.Append(" -v");
                     }
-
-                    compiler.Module.WriteBitcodeToFile(outPath);
-                    arguments.Append(' ');
-                    arguments.Append(file);
 
                     var clang = Process.Start(new ProcessStartInfo
                     {

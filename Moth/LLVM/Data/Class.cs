@@ -32,7 +32,7 @@ public class Class : CompilerData
             if (compiler.Classes.TryGetValue(Primitive.UnsignedInt64, out Class classOfReturnType))
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
-                var func = new Function(compiler.Module.AddFunction("sizeof", funcType),
+                var func = new Function(compiler.Module.AddFunction($"{Name}.sizeof", funcType),
                     funcType, LLVMTypeRef.Int64, PrivacyType.Public, classOfReturnType, null, new List<Parameter>(), false);
                 
                 StaticMethods.Add("sizeof", func);
@@ -52,7 +52,7 @@ public class Class : CompilerData
             if (compiler.Classes.TryGetValue(Primitive.UnsignedInt64, out Class classOfReturnType))
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
-                var func = new Function(compiler.Module.AddFunction("alignof", funcType),
+                var func = new Function(compiler.Module.AddFunction($"{Name}.alignof", funcType),
                     funcType, LLVMTypeRef.Int64, PrivacyType.Public, classOfReturnType, null, new List<Parameter>(), false);
 
                 StaticMethods.Add("alignof", func);
