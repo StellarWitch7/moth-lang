@@ -106,7 +106,7 @@ internal class Program
                 //Send to Clang
                 try
                 {
-                    var @out = $"out.o";
+                    var @out = $"out.obj";
                     var path = Path.Join(dir, @out);
                     var arguments = new StringBuilder($"{path}");
 
@@ -121,33 +121,27 @@ internal class Program
                     logger.WriteLine($"Writing to object file \"{path}\"");
                     machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMObjectFile);
                     logger.WriteLine($"Compiling final product...");
-                    logger.WriteSeparator();
 
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
                         linkerName = "MSVC";
                         string msvc = null;
                         var directories = new List<string>();
-                        
-                        arguments.Append($" /OUT:{options.OutputFile}.exe /RELEASE");
+                        var startPath = @"C:\Program Files\Microsoft Visual Studio\";
+                        var startPathx86 = @"C:\Program Files (x86)\Microsoft Visual Studio\";
+                        arguments.Append($" /OUT:{options.OutputFile}.exe /RELEASE msvcrt.lib");
 
-                        if (options.Verbose)
+                        if (Directory.Exists(startPath))
                         {
-                            arguments.Append(" /VERBOSE");
-                            logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
-                        }
-
-                        if (Directory.Exists(@"C:\Program Files\Microsoft Visual Studio\"))
-                        {
-                            foreach (var d in Directory.GetDirectories(@"C:\Program Files\Microsoft Visual Studio\"))
+                            foreach (var d in Directory.GetDirectories(startPath))
                             {
                                 directories.Add(d);
                             }
                         }
 
-                        if (Directory.Exists(@"C:\Program Files (x86)\Microsoft Visual Studio\"))
+                        if (Directory.Exists(startPathx86))
                         {
-                            foreach (var d in Directory.GetDirectories(@"C:\Program Files (x86)\Microsoft Visual Studio\"))
+                            foreach (var d in Directory.GetDirectories(startPathx86))
                             {
                                 directories.Add(d);
                             }
@@ -162,6 +156,7 @@ internal class Program
                                 foreach (var d2 in Directory.GetDirectories(combinedPath))
                                 {
                                     var combinedPath2 = Path.Join(d2, @"bin\Hostx64\x64");
+                                    var libPath = Path.Join(d2, @"lib\x64");
 
                                     if (Directory.Exists(combinedPath2))
                                     {
@@ -173,8 +168,20 @@ internal class Program
                                             }
                                         }
                                     }
+
+                                    if (Directory.Exists(libPath))
+                                    {
+                                        arguments.Append($" /LIBPATH:\"{libPath}\"");
+                                        logger.WriteLine($"Located libs at \"{libPath}\"");
+                                    }
                                 }
                             }
+                        }
+
+                        if (options.Verbose)
+                        {
+                            arguments.Append(" /VERBOSE");
+                            logger.WriteLine($"Attempting to call {linkerName} with arguments <{arguments}>");
                         }
 
                         if (msvc != null)
@@ -191,20 +198,24 @@ internal class Program
                         throw new Exception("Operating system not supported.");
                     }
 
+                    logger.WriteSeparator();
                     var linker = Process.Start(new ProcessStartInfo
                     {
                         FileName = linkerName,
                         WorkingDirectory = dir,
                         Arguments = arguments.ToString(),
-                        //RedirectStandardOutput = true,
-                        //RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                     });
 
                     Logger linkerLogger = new Logger(linkerName);
 
-                    linker.WaitForExit(); //TODO: write characters as they come in?
-                    //clangLogger.WriteUnsignedLine(clang.StandardOutput.ReadToEnd());
-                    //clangLogger.WriteUnsignedLine(clang.StandardError.ReadToEnd());
+                    while (!linker.HasExited)
+                    {
+                        linkerLogger.WriteUnsignedLine(linker.StandardOutput.ReadToEnd());
+                        linkerLogger.WriteUnsignedLine(linker.StandardError.ReadToEnd());
+                    }
+
                     linkerLogger.WriteSeparator();
                     linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
                 }
