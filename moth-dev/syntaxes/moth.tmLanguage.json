@@ -11,10 +11,24 @@
 	],
 	"repository": {
 		"keywords": {
-			"patterns": [{
+			"patterns": [
+			{
 				"name": "keyword.control.moth",
-				"match": "\\b(if|while|for|return)\\b"
-			}]
+				"match": "\\b(if|while|else|attempt|seize|every)\\b"
+			},
+			{
+				"name": "keyword.definition.moth",
+				"match": "\\b(namespace|class|foreign|func|static|public|private|local|return)\\b"
+			},
+			{
+				"name": "keyword.constant.moth",
+				"match": "\\b(null|true|false|pi)\\b"
+			},
+			{
+				"name": "keyword.operator.moth",
+				"match": "(+|-|/|*)"
+			}
+		]
 		},
 		"strings": {
 			"name": "string.quoted.double.moth",
@@ -23,7 +37,7 @@
 			"patterns": [
 				{
 					"name": "constant.character.escape.moth",
-					"match": "\\\\."
+					"match": "\\\\"
 				}
 			]
 		}

@@ -8,6 +8,7 @@ using LLVMSharp.Interop;
 using CommandLine.Text;
 using CommandLine;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Moth_cmd;
 
@@ -100,52 +101,121 @@ internal class Program
                 }
 
                 compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                string linkerName = null;
 
                 //Send to Clang
                 try
                 {
-                    var file = $"out.asm";
-                    var arguments = new StringBuilder($"-o {options.OutputFile} {file} -llegacy_stdio_definitions");
+                    var @out = $"out.o";
+                    var path = Path.Join(dir, @out);
+                    var arguments = new StringBuilder($"{path}");
 
-                    var path = Path.Join(dir, file);
                     var cpu = new string(LLVM.GetHostCPUName());
                     var features = new string(LLVM.GetHostCPUFeatures());
 
-                    var optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelNone; //TODO: add argument to configure this level
+                    var optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault; //TODO: add argument to configure this level
                     var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
                     var machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple, cpu, features, optLevel,
                         LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
 
                     logger.WriteLine($"Writing to object file \"{path}\"");
-                    machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMAssemblyFile);
-                    logger.WriteLine($"Sending to Clang...");
+                    machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMObjectFile);
+                    logger.WriteLine($"Compiling final product...");
                     logger.WriteSeparator();
 
-                    if (options.Verbose)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        arguments.Append(" -v");
+                        linkerName = "MSVC";
+                        string msvc = null;
+                        var directories = new List<string>();
+                        
+                        arguments.Append($" /OUT:{options.OutputFile}.exe /RELEASE");
+
+                        if (options.Verbose)
+                        {
+                            arguments.Append(" /VERBOSE");
+                            logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
+                        }
+
+                        if (Directory.Exists(@"C:\Program Files\Microsoft Visual Studio\"))
+                        {
+                            foreach (var d in Directory.GetDirectories(@"C:\Program Files\Microsoft Visual Studio\"))
+                            {
+                                directories.Add(d);
+                            }
+                        }
+
+                        if (Directory.Exists(@"C:\Program Files (x86)\Microsoft Visual Studio\"))
+                        {
+                            foreach (var d in Directory.GetDirectories(@"C:\Program Files (x86)\Microsoft Visual Studio\"))
+                            {
+                                directories.Add(d);
+                            }
+                        }
+
+                        foreach (var d in directories)
+                        {
+                            var combinedPath = Path.Join(d, @"BuildTools\VC\Tools\MSVC\");
+
+                            if (Directory.Exists(combinedPath))
+                            {
+                                foreach (var d2 in Directory.GetDirectories(combinedPath))
+                                {
+                                    var combinedPath2 = Path.Join(d2, @"bin\Hostx64\x64");
+
+                                    if (Directory.Exists(combinedPath2))
+                                    {
+                                        foreach (var f in Directory.GetFiles(combinedPath2))
+                                        {
+                                            if (f.EndsWith("link.exe"))
+                                            {
+                                                msvc = f;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (msvc != null)
+                        {
+                            linkerName = msvc;
+                        }
+                        else
+                        {
+                            throw new Exception("Could not locate MSVC. Please ensure it is installed.");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Operating system not supported.");
                     }
 
-                    var clang = Process.Start(new ProcessStartInfo
+                    var linker = Process.Start(new ProcessStartInfo
                     {
-                        FileName = "clang",
+                        FileName = linkerName,
                         WorkingDirectory = dir,
                         Arguments = arguments.ToString(),
                         //RedirectStandardOutput = true,
                         //RedirectStandardError = true,
                     });
 
-                    Logger clangLogger = new Logger("clang");
+                    Logger linkerLogger = new Logger(linkerName);
 
-                    clang.WaitForExit(); //TODO: write characters as they come in?
+                    linker.WaitForExit(); //TODO: write characters as they come in?
                     //clangLogger.WriteUnsignedLine(clang.StandardOutput.ReadToEnd());
                     //clangLogger.WriteUnsignedLine(clang.StandardError.ReadToEnd());
-                    clangLogger.WriteSeparator();
-                    clangLogger.WriteLine($"Exited with code {clang.ExitCode}");
+                    linkerLogger.WriteSeparator();
+                    linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
                 }
                 catch (Exception e)
                 {
-                    logger.WriteLine($"Failed to interact with Clang due to: {e}");
+                    if (linkerName == null)
+                    {
+                        linkerName = "UNKNOWN";
+                    }
+
+                    logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
                 }
             }
             catch (Exception e)

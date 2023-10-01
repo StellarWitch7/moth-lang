@@ -2,24 +2,34 @@
   "name": "moth-dev",
   "displayName": "Moth Dev",
   "description": "VS Code support for the Moth language.",
+  "repository": "https://github.com/StellarWitch7/moth-lang",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.82.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Programming Languages"
   ],
   "contributes": {
-    "languages": [{
-      "id": "moth",
-      "aliases": ["Moth", "moth"],
-      "extensions": ["moth"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "moth",
-      "scopeName": "source.moth",
-      "path": "./syntaxes/moth.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "moth",
+        "aliases": [
+          "Moth",
+          "moth"
+        ],
+        "extensions": [
+          "moth"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "moth",
+        "scopeName": "source.moth",
+        "path": "./syntaxes/moth.tmLanguage.json"
+      }
+    ]
   }
 }

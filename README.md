@@ -4,9 +4,11 @@
 
 # About
 
-A fun little language parser. Currently not functional. 
+A fun little language parser. Currently barely functional. 
 
-### Commands
-- `$/exit` to leave the program.
-- `$/run` to execute your script. Adding a path like so `$/run @D:\user\scripts\test.txt` will run the script within that file.
-- `$/clear` to clear your script and the console.
+### Arguments
+```
+-v, --verbose => Logs extra info to console. 
+-o, --output => The name of the output file. Please forego the extension.
+-i, --input => The files to compile. 
+```

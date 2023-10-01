@@ -38,7 +38,15 @@ public class Class : CompilerData
                 StaticMethods.Add("sizeof", func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-                compiler.Builder.BuildRet(LLVMType.SizeOf);
+
+                if (Name == Primitive.Void)
+                {
+                    compiler.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0));
+                }
+                else
+                {
+                    compiler.Builder.BuildRet(LLVMType.SizeOf);
+                }
             }
             else
             {
@@ -58,7 +66,15 @@ public class Class : CompilerData
                 StaticMethods.Add("alignof", func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-                compiler.Builder.BuildRet(LLVMType.AlignOf);
+
+                if (Name == Primitive.Void)
+                {
+                    compiler.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1));
+                }
+                else
+                {
+                    compiler.Builder.BuildRet(LLVMType.AlignOf);
+                }
             }
             else
             {

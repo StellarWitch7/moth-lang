@@ -2,5 +2,5 @@ namespace default.test;
 
 func main() :i32 {
   printf("Hello world!");
-  return 0;
+  return 1 * 0;
 }
