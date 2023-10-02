@@ -6,6 +6,8 @@ func main() #i32 {
 
   gets(string);
   printf(string);
+  printf(" Enter anything to exit");
+  gets(string);
   return 0;
 }
 
