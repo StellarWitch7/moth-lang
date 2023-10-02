@@ -6,10 +6,30 @@
 			"include": "#keywords"
 		},
 		{
+			"include": "#constants"
+		},
+		{
 			"include": "#strings"
+		},
+		{
+			"include": "#types"
+		},
+		{
+			"include": "#functions"
+		},
+		{
+			"include": "#variables"
 		}
 	],
 	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.moth",
+					"match": "//.*$"
+				}
+			]
+		},
 		"keywords": {
 			"patterns": [
 			{
@@ -17,18 +37,22 @@
 				"match": "\\b(if|while|else|attempt|seize|every)\\b"
 			},
 			{
-				"name": "keyword.definition.moth",
+				"name": "keyword.other.moth",
 				"match": "\\b(namespace|class|foreign|func|static|public|private|local|return)\\b"
-			},
-			{
-				"name": "keyword.constant.moth",
-				"match": "\\b(null|true|false|pi)\\b"
-			},
-			{
-				"name": "keyword.operator.moth",
-				"match": "(+|-|/|*)"
 			}
 		]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.numeric.moth",
+					"match": "\\b\\d\\b"
+				},
+				{
+					"name": "constant.character.escape.moth",
+					"match": "\\b(self|null|true|false|pi)\\b"
+				}
+			]
 		},
 		"strings": {
 			"name": "string.quoted.double.moth",
@@ -38,6 +62,30 @@
 				{
 					"name": "constant.character.escape.moth",
 					"match": "\\\\"
+				}
+			]
+		},
+		"types": {
+			"patterns": [
+				{
+					"name": "support.type.moth",
+					"match": "#[A-Za-z0-9]+\\*?"
+				}
+			]
+		},
+		"functions": {
+			"patterns": [
+				{
+					"name": "support.function.moth",
+					"match": "[A-Za-z0-9]+\\("
+				}
+			]
+		},
+		"variables": {
+			"patterns": [
+				{
+					"name": "variable.name.moth",
+					"match": "[A-Za-z0-9]+"
 				}
 			]
 		}

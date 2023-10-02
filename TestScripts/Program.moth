@@ -1,6 +1,10 @@
 namespace default.test;
 
-func main() :i32 {
-  printf("Hello world!");
-  return 1 * 0;
+func main() # i32 {
+  printf("Hello world! Enter something please: ");
+  local string #str = "";
+
+  scanf("%s", string);
+  printf(string);
+  return 0;
 }

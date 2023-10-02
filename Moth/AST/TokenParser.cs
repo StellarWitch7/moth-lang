@@ -304,7 +304,7 @@ public static class TokenParser
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
                 }
             }
-            else if (context.Current?.Type == TokenType.Colon)
+            else if (context.Current?.Type == TokenType.TypeRef)
             {
                 var typeRef = ProcessTypeRef(context);
 
@@ -494,7 +494,7 @@ public static class TokenParser
 
     public static TypeRefNode ProcessTypeRef(ParseContext context)
     {
-        if (context.Current?.Type == TokenType.Colon)
+        if (context.Current?.Type == TokenType.TypeRef)
         {
             context.MoveNext();
 
@@ -519,7 +519,7 @@ public static class TokenParser
         }
         else
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.Colon);
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
         }
     }
 
@@ -697,35 +697,11 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.LogicalXor:
-                    if (lastCreatedNode != null)
-                    {
-                        context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalXor, lastCreatedNode);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    break;
                 case TokenType.LogicalAnd:
                     if (lastCreatedNode != null)
                     {
                         context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalAnd, lastCreatedNode);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    break;
-                case TokenType.LogicalNand:
-                    if (lastCreatedNode != null)
-                    {
-                        context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalNand, lastCreatedNode);
                     }
                     else
                     {
@@ -770,7 +746,7 @@ public static class TokenParser
         {
             newRefNode = new ThisNode();
         }
-        else if (context.Current?.Type == TokenType.Colon)
+        else if (context.Current?.Type == TokenType.TypeRef)
         {
             newRefNode = ProcessTypeRef(context);
 

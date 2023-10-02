@@ -28,9 +28,8 @@ public static class Tokenizer
 					
 						break;
 					}
-				
+
 				//Parse keywords or names
-				case '_':
 				case >= 'a' and <= 'z':
 				case >= 'A' and <= 'Z':
 					{
@@ -104,13 +103,37 @@ public static class Tokenizer
                         break;
                     }
 
+				case '#':
+					{
+                        if (char.IsLetter((char)stream.Next))
+                        {
+                            tokens.Add(new Token()
+                            {
+                                Text = "#".AsMemory(),
+                                Type = TokenType.TypeRef,
+                            });
+
+                            break;
+                        }
+                        else
+                        {
+                            throw new TokenizerException
+                            {
+                                Character = (char)stream.Next,
+                                Line = stream.CurrentLine,
+                                Column = stream.CurrentColumn,
+                                Position = stream.Position,
+                            };
+                        }
+                    }
+
                 // Parse symbols
                 case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
 					{
 						var next = stream.Next;
 						TokenType? type = ch switch
 						{
-							'.' when next is '.' => TokenType.Range,
+                            '.' when next is '.' => TokenType.Range,
 							'=' when next is '=' => TokenType.Equal,
 							'!' when next is '=' => TokenType.NotEqual,
 							'<' when next is '=' => TokenType.LessThanOrEqual,
@@ -119,10 +142,8 @@ public static class Tokenizer
 							'-' when next is '-' => TokenType.Decrement,
 							'*' when next is '^' => TokenType.Exponential,
 							'|' when next is '|' => TokenType.LogicalOr,
-							'^' when next is '|' => TokenType.LogicalXor,
 							'&' when next is '&' => TokenType.LogicalAnd,
-							'~' when next is '&' => TokenType.LogicalNand,
-							'~' when next is '/' => TokenType.Variadic,
+							'~' when next is '~' => TokenType.Variadic,
 							':' when next is '=' => TokenType.InferAssign,
 							':' => TokenType.Colon,
 							',' => TokenType.Comma,
@@ -140,8 +161,6 @@ public static class Tokenizer
 							'&' => TokenType.And,
 							'!' => TokenType.Not,
 							'$' => TokenType.DollarSign,
-							'^' => TokenType.Xor,
-							'~' => TokenType.Nand,
 							'+' => TokenType.Plus,
 							'/' => TokenType.ForwardSlash,
 							'-' => TokenType.Hyphen,
@@ -162,9 +181,10 @@ public static class Tokenizer
 						{
 							Text = type switch
 							{
-								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual or TokenType.LargerThanOrEqual
-									or TokenType.LogicalAnd or TokenType.LogicalNand or TokenType.LogicalOr or TokenType.LogicalXor
-									or TokenType.Exponential or TokenType.Increment or TokenType.Decrement
+								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual
+								    or TokenType.LargerThanOrEqual or TokenType.LogicalAnd
+									or TokenType.LogicalOr or TokenType.Exponential
+									or TokenType.Increment or TokenType.Decrement
 									or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),
 							},
@@ -212,7 +232,6 @@ public static class Tokenizer
 						Column = stream.CurrentColumn,
 						Position = stream.Position,
 					};
-					break;
 			}
 
 			stream.MoveNext();
