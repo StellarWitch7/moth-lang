@@ -111,7 +111,7 @@ internal class Program
                     //Send to linker
                     try
                     {
-                        var @out = $"out.obj";
+                        var @out = $"{options.OutputFile}.obj";
                         var path = Path.Join(dir, @out);
                         var arguments = new StringBuilder($"{path}");
 
@@ -242,6 +242,50 @@ internal class Program
 
                         linkerLogger.WriteSeparator();
                         linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
+
+                        if (options.RunTest)
+                        {
+                            string testName = null;
+
+                            try
+                            {
+                                logger.WriteLine($"Preparing to run test...");
+                                logger.WriteSeparator();
+                                testName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                                    ? $"{options.OutputFile}.exe"
+                                    : options.OutputFile;
+
+                                var testProgram = Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = Path.Join(dir, testName),
+                                    WorkingDirectory = dir,
+                                    //RedirectStandardOutput = true,
+                                    //RedirectStandardError = true,
+                                });
+
+                                Logger testLogger = new Logger(testName);
+
+                                while (!testProgram.HasExited)
+                                {
+                                    //testLogger.WriteUnsignedLine(testProgram.StandardOutput.ReadToEnd());
+                                    //testLogger.WriteUnsignedLine(testProgram.StandardError.ReadToEnd());
+                                }
+
+                                testLogger.WriteEmptyLine();
+                                testLogger.WriteSeparator();
+                                testLogger.WriteLine($"Exited with code {testProgram.ExitCode}");
+                            }
+                            catch (Exception e)
+                            {
+                                if (testName == null)
+                                {
+                                    testName = "UNKNOWN";
+                                }
+
+                                logger.WriteLine($"Failed to interact with {testName} due to: {e}");
+                                return;
+                            }
+                        }
                     }
                     catch (Exception e)
                     {

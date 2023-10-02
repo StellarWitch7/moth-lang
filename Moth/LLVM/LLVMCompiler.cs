@@ -109,7 +109,7 @@ public static class LLVMCompiler
                     }
 
                     lLVMTypes.Add(fieldLLVMType);
-                    @class.Fields.Add(field.Name, new Field(index, fieldLLVMType, field.Privacy, type));
+                    @class.Fields.Add(field.Name, new Field(field.Name, index, fieldLLVMType, field.Privacy, type));
                     index++;
                 }
             }
@@ -128,7 +128,7 @@ public static class LLVMCompiler
         List<Parameter> @params = new List<Parameter>();
         List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
 
-        if (@class != null)
+        if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
             paramTypes.Add(LLVMTypeRef.CreatePointer(@class.LLVMType, 0));
         }
@@ -184,7 +184,14 @@ public static class LLVMCompiler
 
             if (@class != null)
             {
-                @class.Methods.Add(funcDefNode.Name, func); 
+                if (func.Privacy == PrivacyType.Static)
+                {
+                    @class.StaticMethods.Add(funcDefNode.Name, func);
+                }
+                else
+                {
+                    @class.Methods.Add(funcDefNode.Name, func);
+                }
             }
             else
             {
@@ -201,7 +208,11 @@ public static class LLVMCompiler
         {
             return;
         }
-        else if (@class != null && @class.Methods.TryGetValue(funcDefNode.Name, out func))
+        else if (@class != null && funcDefNode.Privacy != PrivacyType.Static && @class.Methods.TryGetValue(funcDefNode.Name, out func))
+        {
+            // Keep empty
+        }
+        else if (@class != null && funcDefNode.Privacy == PrivacyType.Static && @class.StaticMethods.TryGetValue(funcDefNode.Name, out func))
         {
             // Keep empty
         }
@@ -211,7 +222,7 @@ public static class LLVMCompiler
         }
         else
         {
-            throw new Exception();
+            throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
         }
 
         func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
@@ -557,7 +568,24 @@ public static class LLVMCompiler
             {
                 if (compiler.Classes.TryGetValue(typeRef.Name, out Class @class))
                 {
-                    throw new NotImplementedException();
+                    refNode = refNode.Child;
+
+                    if (refNode is MethodCallNode methodCall)
+                    {
+                        context = CompileFuncCall(compiler, context, scope, methodCall, @class);
+                        refNode = refNode.Child;
+                    }
+                    else
+                    {
+                        if (@class.StaticFields.TryGetValue(refNode.Name, out Field field))
+                        {
+                            throw new NotImplementedException();
+                        }
+                        else
+                        {
+                            throw new Exception($"Field {refNode.Name} does not exist as static on the class {@class.Name}.");
+                        }
+                    }
                 }
                 else
                 {
@@ -566,42 +594,7 @@ public static class LLVMCompiler
             }
             else if (refNode is MethodCallNode methodCall)
             {
-                Function func;
-
-                if (context == null)
-                {
-                    if (compiler.CurrentFunction.OwnerClass != null)
-                    {
-                        context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
-                            compiler.CurrentFunction.LLVMFunc.FirstParam,
-                            compiler.CurrentFunction.OwnerClass);
-                    }
-                }
-
-                if (context != null && context.ClassOfType.Methods.TryGetValue(methodCall.Name, out func))
-                {
-                    // Keep empty
-                }
-                else if (context == null && compiler.GlobalFunctions.TryGetValue(methodCall.Name, out func))
-                {
-                    // Keep empty
-                }
-                else
-                {
-                    throw new Exception($"Function \"{methodCall.Name}\" does not exist.");
-                }
-
-                List<LLVMValueRef> args = new List<LLVMValueRef>();
-
-                foreach (ExpressionNode arg in methodCall.Arguments)
-                {
-                    var val = CompileExpression(compiler, scope, arg);
-                    args.Add(val.LLVMValue);
-                }
-
-                context = new ValueContext(func.ClassOfReturnType.LLVMType,
-                    compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()),
-                    func.ClassOfReturnType);
+                context = CompileFuncCall(compiler, context, scope, methodCall);
                 refNode = refNode.Child;
             }
             else if (refNode is IndexAccessNode indexAccess)
@@ -664,5 +657,56 @@ public static class LLVMCompiler
         }
 
         return context;
+    }
+
+    public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, MethodCallNode methodCall,
+        Class staticClass = null)
+    {
+        List<LLVMValueRef> args = new List<LLVMValueRef>();
+        Function func;
+
+        if (context == null)
+        {
+            if (compiler.CurrentFunction.OwnerClass != null)
+            {
+                context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
+                    compiler.CurrentFunction.LLVMFunc.FirstParam,
+                    compiler.CurrentFunction.OwnerClass);
+            }
+        }
+
+        if (context != null && context.ClassOfType.Methods.TryGetValue(methodCall.Name, out func))
+        {
+            if (context.LLVMType == func.LLVMFuncType.ParamTypes[0])
+            {
+                args.Add(context.LLVMValue);
+            }
+            else
+            {
+                throw new Exception("Attempted to call a method on a different class. !!THIS IS NOT A USER ERROR. REPORT ASAP!!");
+            }
+        }
+        else if (context == null && compiler.GlobalFunctions.TryGetValue(methodCall.Name, out func))
+        {
+            // Keep empty
+        }
+        else if (staticClass != null && staticClass.StaticMethods.TryGetValue(methodCall.Name, out func))
+        {
+            // Keep empty
+        }
+        else
+        {
+            throw new Exception($"Function \"{methodCall.Name}\" does not exist.");
+        }
+
+        foreach (ExpressionNode arg in methodCall.Arguments)
+        {
+            var val = CompileExpression(compiler, scope, arg);
+            args.Add(val.LLVMValue);
+        }
+
+        return new ValueContext(func.ClassOfReturnType.LLVMType,
+            compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()),
+            func.ClassOfReturnType);
     }
 }

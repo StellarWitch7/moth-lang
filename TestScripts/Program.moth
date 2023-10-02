@@ -1,10 +1,16 @@
 namespace default.test;
 
-func main() # i32 {
-  printf("Hello world! Enter something please: ");
+func main() #i32 {
+  printf(#Test.hello());
   local string #str = "";
 
-  scanf("%s", string);
+  gets(string);
   printf(string);
   return 0;
+}
+
+public class Test {
+  static hello() #str {
+    return "Hello world! Enter something please: ";
+  }
 }

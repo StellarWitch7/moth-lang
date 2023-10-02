@@ -16,6 +16,9 @@ internal class Options
     [Option("msvc", Required = false, HelpText = "Whether to use MSVC instead of Clang on Windows. Requires '--windows-sdk' if used.")]
     public bool UseMSVC { get; set; }
 
+    [Option("debug-test", Required = false, HelpText = "Whether to run the output on success.")]
+    public bool RunTest { get; set; }
+
     [Option('o', "output", Required = true, HelpText = "The name of the file to output. Please forego the extension.")]
     public string OutputFile { get; set; }
 

@@ -709,6 +709,7 @@ public static class TokenParser
                     }
 
                     break;
+                case TokenType.TypeRef:
                 case TokenType.Name:
                 case TokenType.This:
                     lastCreatedNode = ProcessAccess(context);
@@ -764,63 +765,72 @@ public static class TokenParser
         {
             if (context.Current?.Type == TokenType.Name)
             {
-                RefNode childNode = null;
                 string name = context.Current.Value.Text.ToString();
+                RefNode currentNode = newRefNode;
                 context.MoveNext();
 
                 switch (context.Current?.Type)
                 {
                     case TokenType.OpeningParentheses:
-                        context.MoveNext();
-                        childNode = new MethodCallNode(name, ProcessArgs(context));
-
-                        if (newRefNode == null)
                         {
-                            newRefNode = childNode;
-                        }
-                        else
-                        {
-                            newRefNode.Child = childNode;
-                            newRefNode = newRefNode.Child;
-                        }
+                            context.MoveNext();
+                            var childNode = new MethodCallNode(name, ProcessArgs(context));
 
-                        break;
+                            if (currentNode == null)
+                            {
+                                currentNode = childNode;
+                                newRefNode = childNode;
+                            }
+                            else
+                            {
+                                currentNode.Child = childNode;
+                                currentNode = currentNode.Child;
+                            }
+
+                            break;
+                        }
                     case TokenType.OpeningSquareBrackets:
-                        context.MoveNext();
-                        childNode = new IndexAccessNode(ProcessExpression(context, null));
-
-                        if (context.Current?.Type != TokenType.ClosingSquareBrackets)
                         {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
-                        }
+                            context.MoveNext();
+                            var childNode = new IndexAccessNode(ProcessExpression(context, null));
 
-                        context.MoveNext();
+                            if (context.Current?.Type != TokenType.ClosingSquareBrackets)
+                            {
+                                throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
+                            }
 
-                        if (newRefNode == null)
-                        {
-                            newRefNode = childNode;
-                        }
-                        else
-                        {
-                            newRefNode.Child = childNode;
-                            newRefNode = newRefNode.Child;
-                        }
+                            context.MoveNext();
 
-                        break;
+                            if (currentNode == null)
+                            {
+                                currentNode = childNode;
+                                newRefNode = childNode;
+                            }
+                            else
+                            {
+                                currentNode.Child = childNode;
+                                currentNode = currentNode.Child;
+                            }
+
+                            break;
+                        }
                     default:
-                        childNode = new RefNode(name);
-
-                        if (newRefNode == null)
                         {
-                            newRefNode = childNode;
-                        }
-                        else
-                        {
-                            newRefNode.Child = childNode;
-                            newRefNode = newRefNode.Child;
-                        }
+                            var childNode = new RefNode(name);
 
-                        break;
+                            if (currentNode == null)
+                            {
+                                currentNode = childNode;
+                                newRefNode = childNode;
+                            }
+                            else
+                            {
+                                currentNode.Child = childNode;
+                                currentNode = currentNode.Child;
+                            }
+
+                            break;
+                        }
                 }
 
                 if (context.Current?.Type == TokenType.Period)

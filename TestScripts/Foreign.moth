@@ -5,3 +5,4 @@ foreign free(pointer #void*) #void;
 
 foreign printf(text #str, ~~) #i32;
 foreign scanf(format #str, ~~) #i32;
+foreign gets(string #str) #str;
