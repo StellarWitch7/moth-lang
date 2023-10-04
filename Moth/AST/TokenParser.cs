@@ -19,6 +19,7 @@ public static class TokenParser
         string @namespace;
         List<string> imports = new List<string>();
         List<FuncDefNode> funcs = new List<FuncDefNode>();
+        List<FieldDefNode> consts = new List<FieldDefNode>();
         List<ClassNode> classes = new List<ClassNode>();
 
         if (context.Current?.Type == TokenType.Namespace)
@@ -36,18 +37,24 @@ public static class TokenParser
             switch (context.Current?.Type)
             {
                 case TokenType.Foreign:
+                //case TokenType.Constant:
                 case TokenType.Function:
                     var result = ProcessDefinition(context);
 
                     if (result is FuncDefNode func)
                     {
                         funcs.Add(func);
-                        break;
+                    }
+                    else if (result is FieldDefNode @const)
+                    {
+                        consts.Add(@const);
                     }
                     else
                     {
                         throw new Exception("Result of foreign/func was not a function.");
                     }
+
+                    break;
                 case TokenType.Public:
                 case TokenType.Private:
                     PrivacyType privacyType = PrivacyType.Public;
@@ -81,7 +88,7 @@ public static class TokenParser
             }
         }
 
-        return new ScriptAST(@namespace, imports, classes, funcs);
+        return new ScriptAST(@namespace, imports, classes, funcs, consts);
     }
 
     public static string ProcessNamespace(ParseContext context)

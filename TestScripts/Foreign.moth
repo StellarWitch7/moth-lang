@@ -4,5 +4,6 @@ foreign malloc(size #u32) #void*;
 foreign free(pointer #void*) #void;
 
 foreign printf(text #str, ~~) #i32;
-foreign scanf(format #str, ~~) #i32;
-foreign gets(string #str) #str; // Destroyer of stacks
+foreign fgets(str #str, n #i32, FILE #void*) #str;
+
+foreign stdin #void*;

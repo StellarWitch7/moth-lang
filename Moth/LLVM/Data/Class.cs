@@ -17,8 +17,9 @@ public class Class : CompilerData
     public Dictionary<string, Function> Methods { get; set; } = new Dictionary<string, Function>();
     public Dictionary<string, Field> StaticFields { get; set; } = new Dictionary<string, Field>();
     public Dictionary<string, Function> StaticMethods { get; set; } = new Dictionary<string, Function>();
+    public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(CompilerContext compiler, string name, LLVMTypeRef lLVMClass, PrivacyType privacy)
+    public Class(string name, LLVMTypeRef lLVMClass, PrivacyType privacy)
     {
         Name = name;
         LLVMType = lLVMClass;
@@ -33,7 +34,7 @@ public class Class : CompilerData
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
                 var func = new Function(compiler.Module.AddFunction($"{Name}.sizeof", funcType),
-                    funcType, LLVMTypeRef.Int64, PrivacyType.Public, classOfReturnType, null, new List<Parameter>(), false);
+                    funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
                 
                 StaticMethods.Add("sizeof", func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
@@ -61,7 +62,7 @@ public class Class : CompilerData
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
                 var func = new Function(compiler.Module.AddFunction($"{Name}.alignof", funcType),
-                    funcType, LLVMTypeRef.Int64, PrivacyType.Public, classOfReturnType, null, new List<Parameter>(), false);
+                    funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
 
                 StaticMethods.Add("alignof", func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));

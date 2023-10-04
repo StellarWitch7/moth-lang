@@ -21,7 +21,7 @@ public class Function : CompilerData
     public bool IsVariadic { get; set; }
 
     public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
-        PrivacyType privacy, Class classOfReturnType, Class? ownerClass, List<Parameter> @params,
+        Class classOfReturnType, PrivacyType privacy, Class? ownerClass, List<Parameter> @params,
         bool isVariadic)
     {
         LLVMFunc = lLVMFunc;

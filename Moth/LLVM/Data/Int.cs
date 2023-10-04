@@ -13,8 +13,8 @@ public class Int : Class
 {
     public bool IsSigned { get; set; }
 
-    public Int(CompilerContext compiler, string name, LLVMTypeRef lLVMClass, PrivacyType privacy, bool isSigned)
-        : base(compiler, name, lLVMClass, privacy)
+    public Int(string name, LLVMTypeRef lLVMClass, PrivacyType privacy, bool isSigned)
+        : base(name, lLVMClass, privacy)
     {
         IsSigned = isSigned;
     }

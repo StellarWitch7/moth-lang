@@ -1,5 +1,4 @@
 ﻿using LLVMSharp.Interop;
-using Moth.AST.Node;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,18 +7,16 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM.Data;
 
-public class Variable : CompilerData
+public class Constant
 {
-    public LLVMValueRef LLVMVariable { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
-    public PrivacyType Privacy { get; set; }
+    public LLVMValueRef LLVMValue { get; set; }
     public Class ClassOfType { get; set; }
 
-    public Variable(LLVMValueRef lLVMVariable, LLVMTypeRef lLVMType, Class classOfType, PrivacyType privacy)
+    public Constant(LLVMTypeRef lLVMType, LLVMValueRef value, Class classOfType)
     {
-        LLVMVariable = lLVMVariable;
         LLVMType = lLVMType;
-        Privacy = privacy;
+        LLVMValue = value;
         ClassOfType = classOfType;
     }
 }

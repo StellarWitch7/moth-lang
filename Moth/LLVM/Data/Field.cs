@@ -16,8 +16,7 @@ public class Field : CompilerData
     public PrivacyType Privacy { get; set; }
     public Class ClassOfType { get; set; }
 
-    public Field(string name, uint index, LLVMTypeRef lLVMType, PrivacyType privacy,
-        Class classOfType)
+    public Field(string name, uint index, LLVMTypeRef lLVMType, Class classOfType, PrivacyType privacy)
     {
         Name = name;
         FieldIndex = index;
