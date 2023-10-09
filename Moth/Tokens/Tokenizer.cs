@@ -167,6 +167,7 @@ public static class Tokenizer
 							'*' => TokenType.Asterix,
 							'%' => TokenType.Modulo,
 							'=' => TokenType.Assign,
+							'@' => TokenType.AttributeMarker,
 
 							_ => throw new TokenizerException
 							{

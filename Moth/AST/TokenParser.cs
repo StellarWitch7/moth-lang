@@ -137,36 +137,40 @@ public static class TokenParser
 
         while (context.Current != null)
         {
-            switch (context.Current?.Type)
+            if (isClassRoot)
             {
-                case TokenType.ClosingCurlyBraces:
-                    context.MoveNext();
-                    return new ScopeNode(statements);
-                case TokenType.OpeningCurlyBraces:
-                    if (!isClassRoot)
-                    {
+                switch (context.Current?.Type)
+                {
+                    case TokenType.Static:
+                    case TokenType.Public:
+                    case TokenType.Private:
+                        statements.Add(ProcessDefinition(context));
+                        break;
+                    case TokenType.AttributeMarker:
+                        throw new NotImplementedException(); //TODO: implement attributes
+                    default:
+                        return new ScopeNode(statements);
+                }
+            }
+            else
+            {
+                switch (context.Current?.Type)
+                {
+                    case TokenType.OpeningCurlyBraces:
                         context.MoveNext();
                         statements.Add(ProcessBlock(context));
+
+                        if (context.Current?.Type != TokenType.ClosingCurlyBraces)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingCurlyBraces);
+                        }
+
                         break;
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-                case TokenType.If:
-                    if (!isClassRoot)
-                    {
+                    case TokenType.If:
                         context.MoveNext();
                         statements.Add(ProcessIf(context));
                         break;
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-                case TokenType.Return:
-                    if (!isClassRoot)
-                    {
+                    case TokenType.Return:
                         context.MoveNext();
                         statements.Add(new ReturnNode(ProcessExpression(context, null)));
 
@@ -179,21 +183,11 @@ public static class TokenParser
                             context.MoveNext();
                             break;
                         }
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-                case TokenType.Static:
-                case TokenType.Public:
-                case TokenType.Private:
-                case TokenType.Local:
-                    statements.Add(ProcessDefinition(context));
-                    break;
-                case TokenType.This:
-                case TokenType.Name:
-                    if (!isClassRoot)
-                    {
+                    case TokenType.Local:
+                        statements.Add(ProcessDefinition(context));
+                        break;
+                    case TokenType.This:
+                    case TokenType.Name:
                         statements.Add(ProcessExpression(context, null));
 
                         if (context.Current?.Type != TokenType.Semicolon)
@@ -205,15 +199,8 @@ public static class TokenParser
                             context.MoveNext();
                             break;
                         }
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-                case TokenType.Increment:
-                case TokenType.Decrement:
-                    if (!isClassRoot)
-                    {
+                    case TokenType.Increment:
+                    case TokenType.Decrement:
                         TokenType type = (TokenType)(context.Current?.Type);
                         RefNode refNode;
                         context.MoveNext();
@@ -237,13 +224,9 @@ public static class TokenParser
                         }
 
                         break;
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-                default:
-                    throw new UnexpectedTokenException(context.Current.Value);
+                    default:
+                        return new ScopeNode(statements);
+                }
             }
         }
 

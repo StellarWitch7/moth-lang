@@ -95,5 +95,6 @@ public enum TokenType
     Variadic,
     DollarSign,
     Static,
-    InferAssign
+    InferAssign,
+    AttributeMarker
 }

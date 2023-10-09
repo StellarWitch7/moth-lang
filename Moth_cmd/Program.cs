@@ -243,7 +243,7 @@ internal class Program
                         linkerLogger.WriteSeparator();
                         linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
 
-                        if (options.RunTest)
+                        if (options.RunTest && linker.ExitCode == 0)
                         {
                             string testName = null;
 
