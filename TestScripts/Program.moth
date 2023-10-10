@@ -16,6 +16,7 @@ func main() #i32 {
 }
 
 public class Test {
+  
   static hello() #str {
     return "Hello world! Enter something please: ";
   }

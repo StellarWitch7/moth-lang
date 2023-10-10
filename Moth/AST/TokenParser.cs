@@ -135,24 +135,32 @@ public static class TokenParser
     {
         List<StatementNode> statements = new List<StatementNode>();
 
-        while (context.Current != null)
+        if (isClassRoot)
         {
-            if (isClassRoot)
+            List<AttributeNode> attributes = new List<AttributeNode>();
+
+            while (context.Current != null)
             {
                 switch (context.Current?.Type)
                 {
                     case TokenType.Static:
                     case TokenType.Public:
                     case TokenType.Private:
-                        statements.Add(ProcessDefinition(context));
+                        MemberDefNode newDef = (MemberDefNode)ProcessDefinition(context, attributes);
+                        attributes = new List<AttributeNode>();
+                        statements.Add(newDef);
                         break;
                     case TokenType.AttributeMarker:
-                        throw new NotImplementedException(); //TODO: implement attributes
+                        attributes.Add(ProcessAttribute(context));
+                        break;
                     default:
                         return new ScopeNode(statements);
                 }
             }
-            else
+        }
+        else
+        {
+            while (context.Current != null)
             {
                 switch (context.Current?.Type)
                 {
@@ -233,7 +241,21 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static StatementNode ProcessDefinition(ParseContext context)
+    private static AttributeNode ProcessAttribute(ParseContext context)
+    {
+        if (context.Current?.Type == TokenType.AttributeMarker)
+        {
+            context.MoveNext();
+        }
+        else
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.AttributeMarker);
+        }
+
+        throw new NotImplementedException(); //TODO: attributes!
+    }
+
+    public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode> attributes = null)
     {
         PrivacyType privacy;
 
@@ -257,7 +279,7 @@ public static class TokenParser
         {
             privacy = PrivacyType.Private;
         }
-        else if (context.Current?.Type == TokenType.Local)
+        else if (context.Current?.Type == TokenType.Local && attributes == null)
         {
             privacy = PrivacyType.Local;
         }
@@ -282,12 +304,12 @@ public static class TokenParser
                 if (privacy != PrivacyType.Foreign && context.Current?.Type == TokenType.OpeningCurlyBraces)
                 {
                     context.MoveNext();
-                    return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessBlock(context), isVariadic);
+                    return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessBlock(context), isVariadic, attributes);
                 }
                 else if (privacy == PrivacyType.Foreign && context.Current?.Type == TokenType.Semicolon)
                 {
                     context.MoveNext();
-                    return new FuncDefNode(name, privacy, retTypeRef, @params, null, isVariadic);
+                    return new FuncDefNode(name, privacy, retTypeRef, @params, null, isVariadic, attributes);
                 }
                 else
                 {
@@ -301,7 +323,15 @@ public static class TokenParser
                 if (context.Current?.Type == TokenType.Semicolon)
                 {
                     context.MoveNext();
-                    return new FieldDefNode(name, privacy, typeRef);
+
+                    if (privacy == PrivacyType.Local)
+                    {
+                        return new LocalDefNode(name, privacy, typeRef);
+                    }
+                    else
+                    {
+                        return new FieldDefNode(name, privacy, typeRef, attributes);
+                    }
                 }
                 else if (context.Current?.Type == TokenType.Assign)
                 {

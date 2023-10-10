@@ -6,4 +6,17 @@ foreign free(pointer #void*) #void;
 foreign printf(text #str, ~~) #i32;
 foreign fgets(str #str, n #i32, FILE #void*) #str;
 
-foreign stdin #void*;
+@CallingConvention("__cdecl")
+foreign __acrt_iob_func(n #u32);
+
+func stdin() #void* {
+    return __acrt_iob_func(0);
+}
+
+func stdout() #void* {
+    return __acrt_iob_func(1);
+}
+
+func stderr() #void* {
+    return __acrt_iob_func(2);
+}
