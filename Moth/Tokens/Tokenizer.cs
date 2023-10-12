@@ -32,6 +32,7 @@ public static class Tokenizer
 				//Parse keywords or names
 				case >= 'a' and <= 'z':
 				case >= 'A' and <= 'Z':
+				case '_':
 					{
 						var keyword = stream.Peek(c => char.IsLetterOrDigit(c) || c == '_');
 							tokens.Add(new Token

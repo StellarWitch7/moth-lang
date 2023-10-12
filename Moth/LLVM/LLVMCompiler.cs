@@ -120,13 +120,14 @@ public static class LLVMCompiler
 
     public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
-        int index = 1;
+        int index = 0;
         List<Parameter> @params = new List<Parameter>();
         List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
             paramTypes.Add(LLVMTypeRef.CreatePointer(@class.LLVMType, 0));
+            index++;
         }
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
@@ -260,29 +261,29 @@ public static class LLVMCompiler
 
                 return true;
             }
-            else if (statement is FieldDefNode fieldDef)
+            else if (statement is LocalDefNode varDef)
             {
-                if (fieldDef is InferredLocalDefNode inferredLocalDef)
+                if (varDef is InferredLocalDefNode inferredVarDef)
                 {
-                    var defaultVal = CompileExpression(compiler, scope, inferredLocalDef.DefaultValue);
-                    var lLVMVar = compiler.Builder.BuildAlloca(defaultVal.LLVMType, fieldDef.Name);
+                    var defaultVal = CompileExpression(compiler, scope, inferredVarDef.DefaultValue);
+                    var lLVMVar = compiler.Builder.BuildAlloca(defaultVal.LLVMType, varDef.Name);
                     compiler.Builder.BuildStore(defaultVal.LLVMValue, lLVMVar);
-                    scope.Variables.Add(fieldDef.Name,
+                    scope.Variables.Add(varDef.Name,
                         new Variable(lLVMVar,
                             defaultVal.LLVMType,
                             defaultVal.ClassOfType,
-                            fieldDef.Privacy));
+                            varDef.Privacy));
                 }
-                else if (compiler.Classes.TryGetValue(fieldDef.TypeRef.Name, out Class type))
+                else if (compiler.Classes.TryGetValue(varDef.TypeRef.Name, out Class type))
                 {
-                    LLVMTypeRef varLLVMType = ResolveTypeRef(compiler, type, fieldDef.TypeRef);
+                    LLVMTypeRef varLLVMType = ResolveTypeRef(compiler, type, varDef.TypeRef);
 
-                    var lLVMVar = compiler.Builder.BuildAlloca(varLLVMType, fieldDef.Name);
-                    scope.Variables.Add(fieldDef.Name, new Variable(lLVMVar, varLLVMType, type, fieldDef.Privacy));
+                    var lLVMVar = compiler.Builder.BuildAlloca(varLLVMType, varDef.Name);
+                    scope.Variables.Add(varDef.Name, new Variable(lLVMVar, varLLVMType, type, varDef.Privacy));
 
-                    if (fieldDef is LocalDefNode localDef)
+                    if (varDef.DefaultValue != null)
                     {
-                        compiler.Builder.BuildStore(CompileExpression(compiler, scope, localDef.DefaultValue).LLVMValue, lLVMVar);
+                        compiler.Builder.BuildStore(CompileExpression(compiler, scope, varDef.DefaultValue).LLVMValue, lLVMVar);
                     }
                 }
                 else
@@ -654,6 +655,7 @@ public static class LLVMCompiler
         Class staticClass = null)
     {
         List<LLVMValueRef> args = new List<LLVMValueRef>();
+        bool contextWasNull = context == null;
         Function func;
 
         if (context == null)
@@ -677,7 +679,7 @@ public static class LLVMCompiler
                 throw new Exception("Attempted to call a method on a different class. !!THIS IS NOT A USER ERROR. REPORT ASAP!!");
             }
         }
-        else if (context == null && compiler.GlobalFunctions.TryGetValue(methodCall.Name, out func))
+        else if (contextWasNull && compiler.GlobalFunctions.TryGetValue(methodCall.Name, out func))
         {
             // Keep empty
         }

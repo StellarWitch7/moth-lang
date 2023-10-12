@@ -7,7 +7,7 @@ foreign printf(text #str, ~~) #i32;
 foreign fgets(str #str, n #i32, FILE #void*) #str;
 
 @CallingConvention("__cdecl")
-foreign __acrt_iob_func(n #u32);
+foreign __acrt_iob_func(n #u32) #void*;
 
 func stdin() #void* {
     return __acrt_iob_func(0);
@@ -19,4 +19,19 @@ func stdout() #void* {
 
 func stderr() #void* {
     return __acrt_iob_func(2);
+}
+
+public class Sys {
+
+    static Print(string #str) #void {
+        printf(string);
+        return;
+    }
+
+    static Input(string #str) #str {
+        #Sys.Print(string);
+        local newString #str = malloc(101);
+        fgets(newString, 101, stdin());
+        return newString;
+    }
 }

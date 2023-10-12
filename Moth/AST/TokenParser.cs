@@ -32,14 +32,19 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Namespace);
         }
 
+        List<AttributeNode> attributes = new List<AttributeNode>();
+
         while (context.Current != null)
         {
             switch (context.Current?.Type)
             {
+                case TokenType.AttributeMarker:
+                    attributes.Add(ProcessAttribute(context));
+                    break;
                 case TokenType.Foreign:
                 //case TokenType.Constant:
                 case TokenType.Function:
-                    var result = ProcessDefinition(context);
+                    var result = ProcessDefinition(context, attributes);
 
                     if (result is FuncDefNode func)
                     {
@@ -143,6 +148,9 @@ public static class TokenParser
             {
                 switch (context.Current?.Type)
                 {
+                    case TokenType.ClosingCurlyBraces:
+                        context.MoveNext();
+                        return new ScopeNode(statements);
                     case TokenType.Static:
                     case TokenType.Public:
                     case TokenType.Private:
@@ -154,7 +162,7 @@ public static class TokenParser
                         attributes.Add(ProcessAttribute(context));
                         break;
                     default:
-                        return new ScopeNode(statements);
+                        throw new UnexpectedTokenException(context.Current.Value);
                 }
             }
         }
@@ -164,15 +172,12 @@ public static class TokenParser
             {
                 switch (context.Current?.Type)
                 {
+                    case TokenType.ClosingCurlyBraces:
+                        context.MoveNext();
+                        return new ScopeNode(statements);
                     case TokenType.OpeningCurlyBraces:
                         context.MoveNext();
                         statements.Add(ProcessBlock(context));
-
-                        if (context.Current?.Type != TokenType.ClosingCurlyBraces)
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingCurlyBraces);
-                        }
-
                         break;
                     case TokenType.If:
                         context.MoveNext();
@@ -180,7 +185,7 @@ public static class TokenParser
                         break;
                     case TokenType.Return:
                         context.MoveNext();
-                        statements.Add(new ReturnNode(ProcessExpression(context, null)));
+                        statements.Add(new ReturnNode(ProcessExpression(context, null, true)));
 
                         if (context.Current?.Type != TokenType.Semicolon)
                         {
@@ -194,6 +199,7 @@ public static class TokenParser
                     case TokenType.Local:
                         statements.Add(ProcessDefinition(context));
                         break;
+                    case TokenType.TypeRef:
                     case TokenType.This:
                     case TokenType.Name:
                         statements.Add(ProcessExpression(context, null));
@@ -233,7 +239,7 @@ public static class TokenParser
 
                         break;
                     default:
-                        return new ScopeNode(statements);
+                        throw new UnexpectedTokenException(context.Current.Value);
                 }
             }
         }
@@ -241,11 +247,33 @@ public static class TokenParser
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    private static AttributeNode ProcessAttribute(ParseContext context)
+    public static AttributeNode ProcessAttribute(ParseContext context)
     {
         if (context.Current?.Type == TokenType.AttributeMarker)
         {
             context.MoveNext();
+
+            if (context.Current?.Type == TokenType.Name)
+            {
+                string name = context.Current.Value.Text.ToString();
+                context.MoveNext();
+
+                if (context.Current?.Type == TokenType.OpeningParentheses)
+                {
+                    context.MoveNext();
+                    var args = ProcessArgs(context);
+
+                    return new AttributeNode(name, args);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
+                }
+            }
+            else
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            }
         }
         else
         {
@@ -544,7 +572,7 @@ public static class TokenParser
     }
 
     // Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
-    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode)
+    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode, bool nullAllowed = false)
     {
         while (context.Current != null)
         {
@@ -747,7 +775,7 @@ public static class TokenParser
 
                     break;
                 default:
-                    if (lastCreatedNode == null)
+                    if (!nullAllowed && lastCreatedNode == null)
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }

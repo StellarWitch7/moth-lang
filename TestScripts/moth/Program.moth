@@ -1,0 +1,19 @@
+namespace default.test;
+
+func main() #i32 {
+  local string := #Sys.Input(#Test.hello());
+
+  #Sys.Print(string);
+  free(string);
+  local string2 := #Sys.Input("Enter anything to exit");
+  free(string2);
+
+  return 0;
+}
+
+public class Test {
+  
+  static hello() #str {
+    return "Hello world! Enter something please: ";
+  }
+}
