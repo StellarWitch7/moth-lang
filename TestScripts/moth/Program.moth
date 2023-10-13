@@ -1,12 +1,12 @@
 namespace default.test;
 
 func main() #i32 {
-  local string := #Sys.Input("Hello world! Enter something please: ");
+    local string := #Sys.Input("Hello world! Enter something please: ");
 
-  #Sys.Print(string);
-  free(string);
-  local string2 := #Sys.Input("Enter anything to exit");
-  free(string2);
+    #Sys.Print(string);
+    free(string);
+    local string2 := #Sys.Input("Enter anything to exit");
+    free(string2);
 
-  return 0;
+    return 0;
 }
