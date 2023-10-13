@@ -8,7 +8,7 @@ public class Sys {
     }
 
     static ReadLine(file #void*) #str {
-        local string #str = malloc(#char.sizeof() * 16);
+        local string #str = malloc(16);
         local ch #char;
         local len #u32;
 
@@ -29,7 +29,7 @@ public class Sys {
         }
 
         string[++len] = '\0';
-        return realloc(string, #char.sizeof() * len);
+        return realloc(string, len);
     }
 
     static Input(string #str) #str {
