@@ -3,6 +3,9 @@
 	"name": "Moth",
 	"patterns": [
 		{
+			"include": "#comments"
+		},
+		{
 			"include": "#keywords"
 		},
 		{
