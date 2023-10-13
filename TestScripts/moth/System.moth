@@ -10,7 +10,7 @@ public class Sys {
     static ReadLine(file #void*) #str {
         local string #str = malloc(16);
         local ch #char;
-        local len #u32;
+        local len := -1;
 
         if string == null {
             return string;
