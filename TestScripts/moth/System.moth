@@ -1,0 +1,39 @@
+namespace System;
+
+public class Sys {
+
+    static Print(string #str) #void {
+        printf(string);
+        return;
+    }
+
+    static ReadLine(file #void*) #str {
+        local string #str = malloc(#char.sizeof() * 16);
+        local ch #char;
+        local len #u32;
+
+        if string == null {
+            return string;
+        }
+        
+        while (ch = fgetc(file)) != eof() && ch != '\n' {
+            string[++len] = ch;
+            
+            if(len == size) {
+                string = realloc(string, size += 16);
+
+                if string == null {
+                    return string;
+                }
+            }
+        }
+
+        string[++len] = '\0';
+        return realloc(string, #char.sizeof() * len);
+    }
+
+    static Input(string #str) #str {
+        #Sys.Print(string);
+        return ReadLine(stdin());
+    }
+}

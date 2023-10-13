@@ -1,7 +1,7 @@
 namespace default.test;
 
 func main() #i32 {
-  local string := #Sys.Input(#Test.hello());
+  local string := #Sys.Input("Hello world! Enter something please: ");
 
   #Sys.Print(string);
   free(string);
@@ -9,11 +9,4 @@ func main() #i32 {
   free(string2);
 
   return 0;
-}
-
-public class Test {
-  
-  static hello() #str {
-    return "Hello world! Enter something please: ";
-  }
 }

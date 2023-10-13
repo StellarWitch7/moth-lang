@@ -16,7 +16,7 @@ public class Function : CompilerData
     public PrivacyType Privacy { get; set; }
     public Class ClassOfReturnType { get; set; }
     public Class? OwnerClass { get; set; }
-    public Scope OpeningScope { get; set; }
+    public Scope? OpeningScope { get; set; }
     public List<Parameter> Params { get; set; }
     public bool IsVariadic { get; set; }
 

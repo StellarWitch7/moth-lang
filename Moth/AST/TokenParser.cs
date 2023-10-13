@@ -45,6 +45,7 @@ public static class TokenParser
                 //case TokenType.Constant:
                 case TokenType.Function:
                     var result = ProcessDefinition(context, attributes);
+                    attributes = new List<AttributeNode>();
 
                     if (result is FuncDefNode func)
                     {

@@ -1,12 +1,15 @@
 namespace default.test;
 
 foreign malloc(size #u32) #void*;
+foreign realloc(ptr #void*, size #u32) #void*;
 foreign free(pointer #void*) #void;
 
 foreign printf(text #str, ~~) #i32;
 foreign fgets(str #str, n #i32, FILE #void*) #str;
+foreign fgetc(FILE #void*) #char;
+foreign fopen(path #str, mode #str) #void*;
 
-@CallingConvention("__cdecl")
+@CallingConvention("cdecl")
 foreign __acrt_iob_func(n #u32) #void*;
 
 func stdin() #void* {
@@ -21,17 +24,6 @@ func stderr() #void* {
     return __acrt_iob_func(2);
 }
 
-public class Sys {
-
-    static Print(string #str) #void {
-        printf(string);
-        return;
-    }
-
-    static Input(string #str) #str {
-        #Sys.Print(string);
-        local newString #str = malloc(101);
-        fgets(newString, 101, stdin());
-        return newString;
-    }
+func eof() #i32* {
+    //not implemented
 }

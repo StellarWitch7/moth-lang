@@ -175,6 +175,11 @@ public static class LLVMCompiler
             {
                 compiler.GlobalFunctions.Add(funcDefNode.Name, func);
             }
+
+            foreach (var attribute in funcDefNode.Attributes)
+            {
+                ResolveAttribute(compiler, func, attribute);
+            }
         }
     }
 
@@ -701,5 +706,43 @@ public static class LLVMCompiler
         return new ValueContext(func.ClassOfReturnType.LLVMType,
             compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()),
             func.ClassOfReturnType);
+    }
+
+    public static void ResolveAttribute(CompilerContext compiler, Function func, AttributeNode attribute)
+    {
+        if (attribute.Name == "CallingConvention")
+        {
+            if (attribute.Arguments.Count != 1)
+            {
+                throw new Exception("Attribute \"CallingConvention\" has too many arguments.");
+            }
+
+            if (attribute.Arguments[0] is ConstantNode constantNode)
+            {
+                if (constantNode.Value is string str)
+                {
+                    switch (str)
+                    {
+                        case "cdecl":
+                            var val = func.LLVMFunc; //TODO: understand the weirdness here
+                            val.FunctionCallConv = 0;
+                            func.LLVMFunc = val;
+                            break;
+                    }
+                }
+                else
+                {
+                    throw new Exception("Attribute \"CallingConvention\" was passed a non-string.");
+                }
+            }
+            else
+            {
+                throw new Exception("Attribute \"CallingConvention\" was passed a complex expression.");
+            }
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
     }
 }
