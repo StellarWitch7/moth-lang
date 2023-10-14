@@ -237,7 +237,11 @@ public static class LLVMCompiler
             foreach (Field field in @new.ClassOfType.Fields.Values)
             {
                 var lLVMField = compiler.Builder.BuildStructGEP2(@new.LLVMType, @new.LLVMVariable, field.FieldIndex);
-                compiler.Builder.BuildStore(LLVMValueRef.CreateConstNull(field.LLVMType), lLVMField);
+                var zeroedVal = lLVMField.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind
+                    ? LLVMValueRef.CreateConstPointerNull(field.LLVMType)
+                    : LLVMValueRef.CreateConstNull(field.LLVMType);
+
+                compiler.Builder.BuildStore(zeroedVal, lLVMField);
             }
         }
 
@@ -463,7 +467,7 @@ public static class LLVMCompiler
                 var left = CompileExpression(compiler, scope, binaryOp.Left);
                 var right = CompileExpression(compiler, scope, binaryOp.Right);
 
-                if (left.ClassOfType == right.ClassOfType)
+                if (/*left.ClassOfType == right.ClassOfType*/true)
                 {
                     LLVMValueRef leftVal;
                     LLVMValueRef rightVal;
@@ -487,13 +491,80 @@ public static class LLVMCompiler
                             builtVal = compiler.Builder.BuildSDiv(leftVal, rightVal);
                             break;
                         case OperationType.Equal:
-                            if (left.LLVMType == LLVMTypeRef.Float)
+                        case OperationType.NotEqual:
+                            if (left.ClassOfType.Name == Reserved.Float16
+                                || left.ClassOfType.Name == Reserved.Float32
+                                || left.ClassOfType.Name == Reserved.Float64)
                             {
-                                builtVal = compiler.Builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, leftVal, rightVal);
+                                builtVal = compiler.Builder.BuildFCmp(binaryOp.Type == OperationType.Equal
+                                    ? LLVMRealPredicate.LLVMRealOEQ
+                                    : LLVMRealPredicate.LLVMRealUNE,
+                                    leftVal, rightVal);
                             }
-                            else if (left.LLVMType == LLVMTypeRef.Int32)
+                            else if (left.ClassOfType.Name == Reserved.Bool
+                                || left.ClassOfType.Name == Reserved.Char
+                                || left.ClassOfType.Name == Reserved.UnsignedInt16
+                                || left.ClassOfType.Name == Reserved.UnsignedInt32
+                                || left.ClassOfType.Name == Reserved.UnsignedInt64
+                                || left.ClassOfType.Name == Reserved.SignedInt16
+                                || left.ClassOfType.Name == Reserved.SignedInt32
+                                || left.ClassOfType.Name == Reserved.SignedInt64)
                             {
-                                builtVal = compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, leftVal, rightVal);
+                                builtVal = compiler.Builder.BuildICmp(binaryOp.Type == OperationType.Equal
+                                    ? LLVMIntPredicate.LLVMIntEQ
+                                    : LLVMIntPredicate.LLVMIntNE,
+                                    leftVal, rightVal);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException(); //TODO: can't check string equality
+                            }
+
+                            break;
+                        case OperationType.LargerThan:
+                        case OperationType.LargerThanOrEqual:
+                        case OperationType.LessThan:
+                        case OperationType.LessThanOrEqual:
+                            if (left.ClassOfType.Name == Reserved.Float16
+                                || left.ClassOfType.Name == Reserved.Float32
+                                || left.ClassOfType.Name == Reserved.Float64)
+                            {
+                                builtVal = compiler.Builder.BuildFCmp(binaryOp.Type switch
+                                {
+                                    OperationType.LargerThan => LLVMRealPredicate.LLVMRealOGT,
+                                    OperationType.LargerThanOrEqual => LLVMRealPredicate.LLVMRealOGE,
+                                    OperationType.LessThan => LLVMRealPredicate.LLVMRealOLT,
+                                    OperationType.LessThanOrEqual => LLVMRealPredicate.LLVMRealOLE,
+                                    _ => throw new NotImplementedException(),
+                                }, leftVal, rightVal);
+                            }
+                            else if (left.ClassOfType.Name == Reserved.Bool
+                                || left.ClassOfType.Name == Reserved.Char
+                                || left.ClassOfType.Name == Reserved.UnsignedInt16
+                                || left.ClassOfType.Name == Reserved.UnsignedInt32
+                                || left.ClassOfType.Name == Reserved.UnsignedInt64)
+                            {
+                                builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
+                                {
+                                    OperationType.LargerThan => LLVMIntPredicate.LLVMIntUGT,
+                                    OperationType.LargerThanOrEqual => LLVMIntPredicate.LLVMIntUGE,
+                                    OperationType.LessThan => LLVMIntPredicate.LLVMIntULT,
+                                    OperationType.LessThanOrEqual => LLVMIntPredicate.LLVMIntULE,
+                                    _ => throw new NotImplementedException(),
+                                }, leftVal, rightVal);
+                            }
+                            else if (left.ClassOfType.Name == Reserved.SignedInt16
+                                || left.ClassOfType.Name == Reserved.SignedInt32
+                                || left.ClassOfType.Name == Reserved.SignedInt64)
+                            {
+                                builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
+                                {
+                                    OperationType.LargerThan => LLVMIntPredicate.LLVMIntSGT,
+                                    OperationType.LargerThanOrEqual => LLVMIntPredicate.LLVMIntSGE,
+                                    OperationType.LessThan => LLVMIntPredicate.LLVMIntSLT,
+                                    OperationType.LessThanOrEqual => LLVMIntPredicate.LLVMIntSLE,
+                                    _ => throw new NotImplementedException(),
+                                }, leftVal, rightVal);
                             }
                             else
                             {
@@ -598,7 +669,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode) //TODO: add support for statics
+    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
     {
         ValueContext context = null;
 
@@ -817,7 +888,8 @@ public static class LLVMCompiler
 
     public static LLVMValueRef SafeLoad(CompilerContext compiler, ValueContext value)
     {
-        if (value.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind)
+        if (value.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind
+            && value.ClassOfType.Name != Reserved.Void)
         {
             return compiler.Builder.BuildLoad2(value.LLVMType, value.LLVMValue);
         }

@@ -24,11 +24,6 @@ func stderr() #void* {
     return __acrt_iob_func(2);
 }
 
-// func eof(ch #i32) #bool {
-    
-//     if ch < 0 {
-//         return true;
-//     } else {
-//         return false;
-//     }
-// }
+func eof(ch #i32) #bool {
+    return ch < 0; //these are not of same type
+}
