@@ -30,17 +30,17 @@ public class Class : CompilerData
     {
         // sizeof()
         {
-            if (compiler.Classes.TryGetValue(Primitive.UnsignedInt64, out Class classOfReturnType))
+            if (compiler.Classes.TryGetValue(Reserved.UnsignedInt64, out Class classOfReturnType))
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
-                var func = new Function(compiler.Module.AddFunction($"{Name}.sizeof", funcType),
+                var func = new Function(Reserved.SizeOf, compiler.Module.AddFunction($"{Name}.{Reserved.SizeOf}", funcType),
                     funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
                 
-                StaticMethods.Add("sizeof", func);
+                StaticMethods.Add(Reserved.SizeOf, func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 
-                if (Name == Primitive.Void)
+                if (Name == Reserved.Void)
                 {
                     compiler.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0));
                 }
@@ -51,24 +51,24 @@ public class Class : CompilerData
             }
             else
             {
-                compiler.Warn($"Failed to create built-in static method \"sizeof() :u64\" within class"
-                    + $" \"{Name}\" as its return type (\"{Primitive.UnsignedInt64}\") does not exist.");
+                compiler.Warn($"Failed to create built-in static method \"{Reserved.SizeOf}() :u64\" within class"
+                    + $" \"{Name}\" as its return type (\"{Reserved.UnsignedInt64}\") does not exist.");
             }
         }
 
         // alignof()
         {
-            if (compiler.Classes.TryGetValue(Primitive.UnsignedInt64, out Class classOfReturnType))
+            if (compiler.Classes.TryGetValue(Reserved.UnsignedInt64, out Class classOfReturnType))
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
-                var func = new Function(compiler.Module.AddFunction($"{Name}.alignof", funcType),
+                var func = new Function(Reserved.AlignOf, compiler.Module.AddFunction($"{Name}.{Reserved.AlignOf}", funcType),
                     funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
 
-                StaticMethods.Add("alignof", func);
+                StaticMethods.Add(Reserved.AlignOf, func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 
-                if (Name == Primitive.Void)
+                if (Name == Reserved.Void)
                 {
                     compiler.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1));
                 }
@@ -79,8 +79,8 @@ public class Class : CompilerData
             }
             else
             {
-                compiler.Warn($"Failed to create built-in static method \"alignof() :u64\" within class"
-                    + $" \"{Name}\" as its return type (\"{Primitive.UnsignedInt64}\") does not exist.");
+                compiler.Warn($"Failed to create built-in static method \"{Reserved.AlignOf}() :u64\" within class"
+                    + $" \"{Name}\" as its return type (\"{Reserved.UnsignedInt64}\") does not exist.");
             }
         }
     }

@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public static class Primitive
+public static class Reserved
 {
+    public static readonly string Self = "self";
+    public static readonly string Init = "init";
+    public static readonly string SizeOf = "sizeof";
+    public static readonly string AlignOf = "alignof";
+
     public static readonly string Void = "void";
     public static readonly string String = "str";
     public static readonly string Bool = "bool";

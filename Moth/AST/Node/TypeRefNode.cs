@@ -8,7 +8,7 @@ namespace Moth.AST.Node;
 
 public class TypeRefNode : RefNode
 {
-    public bool IsPointer { get; }
+    public bool IsPointer { get; set; }
 
     public TypeRefNode(string name, bool isPointer) : base(name)
     {

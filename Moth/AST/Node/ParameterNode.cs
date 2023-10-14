@@ -8,8 +8,8 @@ namespace Moth.AST.Node;
 
 public class ParameterNode : ASTNode
 {
-    public string Name { get; }
-    public TypeRefNode TypeRef { get; }
+    public string Name { get; set; }
+    public TypeRefNode TypeRef { get; set; }
 
     public ParameterNode(string name, TypeRefNode typeRef)
     {

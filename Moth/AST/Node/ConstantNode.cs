@@ -4,9 +4,9 @@ namespace Moth.AST.Node;
 
 public class ConstantNode : ExpressionNode
 {
-    public object Value { get; }
+    public object Value { get; set; }
 
-    public ConstantNode(object value)
+    public ConstantNode(object? value)
     {
         Value = value;
     }
@@ -18,7 +18,16 @@ public class ConstantNode : ExpressionNode
         writer.Write(nameof(Value));
         writer.Write(" = ");
         writer.Write('(');
-        writer.Write(Value.GetType().Name);
+
+        if (Value != null)
+        {
+            writer.Write(Value.GetType().Name);
+        }
+        else
+        {
+            writer.Write("null");
+        }
+
         writer.Write(") ");
         writer.Write(Value);
         writer.Write(" }");

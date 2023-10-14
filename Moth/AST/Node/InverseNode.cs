@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class DecrementVarNode : ExpressionNode
+public class InverseNode : ExpressionNode
 {
-    public RefNode RefNode { get; set; }
+    public RefNode Value { get; set; }
 
-    public DecrementVarNode(RefNode refNode)
+    public InverseNode(RefNode value)
     {
-        RefNode = refNode;
+        Value = value;
     }
 }

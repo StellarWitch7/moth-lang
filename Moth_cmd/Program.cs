@@ -282,6 +282,7 @@ internal class Program
                                     testName = "UNKNOWN";
                                 }
 
+                                logger.WriteEmptyLine();
                                 logger.WriteLine($"Failed to interact with {testName} due to: {e}");
                                 return;
                             }
@@ -294,12 +295,14 @@ internal class Program
                             linkerName = "UNKNOWN";
                         }
 
+                        logger.WriteEmptyLine();
                         logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
                         return;
                     }
                 }
                 catch (Exception e)
                 {
+                    logger.WriteEmptyLine();
                     logger.WriteLine($"Failed to compile due to: {e}");
 
                     if (!options.Verbose)

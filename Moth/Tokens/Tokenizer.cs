@@ -29,6 +29,48 @@ public static class Tokenizer
 						break;
 					}
 
+				//Parse character constants
+				case '\'':
+					{
+						stream.Position++;
+						
+						if (stream.Current == '\'')
+						{
+							throw new TokenizerException()
+							{
+                                Character = (char)stream.Current,
+                                Line = stream.CurrentLine,
+                                Column = stream.CurrentColumn,
+                                Position = stream.Position,
+                            };
+						}
+						else
+						{
+							tokens.Add(new Token()
+							{
+								Type = TokenType.LiteralChar,
+								Text = $"{ProcessCharacter(ref stream)}".AsMemory(),
+							});
+
+							stream.Position++;
+
+							if (stream.Current == '\'')
+							{
+                                break;
+                            }
+							else
+							{
+								throw new TokenizerException()
+								{
+                                    Character = (char)stream.Current,
+                                    Line = stream.CurrentLine,
+                                    Column = stream.CurrentColumn,
+                                    Position = stream.Position,
+                                };
+							}
+                        }
+					}
+
 				//Parse keywords or names
 				case >= 'a' and <= 'z':
 				case >= 'A' and <= 'Z':
@@ -84,14 +126,11 @@ public static class Tokenizer
 							{
 								break;
 							}
-
-                            if (stream.Current == '\\')
-                            {
-                                stream.Position++;
-                            }
-
-                            builder.Append(stream.Current);
-							stream.Position++;
+							else
+							{
+                                builder.Append(ProcessCharacter(ref stream));
+								stream.Position++;
+							}
 						}
 
 						string @string = builder.ToString();
@@ -142,8 +181,8 @@ public static class Tokenizer
 							'+' when next is '+' => TokenType.Increment,
 							'-' when next is '-' => TokenType.Decrement,
 							'*' when next is '^' => TokenType.Exponential,
-							'|' when next is '|' => TokenType.LogicalOr,
-							'&' when next is '&' => TokenType.LogicalAnd,
+							'|' when next is '|' => TokenType.Or,
+							'&' when next is '&' => TokenType.And,
 							'~' when next is '~' => TokenType.Variadic,
 							':' when next is '=' => TokenType.InferAssign,
 							':' => TokenType.Colon,
@@ -184,8 +223,8 @@ public static class Tokenizer
 							Text = type switch
 							{
 								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual
-								    or TokenType.LargerThanOrEqual or TokenType.LogicalAnd
-									or TokenType.LogicalOr or TokenType.Exponential
+								    or TokenType.LargerThanOrEqual or TokenType.And
+									or TokenType.Or or TokenType.Exponential
 									or TokenType.Increment or TokenType.Decrement
 									or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),
@@ -241,6 +280,37 @@ public static class Tokenizer
 
 		return tokens;
 	}
+
+    public static char? ProcessCharacter(ref PeekStream stream)
+    {
+		if (stream.Current == '\\')
+		{
+			stream.Position++;
+            return stream.Current switch
+            {
+                '0' => '\0',
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                'b' => '\b',
+                '\\' => '\\',
+				'"' => '"',
+				'\'' => '\'',
+                _ => throw new TokenizerException()
+                {
+                    Character = (char)stream.Next,
+                    Line = stream.CurrentLine,
+                    Column = stream.CurrentColumn,
+                    Position = stream.Position,
+                },
+            };
+        }
+		else
+		{
+			return stream.Current;
+		}
+        
+    }
 }
 
 public sealed class TokenizerException : Exception

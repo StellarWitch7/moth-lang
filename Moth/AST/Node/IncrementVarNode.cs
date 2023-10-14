@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class IncrementVarNode : StatementNode
+public class IncrementVarNode : ExpressionNode
 {
-    public RefNode RefNode { get; }
+    public RefNode RefNode { get; set; }
 
     public IncrementVarNode(RefNode refNode)
     {

@@ -2,7 +2,7 @@
 
 public class BinaryOperationNode : ExpressionNode
 {
-    public OperationType Type { get; }
+    public OperationType Type { get; set; }
     public ExpressionNode Left { get; set; }
     public ExpressionNode Right { get; set; }
 
@@ -27,13 +27,8 @@ public enum OperationType
     LargerThanOrEqual,
     Equal,
     NotEqual,
-    And,
-    Or,
-    Xor,
     Modulo,
     Assignment,
-    LogicalOr,
-    LogicalAnd,
-    LogicalXor,
-    LogicalNand
+    Or,
+    And,
 }

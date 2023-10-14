@@ -6,16 +6,14 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class IfNode : StatementNode
+public class WhileNode : StatementNode
 {
     public ExpressionNode Condition { get; set; }
     public ScopeNode Then { get; set; }
-    public ScopeNode? Else { get; set; }
 
-    public IfNode(ExpressionNode condition, ScopeNode then, ScopeNode? @else)
+    public WhileNode(ExpressionNode condition, ScopeNode then)
     {
         Condition = condition;
         Then = then;
-        Else = @else;
     }
 }

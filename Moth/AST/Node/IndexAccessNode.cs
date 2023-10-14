@@ -8,9 +8,9 @@ namespace Moth.AST.Node;
 
 public class IndexAccessNode : RefNode
 {
-    public ExpressionNode Index { get; }
+    public ExpressionNode Index { get; set; }
 
-    public IndexAccessNode(ExpressionNode index) : base(null)
+    public IndexAccessNode(string name, ExpressionNode index) : base(name)
     {
         Index = index;
     }

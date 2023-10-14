@@ -15,6 +15,9 @@
 			"include": "#strings"
 		},
 		{
+			"include": "#chars"
+		},
+		{
 			"include": "#types"
 		},
 		{
@@ -60,6 +63,17 @@
 				}
 			]
 		},
+		"chars": {
+			"name": "string.quoted.single.moth",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.moth",
+					"match": "\\\\."
+				}
+			]
+		},
 		"strings": {
 			"name": "string.quoted.double.moth",
 			"begin": "\"",
@@ -67,7 +81,7 @@
 			"patterns": [
 				{
 					"name": "constant.character.escape.moth",
-					"match": "\\\\"
+					"match": "\\\\."
 				}
 			]
 		},

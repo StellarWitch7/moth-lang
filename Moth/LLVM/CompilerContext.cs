@@ -33,19 +33,19 @@ public class CompilerContext
 
     private void InsertDefaultTypes()
     {
-        Classes.Add(Primitive.Void, new Class(Primitive.Void, LLVMTypeRef.Void, PrivacyType.Public));
-        Classes.Add(Primitive.String, new Class(Primitive.String, LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), PrivacyType.Public));
-        Classes.Add(Primitive.Float16, new Class(Primitive.Float16, LLVMTypeRef.Half, PrivacyType.Public));
-        Classes.Add(Primitive.Float32, new Class(Primitive.Float32, LLVMTypeRef.Float, PrivacyType.Public));
-        Classes.Add(Primitive.Float64, new Class(Primitive.Float64, LLVMTypeRef.Double, PrivacyType.Public));
-        Classes.Add(Primitive.Bool, new Int(Primitive.Bool, LLVMTypeRef.Int1, PrivacyType.Public, false));
-        Classes.Add(Primitive.Char, new Int(Primitive.Char, LLVMTypeRef.Int8, PrivacyType.Public, false));
-        Classes.Add(Primitive.UnsignedInt16, new Int(Primitive.UnsignedInt16, LLVMTypeRef.Int16, PrivacyType.Public, false));
-        Classes.Add(Primitive.UnsignedInt32, new Int(Primitive.UnsignedInt32, LLVMTypeRef.Int32, PrivacyType.Public, false));
-        Classes.Add(Primitive.UnsignedInt64, new Int(Primitive.UnsignedInt64, LLVMTypeRef.Int64, PrivacyType.Public, false));
-        Classes.Add(Primitive.SignedInt16, new Int(Primitive.SignedInt16, LLVMTypeRef.Int16, PrivacyType.Public, true));
-        Classes.Add(Primitive.SignedInt32, new Int(Primitive.SignedInt32, LLVMTypeRef.Int32, PrivacyType.Public, true));
-        Classes.Add(Primitive.SignedInt64, new Int(Primitive.SignedInt64, LLVMTypeRef.Int64, PrivacyType.Public, true));
+        Classes.Add(Reserved.Void, new Class(Reserved.Void, LLVMTypeRef.Void, PrivacyType.Public));
+        Classes.Add(Reserved.String, new Class(Reserved.String, LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), PrivacyType.Public));
+        Classes.Add(Reserved.Float16, new Class(Reserved.Float16, LLVMTypeRef.Half, PrivacyType.Public));
+        Classes.Add(Reserved.Float32, new Class(Reserved.Float32, LLVMTypeRef.Float, PrivacyType.Public));
+        Classes.Add(Reserved.Float64, new Class(Reserved.Float64, LLVMTypeRef.Double, PrivacyType.Public));
+        Classes.Add(Reserved.Bool, new Int(Reserved.Bool, LLVMTypeRef.Int1, PrivacyType.Public, false));
+        Classes.Add(Reserved.Char, new Int(Reserved.Char, LLVMTypeRef.Int8, PrivacyType.Public, false));
+        Classes.Add(Reserved.UnsignedInt16, new Int(Reserved.UnsignedInt16, LLVMTypeRef.Int16, PrivacyType.Public, false));
+        Classes.Add(Reserved.UnsignedInt32, new Int(Reserved.UnsignedInt32, LLVMTypeRef.Int32, PrivacyType.Public, false));
+        Classes.Add(Reserved.UnsignedInt64, new Int(Reserved.UnsignedInt64, LLVMTypeRef.Int64, PrivacyType.Public, false));
+        Classes.Add(Reserved.SignedInt16, new Int(Reserved.SignedInt16, LLVMTypeRef.Int16, PrivacyType.Public, true));
+        Classes.Add(Reserved.SignedInt32, new Int(Reserved.SignedInt32, LLVMTypeRef.Int32, PrivacyType.Public, true));
+        Classes.Add(Reserved.SignedInt64, new Int(Reserved.SignedInt64, LLVMTypeRef.Int64, PrivacyType.Public, true));
 
         foreach (Class @class in Classes.Values)
         {

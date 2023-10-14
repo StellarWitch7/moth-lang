@@ -57,8 +57,6 @@ public enum TokenType
 	LargerThanOrEqual,
 	Equal,
 	NotEqual,
-	And,
-	Or,
 	Class,
 	If,
 	Local,
@@ -85,8 +83,8 @@ public enum TokenType
     Try,
     Modulo,
     Not,
-    LogicalOr,
-    LogicalAnd,
+    Or,
+    And,
     DoubleQuote,
     Foreign,
     Function,
@@ -96,5 +94,6 @@ public enum TokenType
     DollarSign,
     Static,
     InferAssign,
-    AttributeMarker
+    AttributeMarker,
+    LiteralChar
 }

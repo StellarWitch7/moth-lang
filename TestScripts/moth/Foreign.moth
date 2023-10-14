@@ -24,6 +24,11 @@ func stderr() #void* {
     return __acrt_iob_func(2);
 }
 
-func eof() #i32* {
-    //not implemented
-}
+// func eof(ch #i32) #bool {
+    
+//     if ch < 0 {
+//         return true;
+//     } else {
+//         return false;
+//     }
+// }

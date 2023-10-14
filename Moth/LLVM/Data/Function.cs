@@ -10,6 +10,7 @@ namespace Moth.LLVM.Data;
 
 public class Function : CompilerData
 {
+    public string Name { get; set; }
     public LLVMValueRef LLVMFunc { get; set; }
     public LLVMTypeRef LLVMFuncType { get; set; }
     public LLVMTypeRef LLVMReturnType { get; set; }
@@ -20,10 +21,11 @@ public class Function : CompilerData
     public List<Parameter> Params { get; set; }
     public bool IsVariadic { get; set; }
 
-    public Function(LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
+    public Function(string name, LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
         Class classOfReturnType, PrivacyType privacy, Class? ownerClass, List<Parameter> @params,
         bool isVariadic)
     {
+        Name = name;
         LLVMFunc = lLVMFunc;
         LLVMFuncType = lLVMFuncType;
         LLVMReturnType = lLVMReturnType;

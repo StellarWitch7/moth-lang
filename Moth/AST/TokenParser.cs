@@ -184,6 +184,10 @@ public static class TokenParser
                         context.MoveNext();
                         statements.Add(ProcessIf(context));
                         break;
+                    case TokenType.While:
+                        context.MoveNext();
+                        statements.Add(ProcessWhile(context));
+                        break;
                     case TokenType.Return:
                         context.MoveNext();
                         statements.Add(new ReturnNode(ProcessExpression(context, null, true)));
@@ -205,39 +209,18 @@ public static class TokenParser
                     case TokenType.Name:
                         statements.Add(ProcessExpression(context, null));
 
-                        if (context.Current?.Type != TokenType.Semicolon)
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
-                        }
-                        else
+                        if (context.Current?.Type == TokenType.Semicolon) //TODO: swap
                         {
                             context.MoveNext();
                             break;
                         }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                        }
                     case TokenType.Increment:
                     case TokenType.Decrement:
-                        TokenType type = (TokenType)(context.Current?.Type);
-                        RefNode refNode;
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.This || context.Current?.Type == TokenType.Name)
-                        {
-                            refNode = ProcessAccess(context);
-                        }
-                        else
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-
-                        if (type == TokenType.Decrement)
-                        {
-                            statements.Add(new IncrementVarNode(refNode));
-                        }
-                        else
-                        {
-                            statements.Add(new DecrementVarNode(refNode));
-                        }
-
+                        statements.Add(ProcessIncrementDecrement(context));
                         break;
                     default:
                         throw new UnexpectedTokenException(context.Current.Value);
@@ -246,6 +229,45 @@ public static class TokenParser
         }
 
         throw new UnexpectedTokenException(context.Current.Value);
+    }
+
+    private static ExpressionNode ProcessIncrementDecrement(ParseContext context)
+    {
+        TokenType type = (TokenType)(context.Current?.Type);
+        RefNode refNode;
+        context.MoveNext();
+
+        if (context.Current?.Type == TokenType.This || context.Current?.Type == TokenType.Name)
+        {
+            refNode = ProcessAccess(context);
+        }
+        else
+        {
+            throw new UnexpectedTokenException(context.Current.Value);
+        }
+
+        if (type == TokenType.Decrement)
+        {
+            return new IncrementVarNode(refNode);
+        }
+        else
+        {
+            return new DecrementVarNode(refNode);
+        }
+    }
+
+    public static StatementNode ProcessWhile(ParseContext context)
+    {
+        var condition = ProcessExpression(context, null);
+
+        if (context.Current?.Type != TokenType.OpeningCurlyBraces)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+        }
+
+        context.MoveNext();
+        var then = ProcessBlock(context);
+        return new WhileNode(condition, then);
     }
 
     public static AttributeNode ProcessAttribute(ParseContext context)
@@ -573,7 +595,7 @@ public static class TokenParser
     }
 
     // Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
-    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode lastCreatedNode, bool nullAllowed = false)
+    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode? lastCreatedNode, bool nullAllowed = false)
     {
         while (context.Current != null)
         {
@@ -602,10 +624,31 @@ public static class TokenParser
                     lastCreatedNode = new ConstantNode(context.Current.Value.Text.ToString());
                     context.MoveNext();
                     break;
+                case TokenType.LiteralChar:
+                    lastCreatedNode = new ConstantNode(context.Current.Value.ToString()[0]);
+                    context.MoveNext();
+                    break;
+                case TokenType.True:
+                    lastCreatedNode = new ConstantNode(true);
+                    context.MoveNext();
+                    break;
+                case TokenType.False:
+                    lastCreatedNode = new ConstantNode(false);
+                    context.MoveNext();
+                    break;
+                case TokenType.Null:
+                    lastCreatedNode = new ConstantNode(null);
+                    context.MoveNext();
+                    break;
+                case TokenType.Pi:
+                    lastCreatedNode = new ConstantNode(3.14159265358979323846264f);
+                    context.MoveNext();
+                    break;
                 case TokenType.Plus:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Addition, lastCreatedNode);
                     }
                     else
@@ -615,21 +658,23 @@ public static class TokenParser
 
                     break;
                 case TokenType.Hyphen:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Subtraction, lastCreatedNode);
                     }
                     else
                     {
-                        throw new UnexpectedTokenException(context.Current.Value);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, new ConstantNode(-1));
                     }
 
                     break;
                 case TokenType.Asterix:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, lastCreatedNode);
                     }
                     else
@@ -639,9 +684,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.ForwardSlash:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Division, lastCreatedNode);
                     }
                     else
@@ -651,9 +697,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.Exponential:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Exponential, lastCreatedNode);
                     }
                     else
@@ -663,9 +710,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.Equal:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Equal, lastCreatedNode);
                     }
                     else
@@ -675,9 +723,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.NotEqual:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.NotEqual, lastCreatedNode);
                     }
                     else
@@ -687,9 +736,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.LargerThan:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.LargerThan, lastCreatedNode);
                     }
                     else
@@ -699,9 +749,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.LessThan:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.LessThan, lastCreatedNode);
                     }
                     else
@@ -711,9 +762,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.LargerThanOrEqual:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.LargerThanOrEqual, lastCreatedNode);
                     }
                     else
@@ -723,9 +775,10 @@ public static class TokenParser
 
                     break;
                 case TokenType.LessThanOrEqual:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.LessThanOrEqual, lastCreatedNode);
                     }
                     else
@@ -734,11 +787,12 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.LogicalOr:
+                case TokenType.Or:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalOr, lastCreatedNode);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Or, lastCreatedNode);
                     }
                     else
                     {
@@ -746,17 +800,26 @@ public static class TokenParser
                     }
 
                     break;
-                case TokenType.LogicalAnd:
+                case TokenType.And:
+                    context.MoveNext();
+
                     if (lastCreatedNode != null)
                     {
-                        context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.LogicalAnd, lastCreatedNode);
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.And, lastCreatedNode);
                     }
                     else
                     {
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
 
+                    break;
+                case TokenType.Not:
+                    context.MoveNext();
+                    lastCreatedNode = new InverseNode(ProcessAccess(context));
+                    break;
+                case TokenType.Increment:
+                case TokenType.Decrement:
+                    lastCreatedNode = ProcessIncrementDecrement(context);
                     break;
                 case TokenType.TypeRef:
                 case TokenType.Name:
@@ -795,6 +858,16 @@ public static class TokenParser
         if (context.Current?.Type == TokenType.This)
         {
             newRefNode = new ThisNode();
+            context.MoveNext();
+
+            if (context.Current?.Type == TokenType.Period)
+            {
+                context.MoveNext();
+            }
+            else
+            {
+                return newRefNode;
+            }
         }
         else if (context.Current?.Type == TokenType.TypeRef)
         {
@@ -841,7 +914,7 @@ public static class TokenParser
                     case TokenType.OpeningSquareBrackets:
                         {
                             context.MoveNext();
-                            var childNode = new IndexAccessNode(ProcessExpression(context, null));
+                            var childNode = new IndexAccessNode(name, ProcessExpression(context, null));
 
                             if (context.Current?.Type != TokenType.ClosingSquareBrackets)
                             {
@@ -904,219 +977,16 @@ public static class TokenParser
     {
         var right = ProcessExpression(context, left);
 
-        switch (opType)
+        if (left is BinaryOperationNode bin)
         {
-            case OperationType.Assignment:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Assignment);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Assignment);
-            case OperationType.Addition:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Addition);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Addition);
-            case OperationType.Subtraction:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Subtraction);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Subtraction);
-            case OperationType.Modulo:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Modulo);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Modulo);
-            case OperationType.Multiplication:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Multiplication);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Multiplication);
-            case OperationType.Division:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Division);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Division);
-            case OperationType.Exponential:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Exponential);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Exponential);
-            case OperationType.Equal:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Equal);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Equal);
-            case OperationType.NotEqual:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.NotEqual);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.NotEqual);
-            case OperationType.LessThanOrEqual:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.LessThanOrEqual);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.LessThanOrEqual);
-            case OperationType.LargerThanOrEqual:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.LargerThanOrEqual);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.LargerThanOrEqual);
-            case OperationType.Or:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.Or);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.Or);
-            case OperationType.LessThan:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.LessThan);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.LessThan);
-            case OperationType.LargerThan:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.LargerThan);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.LargerThan);
-            case OperationType.And:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.And);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.And);
-            case OperationType.LogicalNand:
-                {
-                    if (left is BinaryOperationNode bin)
-                    {
-                        if (GetOpPriority(bin.Type) < GetOpPriority(opType))
-                        {
-                            bin.Right = new BinaryOperationNode(bin.Right, right, OperationType.LogicalNand);
-                            return bin.Right;
-                        }
-                    }
-                }
-
-                return new BinaryOperationNode(left, right, OperationType.LogicalNand);
-            default:
-                throw new UnexpectedTokenException(context.Current.Value);
+            if (GetOpPriority(bin.Type) < GetOpPriority(opType))
+            {
+                bin.Right = new BinaryOperationNode(bin.Right, right, opType);
+                return bin.Right;
+            }
         }
+
+        return new BinaryOperationNode(left, right, opType);
     }
 
     private static int GetOpPriority(OperationType operationType)
@@ -1136,12 +1006,10 @@ public static class TokenParser
             case OperationType.NotEqual:
             case OperationType.LessThanOrEqual:
             case OperationType.LargerThanOrEqual:
-            case OperationType.LogicalOr:
-            case OperationType.LogicalXor:
+            case OperationType.Or:
             case OperationType.LessThan:
             case OperationType.LargerThan:
-            case OperationType.LogicalAnd:
-            case OperationType.LogicalNand:
+            case OperationType.And:
                 return 1;
             case OperationType.Assignment:
                 return 0;

@@ -121,8 +121,14 @@ public static class LLVMCompiler
     public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         int index = 0;
+        string funcName = funcDefNode.Name;
         List<Parameter> @params = new List<Parameter>();
         List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
+
+        if (@class != null)
+        {
+            funcName = $"{@class.Name}.{funcName}";
+        }
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
@@ -150,8 +156,9 @@ public static class LLVMCompiler
         {
             LLVMTypeRef returnLLVMType = ResolveTypeRef(compiler, classOfReturnType, funcDefNode.ReturnTypeRef);
             LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnLLVMType, paramTypes.ToArray(), funcDefNode.IsVariadic);
-            LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcDefNode.Name, lLVMFuncType);
-            Function func = new Function(lLVMFunc,
+            LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcName, lLVMFuncType);
+            Function func = new Function(funcDefNode.Name,
+                lLVMFunc,
                 lLVMFuncType,
                 returnLLVMType,
                 classOfReturnType,
@@ -212,12 +219,35 @@ public static class LLVMCompiler
         compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
         compiler.CurrentFunction = func;
 
+        if (funcDefNode.Name == Reserved.Init && funcDefNode.Privacy == PrivacyType.Static)
+        {
+            if (func.ClassOfReturnType != func.OwnerClass)
+            {
+                throw new Exception($"Init method does not return the same type as its owner class (\"{func.OwnerClass.Name}\").");
+            }
+
+            var @new = new Variable(Reserved.Self,
+                compiler.Builder.BuildAlloca(func.OwnerClass.LLVMType, Reserved.Self),
+                func.OwnerClass.LLVMType,
+                func.OwnerClass,
+                PrivacyType.Local);
+
+            func.OpeningScope.Variables.Add(@new.Name, @new);
+
+            foreach (Field field in @new.ClassOfType.Fields.Values)
+            {
+                var lLVMField = compiler.Builder.BuildStructGEP2(@new.LLVMType, @new.LLVMVariable, field.FieldIndex);
+                compiler.Builder.BuildStore(LLVMValueRef.CreateConstNull(field.LLVMType), lLVMField);
+            }
+        }
+
         foreach (Parameter param in compiler.CurrentFunction.Params)
         {
             var paramAsVar = compiler.Builder.BuildAlloca(param.LLVMType, param.Name);
             compiler.Builder.BuildStore(func.LLVMFunc.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
-                new Variable(paramAsVar,
+                new Variable(param.Name,
+                    paramAsVar,
                     param.LLVMType,
                     param.ClassOfType,
                     PrivacyType.Local));
@@ -257,7 +287,8 @@ public static class LLVMCompiler
             {
                 if (@return.ReturnValue != null)
                 {
-                    compiler.Builder.BuildRet(CompileExpression(compiler, scope, @return.ReturnValue).LLVMValue);
+                    var expr = CompileExpression(compiler, scope, @return.ReturnValue);
+                    compiler.Builder.BuildRet(SafeLoad(compiler, expr));
                 }
                 else
                 {
@@ -272,9 +303,10 @@ public static class LLVMCompiler
                 {
                     var defaultVal = CompileExpression(compiler, scope, inferredVarDef.DefaultValue);
                     var lLVMVar = compiler.Builder.BuildAlloca(defaultVal.LLVMType, varDef.Name);
-                    compiler.Builder.BuildStore(defaultVal.LLVMValue, lLVMVar);
+                    compiler.Builder.BuildStore(SafeLoad(compiler, defaultVal), lLVMVar);
                     scope.Variables.Add(varDef.Name,
-                        new Variable(lLVMVar,
+                        new Variable(varDef.Name,
+                            lLVMVar,
                             defaultVal.LLVMType,
                             defaultVal.ClassOfType,
                             varDef.Privacy));
@@ -284,11 +316,12 @@ public static class LLVMCompiler
                     LLVMTypeRef varLLVMType = ResolveTypeRef(compiler, type, varDef.TypeRef);
 
                     var lLVMVar = compiler.Builder.BuildAlloca(varLLVMType, varDef.Name);
-                    scope.Variables.Add(varDef.Name, new Variable(lLVMVar, varLLVMType, type, varDef.Privacy));
+                    scope.Variables.Add(varDef.Name, new Variable(varDef.Name, lLVMVar, varLLVMType, type, varDef.Privacy));
 
                     if (varDef.DefaultValue != null)
                     {
-                        compiler.Builder.BuildStore(CompileExpression(compiler, scope, varDef.DefaultValue).LLVMValue, lLVMVar);
+                        var value = CompileExpression(compiler, scope, varDef.DefaultValue);
+                        compiler.Builder.BuildStore(SafeLoad(compiler, value), lLVMVar);
                     }
                 }
                 else
@@ -299,7 +332,7 @@ public static class LLVMCompiler
             else if (statement is ScopeNode newScopeNode)
             {
                 var newScope = new Scope(compiler.CurrentFunction.LLVMFunc.AppendBasicBlock(""));
-                newScope.Variables = scope.Variables; //TODO: fix it? maybe?
+                newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
                 compiler.Builder.BuildBr(newScope.LLVMBlock);
                 compiler.Builder.PositionAtEnd(newScope.LLVMBlock);
                 
@@ -321,7 +354,7 @@ public static class LLVMCompiler
                 bool thenReturned = false;
                 bool elseReturned = false;
 
-                compiler.Builder.BuildCondBr(condition.LLVMValue, then, @else);
+                compiler.Builder.BuildCondBr(SafeLoad(compiler, condition), then, @else);
 
                 //then
                 {
@@ -329,7 +362,7 @@ public static class LLVMCompiler
 
                     {
                         var newScope = new Scope(then);
-                        newScope.Variables = scope.Variables; //TODO: fix it? maybe?
+                        newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
                         
                         if (CompileScope(compiler, newScope, @if.Then))
                         {
@@ -354,7 +387,7 @@ public static class LLVMCompiler
                     if (@if.Else != null)
                     {
                         var newScope = new Scope(@else);
-                        newScope.Variables = scope.Variables; //TODO: fix it? maybe?
+                        newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
                         
                         if (CompileScope(compiler, newScope, @if.Else))
                         {
@@ -416,7 +449,8 @@ public static class LLVMCompiler
                 if (binaryOp.Left is RefNode @ref)
                 {
                     var variableAssigned = CompileRef(compiler, scope, @ref);
-                    compiler.Builder.BuildStore(CompileExpression(compiler, scope, binaryOp.Right).LLVMValue, variableAssigned.LLVMValue);
+                    var value = CompileExpression(compiler, scope, binaryOp.Right);
+                    compiler.Builder.BuildStore(SafeLoad(compiler, value), variableAssigned.LLVMValue);
                     return new ValueContext(variableAssigned.LLVMType, variableAssigned.LLVMValue, variableAssigned.ClassOfType);
                 }
                 else
@@ -435,23 +469,8 @@ public static class LLVMCompiler
                     LLVMValueRef rightVal;
                     LLVMValueRef builtVal;
 
-                    if (left.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind)
-                    {
-                        leftVal = compiler.Builder.BuildLoad2(left.LLVMType, left.LLVMValue);
-                    }
-                    else
-                    {
-                        leftVal = left.LLVMValue;
-                    }
-
-                    if (right.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind)
-                    {
-                        rightVal = compiler.Builder.BuildLoad2(right.LLVMType, right.LLVMValue);
-                    }
-                    else
-                    {
-                        rightVal = right.LLVMValue;
-                    }
+                    leftVal = SafeLoad(compiler, left);
+                    rightVal = SafeLoad(compiler, right);
 
                     switch (binaryOp.Type)
                     {
@@ -498,7 +517,7 @@ public static class LLVMCompiler
         {
             if (constNode.Value is string str)
             {
-                if (compiler.Classes.TryGetValue("str", out Class @class)) {
+                if (compiler.Classes.TryGetValue(Reserved.String, out Class @class)) {
                     var constStr = compiler.Context.GetConstString(str, false);
                     var global = compiler.Module.AddGlobal(constStr.TypeOf, "");
                     global.Initializer = constStr;
@@ -506,29 +525,62 @@ public static class LLVMCompiler
                 }
                 else
                 {
-                    throw new Exception("Critical failure: compiler cannot find the primitive type \"str\".");
+                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.String}\".");
+                }
+            }
+            else if (constNode.Value is bool @bool)
+            {
+                if (compiler.Classes.TryGetValue(Reserved.Bool, out Class @class))
+                {
+                    ulong i;
+
+                    if (@bool)
+                    {
+                        i = 1;
+                    }
+                    else
+                    {
+                        i = 0;
+                    }
+
+                    return new ValueContext(@class.LLVMType, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, i), @class);
+                }
+                else
+                {
+                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Bool}\".");
                 }
             }
             else if (constNode.Value is int i32)
             {
-                if (compiler.Classes.TryGetValue("i32", out Class @class))
+                if (compiler.Classes.TryGetValue(Reserved.SignedInt32, out Class @class))
                 {
                     return new ValueContext(@class.LLVMType, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32), @class);
                 }
                 else
                 {
-                    throw new Exception("Critical failure: compiler cannot find the primitive type \"i32\".");
+                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.SignedInt32}\".");
                 }
             }
             else if (constNode.Value is float f32)
             {
-                if (compiler.Classes.TryGetValue("f32", out Class @class))
+                if (compiler.Classes.TryGetValue(Reserved.Float32, out Class @class))
                 {
                     return new ValueContext(@class.LLVMType, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32), @class);
                 }
                 else
                 {
-                    throw new Exception("Critical failure: compiler cannot find the primitive type \"f32\".");
+                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Float32}\".");
+                }
+            }
+            else if (constNode.Value == null)
+            {
+                if (compiler.Classes.TryGetValue(Reserved.Char, out Class @class))
+                {
+                    return new ValueContext(@class.LLVMType, LLVMValueRef.CreateConstNull(@class.LLVMType), @class);
+                }
+                else
+                {
+                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Char}\".");
                 }
             }
             else
@@ -559,9 +611,27 @@ public static class LLVMCompiler
                     throw new Exception("Attempted self-instance reference in a global function.");
                 }
 
-                context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
-                    compiler.CurrentFunction.LLVMFunc.FirstParam,
-                    compiler.CurrentFunction.OwnerClass);
+                if (compiler.CurrentFunction.Name == Reserved.Init)
+                {
+                    if (scope.Variables.TryGetValue(Reserved.Self, out Variable self))
+                    {
+                        context = new ValueContext(self.LLVMType,
+                            self.LLVMVariable,
+                            self.ClassOfType);
+                    }
+                    else
+                    {
+                        throw new Exception("Critical failure: \"self\" does not exist within constructor. " +
+                            "!!THIS IS NOT A USER ERROR. REPORT ASAP!!");
+                    }
+                }
+                else
+                {
+                    context = new ValueContext(compiler.CurrentFunction.OwnerClass.LLVMType,
+                        compiler.CurrentFunction.LLVMFunc.FirstParam,
+                        compiler.CurrentFunction.OwnerClass);
+                }
+
                 refNode = refNode.Child;
             }
             else if (refNode is TypeRefNode typeRef)
@@ -624,7 +694,7 @@ public static class LLVMCompiler
                     if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
                     {
                         context = new ValueContext(@var.LLVMType,
-                            compiler.Builder.BuildLoad2(@var.LLVMType, @var.LLVMVariable),
+                            @var.LLVMVariable,
                             @var.ClassOfType);
                         refNode = refNode.Child;
                     }
@@ -641,7 +711,7 @@ public static class LLVMCompiler
                     else if (compiler.GlobalConstants.TryGetValue(refNode.Name, out Constant @const))
                     {
                         context = new ValueContext(@const.LLVMType,
-                            compiler.Builder.BuildLoad2(@const.LLVMType, @const.LLVMValue),
+                            @const.LLVMValue,
                             @const.ClassOfType);
                         refNode = refNode.Child;
                     }
@@ -724,9 +794,8 @@ public static class LLVMCompiler
                     switch (str)
                     {
                         case "cdecl":
-                            var val = func.LLVMFunc; //TODO: understand the weirdness here
-                            val.FunctionCallConv = 0;
-                            func.LLVMFunc = val;
+                            var lLVMFunc = func.LLVMFunc;
+                            lLVMFunc.FunctionCallConv = 0;
                             break;
                     }
                 }
@@ -743,6 +812,18 @@ public static class LLVMCompiler
         else
         {
             throw new NotImplementedException();
+        }
+    }
+
+    public static LLVMValueRef SafeLoad(CompilerContext compiler, ValueContext value)
+    {
+        if (value.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind)
+        {
+            return compiler.Builder.BuildLoad2(value.LLVMType, value.LLVMValue);
+        }
+        else
+        {
+            return value.LLVMValue;
         }
     }
 }
