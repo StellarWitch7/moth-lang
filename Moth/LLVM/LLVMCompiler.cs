@@ -765,8 +765,7 @@ public static class LLVMCompiler
         }
         else if (expr is RefNode @ref)
         {
-            var val = CompileRef(compiler, scope, @ref);
-            return new ValueContext(val.LLVMType, SafeLoad(compiler, val), val.ClassOfType, false);
+            return CompileRef(compiler, scope, @ref);
         }
         else if (expr is SubExprNode subExpr)
         {
@@ -854,7 +853,7 @@ public static class LLVMCompiler
             {
                 context = CompileVarRef(compiler, context, scope, refNode);
                 context = new ValueContext(context.ClassOfType.TrueLLVMType,
-                    compiler.Builder.BuildInBoundsGEP2(context.ClassOfType.TrueLLVMType, context.LLVMValue, new LLVMValueRef[1]
+                    compiler.Builder.BuildInBoundsGEP2(context.ClassOfType.TrueLLVMType, SafeLoad(compiler, context), new LLVMValueRef[1]
                     {
                         compiler.Builder.BuildIntCast(SafeLoad(compiler,
                             CompileExpression(compiler, scope, indexAccess.Index)),

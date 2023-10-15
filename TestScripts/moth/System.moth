@@ -21,27 +21,34 @@ public class Sys {
     static ReadLine(file #void*) #str {
         local size #u32 = 512;
         local string #str = malloc(size);
-        local ch #char;
+        local ch #char = #Sys.GetChar(file);
         local len := -1;
 
         if string == null {
             return string;
         }
 
-        while (ch = #Sys.GetChar(file)) != '\n' {
+        while ch != '\0' {
             string[++len] = ch;
             
-            if (len + 1) >= size {
+            if len >= size {
                 string = realloc(string, size = size + 512);
 
                 if string == null {
                     return string;
                 }
             }
+
+            if ch == '\n' {
+                ch = '\0';
+            } else {
+                ch = #Sys.GetChar(file);
+            }
         }
 
-        string[++len] = '\0';
-        return realloc(string, ++len);
+        string[++len] = ch;
+        string = realloc(string, ++len);
+        return string;
     }
 
     static Input(string #str) #str {

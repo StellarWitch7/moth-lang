@@ -8,6 +8,7 @@ foreign printf(text #str, ~~) #i32;
 foreign fgets(str #str, n #i32, FILE #void*) #str;
 foreign fgetc(file #void*) #i32;
 foreign fopen(path #str, mode #str) #void*;
+foreign strcpy(destination #str, source #str) #str;
 
 @CallingConvention("cdecl")
 foreign __acrt_iob_func(n #u32) #void*;
