@@ -43,7 +43,7 @@
 			"patterns": [
 			{
 				"name": "keyword.control.moth",
-				"match": "\\b(if|while|else|attempt|seize|every)\\b"
+				"match": "\\b(if|while|else|attempt|seize|every|then)\\b"
 			},
 			{
 				"name": "keyword.other.moth",

@@ -1,9 +1,9 @@
-namespace syntax.stuff;
+namespace Syntax.Example;
 
-foreign printf(:i32, ~/) :i32; // This is a comment talking about this foreign function definition.
+foreign printf(string #str, ~~) #i32; // This is a comment talking about this foreign function definition.
 
-func Add(left :i32, right :i32) :i32 {
-    local result := if left != null && right != null : left + right else null;
+func Add(left #i32, right #i32) #i32 {
+    local result := if left != null && right != null then left + right else null;
     return result;
 }
 
@@ -13,6 +13,7 @@ public class TestClass {
     
     static init() {
         self.Value = 10;
+        return self;
     }
 
     public IncreaseValue() #void {

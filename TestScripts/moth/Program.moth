@@ -1,7 +1,8 @@
-namespace default.test;
+namespace Test;
 
-func main() #i32 {
-    #Sys.Print(#Sys.Input("Hello world! Enter something please: "));
-    #Sys.Input("Enter anything to exit: ");
+func main(args #str*) #i32 {
+    #Sys.WriteLine("Welcome!");
+    #Sys.Input("Enter something: ");
+    #Sys.WriteLine("Goodbye!");
     return 0;
 }

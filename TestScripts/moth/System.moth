@@ -1,9 +1,14 @@
-namespace System;
+namespace Moth;
 
 public class Sys {
 
-    static Print(string #str) #void {
-        printf(string);
+    static Write(string #str, end #char) #void {
+        printf("%s%c", string, end);
+        return;
+    }
+
+    static WriteLine(string #str) #void {
+        #Sys.Write(string, '\n');
         return;
     }
 
@@ -52,7 +57,7 @@ public class Sys {
     }
 
     static Input(string #str) #str {
-        #Sys.Print(string);
+        #Sys.Write(string, '\0');
         return #Sys.ReadLine(stdin());
     }
 }
