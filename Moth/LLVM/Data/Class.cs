@@ -14,6 +14,7 @@ public class Class : CompilerData
     public string Name { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
     public LLVMTypeRef TrueLLVMType { get; set; }
+    public Class TrueClassOfType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
     public Dictionary<string, Function> Methods { get; set; } = new Dictionary<string, Function>();
@@ -21,15 +22,25 @@ public class Class : CompilerData
     public Dictionary<string, Function> StaticMethods { get; set; } = new Dictionary<string, Function>();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(string name, LLVMTypeRef lLVMType, LLVMTypeRef trueLLVMType, PrivacyType privacy)
+    public Class(string name, LLVMTypeRef lLVMType, LLVMTypeRef trueLLVMType, Class? trueClassOfType, PrivacyType privacy)
     {
         Name = name;
         LLVMType = lLVMType;
         TrueLLVMType = trueLLVMType;
+
+        if (trueClassOfType == null)
+        {
+            TrueClassOfType = this;
+        }
+        else
+        {
+            TrueClassOfType = trueClassOfType;
+        }
+
         Privacy = privacy;
     }
 
-    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy) : this(name, lLVMType, lLVMType, privacy)
+    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy) : this(name, lLVMType, lLVMType, null, privacy)
     {
     }
 

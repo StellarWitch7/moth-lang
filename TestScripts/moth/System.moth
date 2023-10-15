@@ -9,10 +9,8 @@ public class Sys {
 
     static GetChar(file #void*) #char {
         local ch #i32 = fgetc(file);
-        printf("oooo");
 
         if !eof(ch) {
-            printf("ooo3");
             local char #char = ch;
             return char;
         } else {
@@ -33,20 +31,17 @@ public class Sys {
         while (ch = #Sys.GetChar(file)) != '\n' {
             string[++len] = ch;
             
-            if len >= size {
+            if (len + 1) >= size {
                 string = realloc(string, size = size + 512);
 
                 if string == null {
                     return string;
                 }
             }
-
-            if ch == '\0' {
-                ch = '\n';
-            }
         }
 
-        return realloc(string, len);
+        string[++len] = '\0';
+        return realloc(string, ++len);
     }
 
     static Input(string #str) #str {

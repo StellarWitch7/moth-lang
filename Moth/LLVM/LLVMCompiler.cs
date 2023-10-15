@@ -741,7 +741,7 @@ public static class LLVMCompiler
                     SafeLoad(compiler, @ref),
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)),
                 @ref.ClassOfType,
-                false); //TODO: check validity of bool
+                false);
         }
         else if (expr is IncrementVarNode incrementVar)
         {
@@ -756,8 +756,8 @@ public static class LLVMCompiler
         else if (expr is DecrementVarNode decrementVar)
         {
             var @ref = CompileRef(compiler, scope, decrementVar.RefNode);
-            var valToAdd = LLVMValueRef.CreateConstInt(@ref.LLVMType, 1); //TODO: float compat?
-            compiler.Builder.BuildStore(compiler.Builder.BuildSub(SafeLoad(compiler, @ref), valToAdd), @ref.LLVMValue);
+            var valToSub = LLVMValueRef.CreateConstInt(@ref.LLVMType, 1); //TODO: float compat?
+            compiler.Builder.BuildStore(compiler.Builder.BuildSub(SafeLoad(compiler, @ref), valToSub), @ref.LLVMValue);
             return new ValueContext(@ref.LLVMType,
                 @ref.LLVMValue,
                 @ref.ClassOfType,
@@ -765,11 +765,13 @@ public static class LLVMCompiler
         }
         else if (expr is RefNode @ref)
         {
-            return CompileRef(compiler, scope, @ref);
+            var val = CompileRef(compiler, scope, @ref);
+            return new ValueContext(val.LLVMType, SafeLoad(compiler, val), val.ClassOfType, false);
         }
         else if (expr is SubExprNode subExpr)
         {
-            return CompileExpression(compiler, scope, subExpr.Expression);
+            var val = CompileExpression(compiler, scope, subExpr.Expression);
+            return new ValueContext(val.LLVMType, SafeLoad(compiler, val), val.ClassOfType, false);
         }
         else
         {
@@ -851,15 +853,15 @@ public static class LLVMCompiler
             else if (refNode is IndexAccessNode indexAccess)
             {
                 context = CompileVarRef(compiler, context, scope, refNode);
-                context = new ValueContext(context.ClassOfType.LLVMType,
+                context = new ValueContext(context.ClassOfType.TrueLLVMType,
                     compiler.Builder.BuildInBoundsGEP2(context.ClassOfType.TrueLLVMType, context.LLVMValue, new LLVMValueRef[1]
                     {
                         compiler.Builder.BuildIntCast(SafeLoad(compiler,
                             CompileExpression(compiler, scope, indexAccess.Index)),
                             LLVMTypeRef.Int64)
                     }),
-                    context.ClassOfType,
-                    false); //TODO: check this bool's validity
+                    context.ClassOfType.TrueClassOfType,
+                    true);
                 refNode = refNode.Child;
             }
             else
@@ -897,16 +899,6 @@ public static class LLVMCompiler
                 return new ValueContext(@var.LLVMType,
                     @var.LLVMVariable,
                     @var.ClassOfType,
-                    true);
-            }
-            else if (compiler.CurrentFunction.OwnerClass != null
-                && compiler.CurrentFunction.OwnerClass.Fields.TryGetValue(refNode.Name, out Field field))
-            {
-                return new ValueContext(field.LLVMType,
-                    compiler.Builder.BuildStructGEP2(context.LLVMType,
-                        context.LLVMValue,
-                        field.FieldIndex),
-                    field.ClassOfType,
                     true);
             }
             else if (compiler.GlobalConstants.TryGetValue(refNode.Name, out Constant @const))
@@ -968,7 +960,7 @@ public static class LLVMCompiler
         foreach (ExpressionNode arg in methodCall.Arguments)
         {
             var val = CompileExpression(compiler, scope, arg);
-            args.Add(SafeLoad(compiler, val));
+            args.Add(SafeLoad(compiler, val)); //TODO: strings not being passed properly?
         }
 
         return new ValueContext(func.ClassOfReturnType.LLVMType,

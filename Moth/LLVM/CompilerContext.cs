@@ -43,12 +43,6 @@ public class CompilerContext
             new Class(Reserved.Void,
                 LLVMTypeRef.Void,
                 PrivacyType.Public));
-        Classes.Add(Reserved.String,
-            new Class(Reserved.String,
-                LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8,
-                    0),
-                LLVMTypeRef.Int8,
-                PrivacyType.Public));
         Classes.Add(Reserved.Float16,
             new Class(Reserved.Float16,
                 LLVMTypeRef.Half,
@@ -106,6 +100,15 @@ public class CompilerContext
                 LLVMTypeRef.Int64,
                 PrivacyType.Public,
                 true));
+
+        //Pointer types
+        Classes.Add(Reserved.String,
+            new Class(Reserved.String,
+                LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8,
+                    0),
+                LLVMTypeRef.Int8,
+                Classes[Reserved.Char],
+                PrivacyType.Public));
 
         foreach (Class @class in Classes.Values)
         {
