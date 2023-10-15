@@ -6,6 +6,7 @@ using Moth.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -100,7 +101,8 @@ public static class LLVMCompiler
         {
             foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
             {
-                if (compiler.Classes.TryGetValue(field.TypeRef.Name, out Class type))
+
+                if (compiler.Classes.TryGetValue(UnVoid(field.TypeRef), out Class type))
                 {
                     LLVMTypeRef fieldLLVMType = ResolveTypeRef(compiler, type, field.TypeRef);
 
@@ -138,7 +140,7 @@ public static class LLVMCompiler
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
-            if (compiler.Classes.TryGetValue(paramNode.TypeRef.Name, out Class type))
+            if (compiler.Classes.TryGetValue(UnVoid(paramNode.TypeRef), out Class type))
             {
                 LLVMTypeRef paramLLVMType = ResolveTypeRef(compiler, type, paramNode.TypeRef);
 
@@ -152,7 +154,7 @@ public static class LLVMCompiler
             }
         }
 
-        if (compiler.Classes.TryGetValue(funcDefNode.ReturnTypeRef.Name, out Class classOfReturnType))
+        if (compiler.Classes.TryGetValue(UnVoid(funcDefNode.ReturnTypeRef), out Class classOfReturnType))
         {
             LLVMTypeRef returnLLVMType = ResolveTypeRef(compiler, classOfReturnType, funcDefNode.ReturnTypeRef);
             LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnLLVMType, paramTypes.ToArray(), funcDefNode.IsVariadic);
@@ -188,6 +190,18 @@ public static class LLVMCompiler
                 ResolveAttribute(compiler, func, attribute);
             }
         }
+    }
+
+    public static string UnVoid(TypeRefNode typeRef)
+    {
+        string typeName = typeRef.Name;
+
+        if (typeRef.Name == Reserved.Void && typeRef.IsPointer)
+        {
+            typeName = Reserved.SignedInt8;
+        }
+
+        return typeName;
     }
 
     public static void CompileFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
@@ -251,7 +265,7 @@ public static class LLVMCompiler
             compiler.Builder.BuildStore(func.LLVMFunc.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
-                    paramAsVar,
+                    paramAsVar, //TODO: maybe failing?
                     param.LLVMType,
                     param.ClassOfType,
                     PrivacyType.Local));
@@ -265,7 +279,7 @@ public static class LLVMCompiler
 
     public static void DefineConstant(CompilerContext compiler, FieldDefNode constDef, Class @class = null)
     {
-        if (compiler.Classes.TryGetValue(constDef.TypeRef.Name, out Class type))
+        if (compiler.Classes.TryGetValue(UnVoid(constDef.TypeRef), out Class type))
         {
             var constLLVMType = ResolveTypeRef(compiler, type, constDef.TypeRef);
             var constVal = compiler.Module.AddGlobal(constLLVMType, constDef.Name);
@@ -315,7 +329,7 @@ public static class LLVMCompiler
                             defaultVal.ClassOfType,
                             varDef.Privacy));
                 }
-                else if (compiler.Classes.TryGetValue(varDef.TypeRef.Name, out Class type))
+                else if (compiler.Classes.TryGetValue(UnVoid(varDef.TypeRef), out Class type))
                 {
                     LLVMTypeRef varLLVMType = ResolveTypeRef(compiler, type, varDef.TypeRef);
 
@@ -452,7 +466,7 @@ public static class LLVMCompiler
         return false;
     }
 
-    private static LLVMTypeRef ResolveTypeRef(CompilerContext compiler, Class @class, TypeRefNode typeRef)
+    public static LLVMTypeRef ResolveTypeRef(CompilerContext compiler, Class @class, TypeRefNode typeRef)
     {
         if (typeRef.IsPointer)
         {
@@ -858,7 +872,7 @@ public static class LLVMCompiler
         return context;
     }
 
-    private static ValueContext CompileVarRef(CompilerContext compiler, ValueContext context, Scope scope, RefNode refNode)
+    public static ValueContext CompileVarRef(CompilerContext compiler, ValueContext context, Scope scope, RefNode refNode)
     {
         if (context != null)
         {
@@ -960,7 +974,7 @@ public static class LLVMCompiler
         return new ValueContext(func.ClassOfReturnType.LLVMType,
             compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()),
             func.ClassOfReturnType,
-            true);
+            false);
     }
 
     public static void ResolveAttribute(CompilerContext compiler, Function func, AttributeNode attribute)

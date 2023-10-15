@@ -7,10 +7,12 @@ public class Sys {
         return;
     }
 
-    static GetChar() #char {
-        local ch #i32 = fgetc(stdin());
+    static GetChar(file #void*) #char {
+        local ch #i32 = fgetc(file);
+        printf("oooo");
 
         if !eof(ch) {
+            printf("ooo3");
             local char #char = ch;
             return char;
         } else {
@@ -18,7 +20,7 @@ public class Sys {
         }
     }
 
-    static ReadLine() #str {
+    static ReadLine(file #void*) #str {
         local size #u32 = 512;
         local string #str = malloc(size);
         local ch #char;
@@ -28,7 +30,7 @@ public class Sys {
             return string;
         }
 
-        while (ch = #Sys.GetChar()) != '\n' {
+        while (ch = #Sys.GetChar(file)) != '\n' {
             string[++len] = ch;
             
             if len >= size {
@@ -49,6 +51,6 @@ public class Sys {
 
     static Input(string #str) #str {
         #Sys.Print(string);
-        return #Sys.ReadLine();
+        return #Sys.ReadLine(stdin());
     }
 }
