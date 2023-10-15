@@ -9,6 +9,7 @@ using System.Collections;
 using Moth.AST.Node;
 using System.Diagnostics.Metrics;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace Moth.AST;
 
@@ -246,7 +247,7 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value);
         }
 
-        if (type == TokenType.Decrement)
+        if (type == TokenType.Increment)
         {
             return new IncrementVarNode(refNode);
         }
@@ -603,7 +604,7 @@ public static class TokenParser
             {
                 case TokenType.OpeningParentheses:
                     context.MoveNext();
-                    lastCreatedNode = ProcessExpression(context, lastCreatedNode);
+                    lastCreatedNode = new SubExprNode(ProcessExpression(context, lastCreatedNode));
 
                     if (context.Current?.Type != TokenType.ClosingParentheses)
                     {
@@ -625,7 +626,7 @@ public static class TokenParser
                     context.MoveNext();
                     break;
                 case TokenType.LiteralChar:
-                    lastCreatedNode = new ConstantNode(context.Current.Value.ToString()[0]);
+                    lastCreatedNode = new ConstantNode(context.Current.Value.Text.ToString()[0]);
                     context.MoveNext();
                     break;
                 case TokenType.True:

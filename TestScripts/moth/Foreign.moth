@@ -6,7 +6,7 @@ foreign free(pointer #void*) #void;
 
 foreign printf(text #str, ~~) #i32;
 foreign fgets(str #str, n #i32, FILE #void*) #str;
-foreign fgetc(FILE #void*) #char;
+foreign fgetc(file #void*) #i32;
 foreign fopen(path #str, mode #str) #void*;
 
 @CallingConvention("cdecl")
@@ -25,5 +25,5 @@ func stderr() #void* {
 }
 
 func eof(ch #i32) #bool {
-    return ch < 0; //these are not of same type
+    return ch < 0;
 }

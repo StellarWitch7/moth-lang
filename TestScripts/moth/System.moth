@@ -7,33 +7,48 @@ public class Sys {
         return;
     }
 
-    static ReadLine(file #void*) #str {
-        local string #str = malloc(16);
+    static GetChar() #char {
+        local ch #i32 = fgetc(stdin());
+
+        if !eof(ch) {
+            local char #char = ch;
+            return char;
+        } else {
+            return '\0';
+        }
+    }
+
+    static ReadLine() #str {
+        local size #u32 = 512;
+        local string #str = malloc(size);
         local ch #char;
         local len := -1;
 
         if string == null {
             return string;
         }
-        
-        while !eof(ch = fgetc(file)) && ch != '\n' {
+
+        while (ch = #Sys.GetChar()) != '\n' {
             string[++len] = ch;
             
             if len >= size {
-                string = realloc(string, size += 16);
+                string = realloc(string, size = size + 512);
 
                 if string == null {
                     return string;
                 }
             }
+
+            if ch == '\0' {
+                ch = '\n';
+            }
         }
 
-        string[++len] = '\0';
         return realloc(string, len);
     }
 
     static Input(string #str) #str {
         #Sys.Print(string);
-        return ReadLine(stdin());
+        return #Sys.ReadLine();
     }
 }

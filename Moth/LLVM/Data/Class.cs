@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Moth.LLVM.Data;
 
@@ -12,6 +13,7 @@ public class Class : CompilerData
 {
     public string Name { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
+    public LLVMTypeRef TrueLLVMType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
     public Dictionary<string, Function> Methods { get; set; } = new Dictionary<string, Function>();
@@ -19,11 +21,16 @@ public class Class : CompilerData
     public Dictionary<string, Function> StaticMethods { get; set; } = new Dictionary<string, Function>();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(string name, LLVMTypeRef lLVMClass, PrivacyType privacy)
+    public Class(string name, LLVMTypeRef lLVMType, LLVMTypeRef trueLLVMType, PrivacyType privacy)
     {
         Name = name;
-        LLVMType = lLVMClass;
+        LLVMType = lLVMType;
+        TrueLLVMType = trueLLVMType;
         Privacy = privacy;
+    }
+
+    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy) : this(name, lLVMType, lLVMType, privacy)
+    {
     }
 
     public void AddBuiltins(CompilerContext compiler)

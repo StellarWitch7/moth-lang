@@ -12,12 +12,14 @@ public class ValueContext
 {
     public LLVMTypeRef LLVMType { get; set; }
     public LLVMValueRef LLVMValue { get; set; }
-    public Data.Class ClassOfType { get; set; }
+    public Class ClassOfType { get; set; }
+    public bool IsVariable { get; set; }
 
-    public ValueContext(LLVMTypeRef type, LLVMValueRef value, Data.Class classOfType)
+    public ValueContext(LLVMTypeRef type, LLVMValueRef value, Class classOfType, bool isVariable)
     {
         LLVMType = type;
         LLVMValue = value;
         ClassOfType = classOfType;
+        IsVariable = isVariable;
     }
 }
