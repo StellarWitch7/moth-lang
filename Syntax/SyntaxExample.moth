@@ -3,7 +3,7 @@ namespace Syntax.Example;
 foreign printf(string #str, ~~) #i32; // This is a comment talking about this foreign function definition.
 
 func Add(left #i32, right #i32) #i32 {
-    local result := if left != null && right != null then left + right else null;
+    local result ?= if left != null && right != null then left + right else null;
     return result;
 }
 

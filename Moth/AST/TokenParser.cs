@@ -814,6 +814,19 @@ public static class TokenParser
                     }
 
                     break;
+                case TokenType.Cast:
+                    context.MoveNext();
+
+                    if (lastCreatedNode != null && lastCreatedNode is TypeRefNode)
+                    {
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Cast, lastCreatedNode);
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
+                    break;
                 case TokenType.Not:
                     context.MoveNext();
                     lastCreatedNode = new InverseNode(ProcessAccess(context));
@@ -995,14 +1008,14 @@ public static class TokenParser
         switch (operationType)
         {
             case OperationType.Exponential:
-                return 4;
+                return 5;
             case OperationType.Modulo:
             case OperationType.Multiplication:
             case OperationType.Division:
-                return 3;
+                return 4;
             case OperationType.Addition:
             case OperationType.Subtraction:
-                return 2;
+                return 3;
             case OperationType.Equal:
             case OperationType.NotEqual:
             case OperationType.LessThanOrEqual:
@@ -1011,9 +1024,9 @@ public static class TokenParser
             case OperationType.LessThan:
             case OperationType.LargerThan:
             case OperationType.And:
+                return 2;
+            case OperationType.Cast:
                 return 1;
-            case OperationType.Assignment:
-                return 0;
             default:
                 return 0;
         }

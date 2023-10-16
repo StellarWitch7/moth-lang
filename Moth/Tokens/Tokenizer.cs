@@ -184,7 +184,8 @@ public static class Tokenizer
 							'|' when next is '|' => TokenType.Or,
 							'&' when next is '&' => TokenType.And,
 							'~' when next is '~' => TokenType.Variadic,
-							':' when next is '=' => TokenType.InferAssign,
+							'?' when next is '=' => TokenType.InferAssign,
+							'<' when next is '-' => TokenType.Cast,
 							':' => TokenType.Colon,
 							',' => TokenType.Comma,
 							'.' => TokenType.Period,
@@ -224,7 +225,7 @@ public static class Tokenizer
 							{
 								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual
 								    or TokenType.LargerThanOrEqual or TokenType.And
-									or TokenType.Or or TokenType.Exponential
+									or TokenType.Or or TokenType.Exponential or TokenType.Cast
 									or TokenType.Increment or TokenType.Decrement
 									or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),

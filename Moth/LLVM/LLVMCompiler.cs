@@ -496,19 +496,62 @@ public static class LLVMCompiler
                     throw new Exception();
                 }
             }
+            else if (binaryOp.Type == OperationType.Cast)
+            {
+                if (binaryOp.Left is TypeRefNode left && compiler.Classes.TryGetValue(left.Name, out Class @class))
+                {
+
+                    var right = CompileExpression(compiler, scope, binaryOp.Right);
+                    var lLVMType = ResolveTypeRef(compiler, @class, left);
+                    LLVMValueRef builtVal;
+
+                    if (left.Name == Reserved.Bool
+                        || left.Name == Reserved.Char
+                        || left.Name == Reserved.UnsignedInt16
+                        || left.Name == Reserved.UnsignedInt32
+                        || left.Name == Reserved.UnsignedInt64
+                        || left.Name == Reserved.SignedInt8
+                        || left.Name == Reserved.SignedInt16
+                        || left.Name == Reserved.SignedInt32
+                        || left.Name == Reserved.SignedInt64)
+                    {
+                        builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right), lLVMType);
+                    }
+                    else if (left.Name == Reserved.Float16
+                        || left.Name == Reserved.Float32
+                        || left.Name == Reserved.Float64)
+                    {
+                        builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right), lLVMType);
+                    }
+                    else
+                    {
+                        builtVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast,
+                            SafeLoad(compiler, right),
+                            lLVMType);
+                    }
+
+                    return new ValueContext(lLVMType, builtVal, @class, false);
+                }
+                else
+                {
+                    throw new Exception("Cast destination is invalid.");
+                }
+            }
             else
             {
                 var left = CompileExpression(compiler, scope, binaryOp.Left);
                 var right = CompileExpression(compiler, scope, binaryOp.Right);
 
-                if (/*left.ClassOfType == right.ClassOfType*/true) //TODO: whaaaa
+                if (left.ClassOfType.Name == right.ClassOfType.Name
+                    || (binaryOp.Type == OperationType.Equal
+                    || binaryOp.Type == OperationType.NotEqual))
                 {
                     LLVMValueRef leftVal;
                     LLVMValueRef rightVal;
                     LLVMValueRef builtVal;
 
                     leftVal = SafeLoad(compiler, left);
-                    rightVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast, SafeLoad(compiler, right), left.LLVMType);
+                    rightVal = SafeLoad(compiler, right);
 
                     switch (binaryOp.Type)
                     {
@@ -643,7 +686,8 @@ public static class LLVMCompiler
                 }
                 else
                 {
-                    throw new Exception();
+                    throw new Exception($"Operation cannot be done with operands of types \"{left.ClassOfType.Name}\" "
+                        + $"and \"{right.ClassOfType.Name}\"!");
                 }
             }
         }
@@ -981,13 +1025,12 @@ public static class LLVMCompiler
             {
                 if (constantNode.Value is string str)
                 {
-                    switch (str)
+                    var lLVMFunc = func.LLVMFunc;
+                    lLVMFunc.FunctionCallConv = str switch
                     {
-                        case "cdecl":
-                            var lLVMFunc = func.LLVMFunc;
-                            lLVMFunc.FunctionCallConv = 0;
-                            break;
-                    }
+                        "cdecl" => 0,
+                        _ => throw new Exception("Invalid calling convention!"),
+                    };
                 }
                 else
                 {

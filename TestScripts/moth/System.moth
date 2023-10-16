@@ -16,8 +16,7 @@ public class Sys {
         local ch #i32 = fgetc(file);
 
         if !eof(ch) {
-            local char #char = ch;
-            return char;
+            return #char <- ch;
         } else {
             return '\0';
         }
@@ -27,7 +26,7 @@ public class Sys {
         local size #u32 = 512;
         local string #str = malloc(size);
         local ch #char = #Sys.GetChar(file);
-        local len := -1;
+        local len #i32 = -1;
 
         if string == null {
             return string;
@@ -36,8 +35,8 @@ public class Sys {
         while ch != '\0' {
             string[++len] = ch;
             
-            if len >= size {
-                string = realloc(string, size = size + 512);
+            if len >= #i32 <- size {
+                string = realloc(string, size = size + #u32 <- 512);
 
                 if string == null {
                     return string;

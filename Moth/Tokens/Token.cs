@@ -95,5 +95,6 @@ public enum TokenType
     Static,
     InferAssign,
     AttributeMarker,
-    LiteralChar
+    LiteralChar,
+    Cast
 }
