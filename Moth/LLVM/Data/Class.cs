@@ -13,35 +13,18 @@ public class Class : CompilerData
 {
     public string Name { get; set; }
     public LLVMTypeRef LLVMType { get; set; }
-    public LLVMTypeRef TrueLLVMType { get; set; }
-    public Class TrueClassOfType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
-    public Dictionary<string, Function> Methods { get; set; } = new Dictionary<string, Function>();
+    public FuncDictionary Methods { get; set; } = new FuncDictionary();
     public Dictionary<string, Field> StaticFields { get; set; } = new Dictionary<string, Field>();
-    public Dictionary<string, Function> StaticMethods { get; set; } = new Dictionary<string, Function>();
+    public FuncDictionary StaticMethods { get; set; } = new FuncDictionary();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(string name, LLVMTypeRef lLVMType, LLVMTypeRef trueLLVMType, Class? trueClassOfType, PrivacyType privacy)
+    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy)
     {
         Name = name;
         LLVMType = lLVMType;
-        TrueLLVMType = trueLLVMType;
-
-        if (trueClassOfType == null)
-        {
-            TrueClassOfType = this;
-        }
-        else
-        {
-            TrueClassOfType = trueClassOfType;
-        }
-
         Privacy = privacy;
-    }
-
-    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy) : this(name, lLVMType, lLVMType, null, privacy)
-    {
     }
 
     public void AddBuiltins(CompilerContext compiler)
@@ -54,7 +37,7 @@ public class Class : CompilerData
                 var func = new Function(Reserved.SizeOf, compiler.Module.AddFunction($"{Name}.{Reserved.SizeOf}", funcType),
                     funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
                 
-                StaticMethods.Add(Reserved.SizeOf, func);
+                StaticMethods.Add(new Signature(Reserved.SizeOf, new TypeRefNode[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 
@@ -82,7 +65,7 @@ public class Class : CompilerData
                 var func = new Function(Reserved.AlignOf, compiler.Module.AddFunction($"{Name}.{Reserved.AlignOf}", funcType),
                     funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
 
-                StaticMethods.Add(Reserved.AlignOf, func);
+                StaticMethods.Add(new Signature(Reserved.AlignOf, new TypeRefNode[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 

@@ -4,25 +4,25 @@ foreign malloc(size #u32) #void*;
 foreign realloc(ptr #void*, size #u32) #void*;
 foreign free(pointer #void*) #void;
 
-foreign printf(text #str, ~~) #i32;
-foreign fgets(str #str, n #i32, FILE #void*) #str;
+foreign printf(text #char*, ~~) #i32;
+foreign fgets(str #char*, n #i32, FILE #void*) #char*;
 foreign fgetc(file #void*) #i32;
-foreign fopen(path #str, mode #str) #void*;
-foreign strcpy(destination #str, source #str) #str;
+foreign fopen(path #char*, mode #char*) #void*;
+foreign strcpy(destination #char*, source #char*) #char*;
 
 @CallingConvention("cdecl")
 foreign __acrt_iob_func(n #u32) #void*;
 
 func stdin() #void* {
-    return __acrt_iob_func(0);
+    return __acrt_iob_func(#u32 <- 0);
 }
 
 func stdout() #void* {
-    return __acrt_iob_func(1);
+    return __acrt_iob_func(#u32 <- 1);
 }
 
 func stderr() #void* {
-    return __acrt_iob_func(2);
+    return __acrt_iob_func(#u32 <- 2);
 }
 
 func eof(ch #i32) #bool {

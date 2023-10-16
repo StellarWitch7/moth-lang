@@ -14,7 +14,6 @@ public static class Reserved
     public static readonly string AlignOf = "alignof";
 
     public static readonly string Void = "void";
-    public static readonly string String = "str";
     public static readonly string Float16 = "f16";
     public static readonly string Float32 = "f32";
     public static readonly string Float64 = "f64";

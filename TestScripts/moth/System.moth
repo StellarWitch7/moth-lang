@@ -2,12 +2,12 @@ namespace Moth;
 
 public class Sys {
 
-    static Write(string #str, end #char) #void {
+    static Write(string #char*, end #char) #void {
         printf("%s%c", string, end);
         return;
     }
 
-    static WriteLine(string #str) #void {
+    static WriteLine(string #char*) #void {
         #Sys.Write(string, '\n');
         return;
     }
@@ -22,9 +22,9 @@ public class Sys {
         }
     }
 
-    static ReadLine(file #void*) #str {
+    static ReadLine(file #void*) #char* {
         local size #u32 = 512;
-        local string #str = malloc(size);
+        local string #char* = malloc(size);
         local ch #char = #Sys.GetChar(file);
         local len #i32 = -1;
 
@@ -51,11 +51,11 @@ public class Sys {
         }
 
         string[++len] = ch;
-        string = realloc(string, ++len);
+        string = realloc(string, #u32 <- ++len);
         return string;
     }
 
-    static Input(string #str) #str {
+    static Input(string #char*) #char* {
         #Sys.Write(string, '\0');
         return #Sys.ReadLine(stdin());
     }

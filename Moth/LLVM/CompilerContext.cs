@@ -16,15 +16,9 @@ public class CompilerContext
     public LLVMModuleRef Module { get; set; }
     public string ModuleName { get; set; }
     public Logger Logger { get; } = new Logger("moth/compiler");
-    public Dictionary<string,
-            Class> Classes { get; set; } = new Dictionary<string,
-            Class>();
-    public Dictionary<string,
-            Function> GlobalFunctions { get; set; } = new Dictionary<string,
-            Function>();
-    public Dictionary<string,
-            Constant> GlobalConstants { get; set; } = new Dictionary<string,
-            Constant>();
+    public Dictionary<string, Class> Classes { get; set; } = new Dictionary<string, Class>();
+    public FuncDictionary GlobalFunctions { get; set; } = new FuncDictionary();
+    public Dictionary<string, Constant> GlobalConstants { get; set; } = new Dictionary<string, Constant>();
     public Function CurrentFunction { get; set; }
 
     public CompilerContext(string moduleName)
@@ -100,15 +94,6 @@ public class CompilerContext
                 LLVMTypeRef.Int64,
                 PrivacyType.Public,
                 true));
-
-        //Pointer types
-        Classes.Add(Reserved.String,
-            new Class(Reserved.String,
-                LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8,
-                    0),
-                LLVMTypeRef.Int8,
-                Classes[Reserved.Char],
-                PrivacyType.Public));
 
         foreach (Class @class in Classes.Values)
         {

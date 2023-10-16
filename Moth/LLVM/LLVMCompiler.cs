@@ -124,6 +124,7 @@ public static class LLVMCompiler
     {
         int index = 0;
         string funcName = funcDefNode.Name;
+        List<TypeRefNode> paramTypeRefs = new List<TypeRefNode>();
         List<Parameter> @params = new List<Parameter>();
         List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
 
@@ -144,6 +145,7 @@ public static class LLVMCompiler
             {
                 LLVMTypeRef paramLLVMType = ResolveTypeRef(compiler, type, paramNode.TypeRef);
 
+                paramTypeRefs.Add(paramNode.TypeRef);
                 paramTypes.Add(paramLLVMType);
                 @params.Add(new Parameter(index, paramNode.Name, paramLLVMType, type));
                 index++;
@@ -168,21 +170,22 @@ public static class LLVMCompiler
                 @class,
                 @params,
                 funcDefNode.IsVariadic);
+            Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray());
 
             if (@class != null)
             {
                 if (func.Privacy == PrivacyType.Static)
                 {
-                    @class.StaticMethods.Add(funcDefNode.Name, func);
+                    @class.StaticMethods.Add(sig, func);
                 }
                 else
                 {
-                    @class.Methods.Add(funcDefNode.Name, func);
+                    @class.Methods.Add(sig, func);
                 }
             }
             else
             {
-                compiler.GlobalFunctions.Add(funcDefNode.Name, func);
+                compiler.GlobalFunctions.Add(sig, func);
             }
 
             foreach (var attribute in funcDefNode.Attributes)
@@ -198,7 +201,8 @@ public static class LLVMCompiler
 
         if (typeRef.Name == Reserved.Void && typeRef.IsPointer)
         {
-            typeName = Reserved.SignedInt8;
+            typeName = Reserved.Char;
+            typeRef.Name = Reserved.Char;
         }
 
         return typeName;
@@ -207,20 +211,30 @@ public static class LLVMCompiler
     public static void CompileFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         Function func;
+        List<TypeRefNode> paramTypeRefs = new List<TypeRefNode>();
+
+        foreach (var @param in funcDefNode.Params)
+        {
+            paramTypeRefs.Add(@param.TypeRef);
+        }
+
+        Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray());
 
         if (funcDefNode.Privacy == PrivacyType.Foreign && funcDefNode.ExecutionBlock == null)
         {
             return;
         }
-        else if (@class != null && funcDefNode.Privacy != PrivacyType.Static && @class.Methods.TryGetValue(funcDefNode.Name, out func))
+        else if (@class != null && funcDefNode.Privacy != PrivacyType.Static
+            && @class.Methods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
-        else if (@class != null && funcDefNode.Privacy == PrivacyType.Static && @class.StaticMethods.TryGetValue(funcDefNode.Name, out func))
+        else if (@class != null && funcDefNode.Privacy == PrivacyType.Static
+            && @class.StaticMethods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
-        else if (compiler.GlobalFunctions.TryGetValue(funcDefNode.Name, out func))
+        else if (compiler.GlobalFunctions.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -695,15 +709,15 @@ public static class LLVMCompiler
         {
             if (constNode.Value is string str)
             {
-                if (compiler.Classes.TryGetValue(Reserved.String, out Class @class)) {
+                if (compiler.Classes.TryGetValue(Reserved.Char, out Class @class)) {
                     var constStr = compiler.Context.GetConstString(str, false);
                     var global = compiler.Module.AddGlobal(constStr.TypeOf, "");
                     global.Initializer = constStr;
-                    return new ValueContext(@class.LLVMType, global, @class, false);
+                    return new ValueContext(LLVMTypeRef.CreatePointer(@class.LLVMType, 0), global, @class, false);
                 }
                 else
                 {
-                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.String}\".");
+                    throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Char}\".");
                 }
             }
             else if (constNode.Value is bool @bool)
@@ -732,7 +746,7 @@ public static class LLVMCompiler
             {
                 if (compiler.Classes.TryGetValue(Reserved.SignedInt32, out Class @class))
                 {
-                    return new ValueContext(@class.LLVMType, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32), @class, false);
+                    return new ValueContext(@class.LLVMType, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true), @class, false);
                 }
                 else
                 {
@@ -896,14 +910,14 @@ public static class LLVMCompiler
             else if (refNode is IndexAccessNode indexAccess)
             {
                 context = CompileVarRef(compiler, context, scope, refNode);
-                context = new ValueContext(context.ClassOfType.TrueLLVMType,
-                    compiler.Builder.BuildInBoundsGEP2(context.ClassOfType.TrueLLVMType, SafeLoad(compiler, context), new LLVMValueRef[1]
+                context = new ValueContext(context.ClassOfType.LLVMType,
+                    compiler.Builder.BuildInBoundsGEP2(context.ClassOfType.LLVMType, SafeLoad(compiler, context), new LLVMValueRef[1]
                     {
                         compiler.Builder.BuildIntCast(SafeLoad(compiler,
                             CompileExpression(compiler, scope, indexAccess.Index)),
                             LLVMTypeRef.Int64)
                     }),
-                    context.ClassOfType.TrueClassOfType,
+                    context.ClassOfType,
                     true);
                 refNode = refNode.Child;
             }
@@ -962,6 +976,7 @@ public static class LLVMCompiler
         Class staticClass = null)
     {
         List<LLVMValueRef> args = new List<LLVMValueRef>();
+        List<TypeRefNode> argsAsTyperefs = new List<TypeRefNode>();
         bool contextWasNull = context == null;
         Function func;
 
@@ -976,22 +991,35 @@ public static class LLVMCompiler
             }
         }
 
-        if (context != null && context.ClassOfType.Methods.TryGetValue(methodCall.Name, out func))
+        foreach (ExpressionNode arg in methodCall.Arguments)
+        {
+            var val = CompileExpression(compiler, scope, arg);
+            bool isPointer = val.LLVMType.Kind == LLVMTypeKind.LLVMPointerTypeKind;
+
+            argsAsTyperefs.Add(new TypeRefNode(val.ClassOfType.Name, isPointer));
+            args.Add(SafeLoad(compiler, val));
+        }
+
+        Signature sig = new Signature(methodCall.Name, argsAsTyperefs.ToArray());
+
+        if (context != null && context.ClassOfType.Methods.TryGetValue(sig, out func))
         {
             if (context.LLVMType == func.LLVMFuncType.ParamTypes[0])
             {
-                args.Add(SafeLoad(compiler, context));
+                var newArgs = new List<LLVMValueRef>() { SafeLoad(compiler, context) };
+                newArgs.AddRange(args);
+                args = newArgs;
             }
             else
             {
                 throw new Exception("Attempted to call a method on a different class. !!THIS IS NOT A USER ERROR. REPORT ASAP!!");
             }
         }
-        else if (contextWasNull && compiler.GlobalFunctions.TryGetValue(methodCall.Name, out func))
+        else if (contextWasNull && compiler.GlobalFunctions.TryGetValue(sig, out func))
         {
             // Keep empty
         }
-        else if (staticClass != null && staticClass.StaticMethods.TryGetValue(methodCall.Name, out func))
+        else if (staticClass != null && staticClass.StaticMethods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -1000,13 +1028,7 @@ public static class LLVMCompiler
             throw new Exception($"Function \"{methodCall.Name}\" does not exist.");
         }
 
-        foreach (ExpressionNode arg in methodCall.Arguments)
-        {
-            var val = CompileExpression(compiler, scope, arg);
-            args.Add(SafeLoad(compiler, val)); //TODO: strings not being passed properly?
-        }
-
-        return new ValueContext(func.ClassOfReturnType.LLVMType,
+        return new ValueContext(func.LLVMReturnType,
             compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()),
             func.ClassOfReturnType,
             false);

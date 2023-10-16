@@ -1,6 +1,6 @@
 namespace Test;
 
-func main(args #str*) #i32 {
+func main() #i32 {
     #Sys.WriteLine("Welcome!");
     #Sys.Input("Enter something: ");
     #Sys.WriteLine("Goodbye!");
