@@ -87,7 +87,7 @@ public static class Tokenizer
 									"local" => TokenType.Local,
 									"self" => TokenType.This,
 									"namespace" => TokenType.Namespace,
-									"throw" => TokenType.Throw,
+									"then" => TokenType.Then,
 									"constant" => TokenType.Constant,
 									"while" => TokenType.While,
 									"true" => TokenType.True,
@@ -96,11 +96,11 @@ public static class Tokenizer
 									"false" => TokenType.False,
 									"every" => TokenType.For,
 									"in" => TokenType.In,
+									"or" => TokenType.Or,
+									"and" => TokenType.And,
 									"func" => TokenType.Function,
-                                    "attempt" => TokenType.Try,
-									"seize" => TokenType.Catch,
 									"class" => TokenType.Class,
-									"wield" => TokenType.Import,
+									"use" => TokenType.Import,
 									"public" => TokenType.Public,
 									"static" => TokenType.Static,
 									"return" => TokenType.Return,
@@ -181,11 +181,11 @@ public static class Tokenizer
 							'+' when next is '+' => TokenType.Increment,
 							'-' when next is '-' => TokenType.Decrement,
 							'*' when next is '^' => TokenType.Exponential,
-							'|' when next is '|' => TokenType.Or,
-							'&' when next is '&' => TokenType.And,
 							'~' when next is '~' => TokenType.Variadic,
 							'?' when next is '=' => TokenType.InferAssign,
 							'<' when next is '-' => TokenType.Cast,
+							'<' when next is '\\' => TokenType.OpeningGenericBracket,
+							'\\' when next is '>' => TokenType.ClosingGenericBracket,
 							':' => TokenType.Colon,
 							',' => TokenType.Comma,
 							'.' => TokenType.Period,
@@ -224,10 +224,10 @@ public static class Tokenizer
 							Text = type switch
 							{
 								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual
-								    or TokenType.LargerThanOrEqual or TokenType.And
-									or TokenType.Or or TokenType.Exponential or TokenType.Cast
-									or TokenType.Increment or TokenType.Decrement
-									or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
+								    or TokenType.LargerThanOrEqual or TokenType.Exponential
+									or TokenType.Cast or TokenType.Increment or TokenType.Decrement
+                                    or TokenType.OpeningGenericBracket or TokenType.ClosingGenericBracket
+                                    or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),
 							},
 							Type = (TokenType)type,

@@ -6,3 +6,21 @@ func main() #i32 {
     #Sys.WriteLine("Goodbye!");
     return 0;
 }
+
+public class Array<\T, SIZE #i32\> {
+    private value #T*;
+
+    public GetIndex(index #u32) #T {
+        return if index > 0 and index < self.SIZE - 1 then self.value[index] else null;
+    }
+
+    public SetIndex(index #u32, item #T) #bool {
+
+        if index < 0 or index > self.SIZE - 1 {
+            return false;
+        }
+
+        self.value[index] = item;
+        return true;
+    }
+}

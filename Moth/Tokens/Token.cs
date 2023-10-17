@@ -71,7 +71,6 @@ public enum TokenType
 	LiteralInt,
 	LiteralString,
 	Import,
-	Throw,
 	This,
 	Decrement,
 	Increment,
@@ -79,8 +78,6 @@ public enum TokenType
     ClosingSquareBrackets,
     For,
     In,
-    Catch,
-    Try,
     Modulo,
     Not,
     Or,
@@ -96,5 +93,8 @@ public enum TokenType
     InferAssign,
     AttributeMarker,
     LiteralChar,
-    Cast
+    Cast,
+    ClosingGenericBracket,
+    OpeningGenericBracket,
+    Then
 }

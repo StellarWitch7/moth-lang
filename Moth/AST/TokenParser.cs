@@ -7,9 +7,6 @@ using System.Threading.Tasks;
 using Moth.Tokens;
 using System.Collections;
 using Moth.AST.Node;
-using System.Diagnostics.Metrics;
-using System.Xml.Linq;
-using System.Text.RegularExpressions;
 
 namespace Moth.AST;
 
@@ -644,6 +641,28 @@ public static class TokenParser
                 case TokenType.Pi:
                     lastCreatedNode = new ConstantNode(3.14159265358979323846264f);
                     context.MoveNext();
+                    break;
+                case TokenType.If:
+                    context.MoveNext();
+                    var condition = ProcessExpression(context, null);
+
+                    if (context.Current?.Type != TokenType.Then)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Then);
+                    }
+
+                    context.MoveNext();
+                    var then = ProcessExpression(context, null);
+
+                    if (context.Current?.Type != TokenType.Else)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Else);
+                    }
+
+                    context.MoveNext();
+                    var @else = ProcessExpression(context, null);
+
+                    lastCreatedNode = new InlineIfNode(condition, then, @else);
                     break;
                 case TokenType.Plus:
                     context.MoveNext();
