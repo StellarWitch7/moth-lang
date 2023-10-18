@@ -20,17 +20,27 @@ class SigEqualityComparer : IEqualityComparer<Signature>
     public bool Equals(Signature x, Signature y)
     {
         if (ReferenceEquals(x, y))
+        {
             return true;
+        }
 
         if (x.Name != y.Name)
         {
             return false;
         }
 
+        if (!(x.IsVariadic || y.IsVariadic))
+        {
+            if (x.Params.Length != y.Params.Length)
+            {
+                return false;
+            }
+        }
+
         bool isEqual = true;
         int index = 0;
 
-        foreach (var @param in x.Params)
+        foreach (var @param in x.Params.Length < y.Params.Length ? x.Params : y.Params)
         {
             if (@param.PointerDepth != y.Params[index].PointerDepth
                 || @param.Name != y.Params[index].Name)

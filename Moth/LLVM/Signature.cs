@@ -11,10 +11,12 @@ public class Signature
 {
     public string Name { get; set; }
     public TypeRefNode[] Params { get; set; }
+    public bool IsVariadic { get; set; }
 
-    public Signature(string name, TypeRefNode[] @params)
+    public Signature(string name, TypeRefNode[] @params, bool isVariadic = false)
     {
         Name = name;
         Params = @params;
+        IsVariadic = isVariadic;
     }
 }

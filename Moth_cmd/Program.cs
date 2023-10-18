@@ -1,11 +1,9 @@
-﻿using System.Text.RegularExpressions;
-using System.Text;
+﻿using System.Text;
 using Moth;
 using Moth.Tokens;
 using Moth.AST;
 using Moth.LLVM;
 using LLVMSharp.Interop;
-using CommandLine.Text;
 using CommandLine;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -259,16 +257,41 @@ internal class Program
                                 {
                                     FileName = Path.Join(dir, testName),
                                     WorkingDirectory = dir,
-                                    //RedirectStandardOutput = true,
-                                    //RedirectStandardError = true,
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
                                 });
 
                                 Logger testLogger = new Logger(testName);
 
                                 while (!testProgram.HasExited)
                                 {
-                                    //testLogger.WriteUnsignedLine(testProgram.StandardOutput.ReadToEnd());
-                                    //testLogger.WriteUnsignedLine(testProgram.StandardError.ReadToEnd());
+                                    while (!testProgram.StandardOutput.EndOfStream)
+                                    {
+                                        int ch = testProgram.StandardOutput.Read();
+
+                                        if (ch > 0)
+                                        {
+                                            testLogger.WriteUnsigned((char)ch);
+                                        }
+                                        else
+                                        {
+                                            break;
+                                        }
+                                    }
+
+                                    while (!testProgram.StandardError.EndOfStream)
+                                    {
+                                        int ch = testProgram.StandardError.Read();
+
+                                        if (ch > 0)
+                                        {
+                                            testLogger.WriteUnsigned((char)ch);
+                                        }
+                                        else
+                                        {
+                                            break;
+                                        }
+                                    }
                                 }
 
                                 testLogger.WriteEmptyLine();

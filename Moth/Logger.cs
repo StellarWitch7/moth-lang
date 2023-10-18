@@ -50,12 +50,32 @@ public class Logger
 
     public void WriteUnsignedLine(string message)
     {
+        WriteUnsigned(message + '\n');
+    }
+
+    public void WriteUnsigned(string message)
+    {
+        WriteToLog(message);
+        Console.Write(message);
+    }
+
+    public void WriteToLog(string message)
+    {
         FileStream fs = File.Open(LogFile, FileMode.Append);
         StreamWriter writer = new StreamWriter(fs);
         writer.AutoFlush = true;
 
-        Console.WriteLine(message);
-        writer.WriteLine(message);
+        writer.Write(message);
         writer.Close();
+    }
+
+    public void WriteToLog(char ch)
+    {
+        WriteToLog(ch.ToString());
+    }
+
+    public void WriteUnsigned(char ch)
+    {
+        WriteUnsigned(ch.ToString());
     }
 }

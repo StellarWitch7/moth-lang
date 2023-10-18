@@ -2,13 +2,6 @@
 using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
-using Moth.Tokens;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
@@ -171,7 +164,7 @@ public static class LLVMCompiler
                 @class,
                 @params,
                 funcDefNode.IsVariadic);
-            Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray());
+            Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray(), funcDefNode.IsVariadic);
 
             if (@class != null)
             {
@@ -721,8 +714,6 @@ public static class LLVMCompiler
             var @else = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("else");
             var @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
 
-            compiler.Builder.BuildCondBr(SafeLoad(compiler, condition), then, @else); //TODO: store instructions may be wrong
-
             //then
             compiler.Builder.PositionAtEnd(then);
             var thenVal = CompileExpression(compiler, scope, @if.Then);
@@ -731,17 +722,20 @@ public static class LLVMCompiler
             compiler.Builder.PositionAtEnd(@else);
             var elseVal = CompileExpression(compiler, scope, @if.Else);
 
-            //continue
-            compiler.Builder.PositionAtEnd(@continue);
+            //prior
+            compiler.Builder.PositionAtEnd(scope.LLVMBlock);
             var result = compiler.Builder.BuildAlloca(thenVal.Type.LLVMType, "result");
+            compiler.Builder.BuildCondBr(SafeLoad(compiler, condition), then, @else);
 
             //then
             compiler.Builder.PositionAtEnd(then);
             compiler.Builder.BuildStore(SafeLoad(compiler, thenVal), result);
+            compiler.Builder.BuildBr(@continue);
 
             //else
             compiler.Builder.PositionAtEnd(@else);
             compiler.Builder.BuildStore(SafeLoad(compiler, elseVal), result);
+            compiler.Builder.BuildBr(@continue);
 
             //continue
             compiler.Builder.PositionAtEnd(@continue);

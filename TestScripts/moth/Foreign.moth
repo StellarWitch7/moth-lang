@@ -5,6 +5,9 @@ foreign realloc(ptr #void*, size #u32) #void*;
 foreign free(pointer #void*) #void;
 
 foreign printf(text #char*, ~~) #i32;
+foreign sprintf(destination #char*, format #char*, ~~) #i32;
+foreign fflush(stream #void*) #i32;
+foreign fputs(string #char*, file #void*) #i32;
 foreign fgets(str #char*, n #i32, FILE #void*) #char*;
 foreign fgetc(file #void*) #i32;
 foreign fopen(path #char*, mode #char*) #void*;
