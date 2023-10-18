@@ -12,15 +12,15 @@ public class Variable : CompilerData
 {
     public string Name { get; set; }
     public LLVMValueRef LLVMVariable { get; set; }
-    public LLVMTypeRef LLVMType { get; set; }
+    public Type Type { get; set; }
     public PrivacyType Privacy { get; set; }
     public Class ClassOfType { get; set; }
 
-    public Variable(string name, LLVMValueRef lLVMVariable, LLVMTypeRef lLVMType, Class classOfType, PrivacyType privacy)
+    public Variable(string name, LLVMValueRef lLVMVariable, Type type, Class classOfType, PrivacyType privacy)
     {
         Name = name;
         LLVMVariable = lLVMVariable;
-        LLVMType = lLVMType;
+        Type = type;
         Privacy = privacy;
         ClassOfType = classOfType;
     }

@@ -35,63 +35,63 @@ public class CompilerContext
     {
         Classes.Add(Reserved.Void,
             new Class(Reserved.Void,
-                LLVMTypeRef.Void,
+                new Type(LLVMTypeRef.Void),
                 PrivacyType.Public));
         Classes.Add(Reserved.Float16,
             new Class(Reserved.Float16,
-                LLVMTypeRef.Half,
+                new Type(LLVMTypeRef.Half),
                 PrivacyType.Public));
         Classes.Add(Reserved.Float32,
             new Class(Reserved.Float32,
-                LLVMTypeRef.Float,
+                new Type(LLVMTypeRef.Float),
                 PrivacyType.Public));
         Classes.Add(Reserved.Float64,
             new Class(Reserved.Float64,
-                LLVMTypeRef.Double,
+                new Type(LLVMTypeRef.Double),
                 PrivacyType.Public));
         Classes.Add(Reserved.Bool,
             new Int(Reserved.Bool,
-                LLVMTypeRef.Int1,
+                new Type(LLVMTypeRef.Int1),
                 PrivacyType.Public,
                 false));
         Classes.Add(Reserved.Char,
             new Int(Reserved.Char,
-                LLVMTypeRef.Int8,
+                new Type(LLVMTypeRef.Int8),
                 PrivacyType.Public,
                 false));
         Classes.Add(Reserved.UnsignedInt16,
                 new Int(Reserved.UnsignedInt16,
-                LLVMTypeRef.Int16,
+                new Type(LLVMTypeRef.Int16),
                 PrivacyType.Public,
                 false));
         Classes.Add(Reserved.UnsignedInt32,
             new Int(Reserved.UnsignedInt32,
-                LLVMTypeRef.Int32,
+                new Type(LLVMTypeRef.Int32),
                 PrivacyType.Public,
                 false));
         Classes.Add(Reserved.UnsignedInt64,
             new Int(Reserved.UnsignedInt64,
-                LLVMTypeRef.Int64,
+                new Type(LLVMTypeRef.Int64),
                 PrivacyType.Public,
                 false));
         Classes.Add(Reserved.SignedInt8,
             new Int(Reserved.SignedInt8,
-                LLVMTypeRef.Int8,
+                new Type(LLVMTypeRef.Int8),
                 PrivacyType.Public,
                 true));
         Classes.Add(Reserved.SignedInt16,
             new Int(Reserved.SignedInt16,
-                LLVMTypeRef.Int16,
+                new Type(LLVMTypeRef.Int16),
                 PrivacyType.Public,
                 true));
         Classes.Add(Reserved.SignedInt32,
             new Int(Reserved.SignedInt32,
-                LLVMTypeRef.Int32,
+                new Type(LLVMTypeRef.Int32),
                 PrivacyType.Public,
                 true));
         Classes.Add(Reserved.SignedInt64,
             new Int(Reserved.SignedInt64,
-                LLVMTypeRef.Int64,
+                new Type(LLVMTypeRef.Int64),
                 PrivacyType.Public,
                 true));
 

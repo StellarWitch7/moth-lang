@@ -13,7 +13,7 @@ public class Function : CompilerData
     public string Name { get; set; }
     public LLVMValueRef LLVMFunc { get; set; }
     public LLVMTypeRef LLVMFuncType { get; set; }
-    public LLVMTypeRef LLVMReturnType { get; set; }
+    public Type ReturnType { get; set; }
     public PrivacyType Privacy { get; set; }
     public Class ClassOfReturnType { get; set; }
     public Class? OwnerClass { get; set; }
@@ -21,14 +21,14 @@ public class Function : CompilerData
     public List<Parameter> Params { get; set; }
     public bool IsVariadic { get; set; }
 
-    public Function(string name, LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, LLVMTypeRef lLVMReturnType,
+    public Function(string name, LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, Type returnType,
         Class classOfReturnType, PrivacyType privacy, Class? ownerClass, List<Parameter> @params,
         bool isVariadic)
     {
         Name = name;
         LLVMFunc = lLVMFunc;
         LLVMFuncType = lLVMFuncType;
-        LLVMReturnType = lLVMReturnType;
+        ReturnType = returnType;
         Privacy = privacy;
         ClassOfReturnType = classOfReturnType;
         OwnerClass = ownerClass;

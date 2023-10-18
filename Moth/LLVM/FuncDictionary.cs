@@ -32,7 +32,7 @@ class SigEqualityComparer : IEqualityComparer<Signature>
 
         foreach (var @param in x.Params)
         {
-            if (@param.IsPointer != y.Params[index].IsPointer
+            if (@param.PointerDepth != y.Params[index].PointerDepth
                 || @param.Name != y.Params[index].Name)
             {
                 isEqual = false;

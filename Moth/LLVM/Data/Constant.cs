@@ -9,13 +9,13 @@ namespace Moth.LLVM.Data;
 
 public class Constant
 {
-    public LLVMTypeRef LLVMType { get; set; }
+    public Type Type { get; set; }
     public LLVMValueRef LLVMValue { get; set; }
     public Class ClassOfType { get; set; }
 
-    public Constant(LLVMTypeRef lLVMType, LLVMValueRef value, Class classOfType)
+    public Constant(Type type, LLVMValueRef value, Class classOfType)
     {
-        LLVMType = lLVMType;
+        Type = type;
         LLVMValue = value;
         ClassOfType = classOfType;
     }

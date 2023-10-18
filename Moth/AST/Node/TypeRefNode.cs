@@ -8,10 +8,10 @@ namespace Moth.AST.Node;
 
 public class TypeRefNode : RefNode
 {
-    public bool IsPointer { get; set; }
+    public int PointerDepth { get; set; }
 
-    public TypeRefNode(string name, bool isPointer) : base(name)
+    public TypeRefNode(string name, int pointerDepth = 0) : base(name)
     {
-        IsPointer = isPointer;
+        PointerDepth = pointerDepth;
     }
 }

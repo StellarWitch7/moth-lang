@@ -570,16 +570,16 @@ public static class TokenParser
             if (context.Current?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
-                bool isPointer = false;
+                var pointerDepth = 0;
                 context.MoveNext();
 
-                if (context.Current?.Type == TokenType.Asterix)
+                while (context.Current?.Type == TokenType.Asterix)
                 {
-                    isPointer = true;
+                    pointerDepth++;
                     context.MoveNext();
                 }
 
-                return new TypeRefNode(retTypeName, isPointer);
+                return new TypeRefNode(retTypeName, pointerDepth);
             }
             else
             {

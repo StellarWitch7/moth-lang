@@ -12,7 +12,7 @@ namespace Moth.LLVM.Data;
 public class Class : CompilerData
 {
     public string Name { get; set; }
-    public LLVMTypeRef LLVMType { get; set; }
+    public Type Type { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
     public FuncDictionary Methods { get; set; } = new FuncDictionary();
@@ -20,10 +20,10 @@ public class Class : CompilerData
     public FuncDictionary StaticMethods { get; set; } = new FuncDictionary();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy)
+    public Class(string name, Type type, PrivacyType privacy)
     {
         Name = name;
-        LLVMType = lLVMType;
+        Type = type;
         Privacy = privacy;
     }
 
@@ -35,7 +35,7 @@ public class Class : CompilerData
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
                 var func = new Function(Reserved.SizeOf, compiler.Module.AddFunction($"{Name}.{Reserved.SizeOf}", funcType),
-                    funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
+                    funcType, new Type(LLVMTypeRef.Int64), classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
                 
                 StaticMethods.Add(new Signature(Reserved.SizeOf, new TypeRefNode[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
@@ -47,7 +47,7 @@ public class Class : CompilerData
                 }
                 else
                 {
-                    compiler.Builder.BuildRet(LLVMType.SizeOf);
+                    compiler.Builder.BuildRet(Type.LLVMType.SizeOf);
                 }
             }
             else
@@ -63,7 +63,7 @@ public class Class : CompilerData
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
                 var func = new Function(Reserved.AlignOf, compiler.Module.AddFunction($"{Name}.{Reserved.AlignOf}", funcType),
-                    funcType, LLVMTypeRef.Int64, classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
+                    funcType, new Type(LLVMTypeRef.Int64), classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
 
                 StaticMethods.Add(new Signature(Reserved.AlignOf, new TypeRefNode[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
@@ -75,7 +75,7 @@ public class Class : CompilerData
                 }
                 else
                 {
-                    compiler.Builder.BuildRet(LLVMType.AlignOf);
+                    compiler.Builder.BuildRet(Type.LLVMType.AlignOf);
                 }
             }
             else

@@ -12,15 +12,15 @@ public class Field : CompilerData
 {
     public string Name { get; set; }
     public uint FieldIndex { get; set; }
-    public LLVMTypeRef LLVMType { get; set; }
+    public Type Type { get; set; }
     public PrivacyType Privacy { get; set; }
     public Class ClassOfType { get; set; }
 
-    public Field(string name, uint index, LLVMTypeRef lLVMType, Class classOfType, PrivacyType privacy)
+    public Field(string name, uint index, Type type, Class classOfType, PrivacyType privacy)
     {
         Name = name;
         FieldIndex = index;
-        LLVMType = lLVMType;
+        Type = type;
         Privacy = privacy;
         ClassOfType = classOfType;
     }

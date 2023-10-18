@@ -4,23 +4,37 @@ func main() #i32 {
     #Sys.WriteLine("Welcome!");
     #Sys.Input("Enter something: ");
     #Sys.WriteLine("Goodbye!");
+
+    // local chars ?= #Array<\#char, 4\>.init();
+    // chars.SetIndex(0, '\n');
+
     return 0;
 }
 
-public class Array<\T, SIZE #i32\> {
-    private value #T*;
+// public class Array<\T, SIZE\> {
+//     private value ?T*;
 
-    public GetIndex(index #u32) #T {
-        return if index > 0 and index < self.SIZE - 1 then self.value[index] else null;
-    }
+//     static init() #Array<\T, SIZE\> {
+//         self.value = malloc(SIZE * ?T.sizeof());
+//         return self;
+//     }
 
-    public SetIndex(index #u32, item #T) #bool {
+//     public GetIndex(index #u32, ref val ?T) #bool {
+//         val = if index > 0 and index < SIZE - 1 then self.value[index] else null;
+//         return if index > 0 and index < SIZE - 1 then true else;
+//     }
 
-        if index < 0 or index > self.SIZE - 1 {
-            return false;
-        }
+//     public SetIndex(index #u32, item ?T) #bool {
 
-        self.value[index] = item;
-        return true;
-    }
-}
+//         if index < 0 or index > SIZE - 1 {
+//             return false;
+//         }
+
+//         self.value[index] = item;
+//         return true;
+//     }
+
+//     public ToPointer() ?T* {
+//         return value;
+//     }
+// }

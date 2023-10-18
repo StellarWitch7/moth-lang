@@ -10,16 +10,14 @@ namespace Moth.LLVM;
 
 public class ValueContext
 {
-    public LLVMTypeRef LLVMType { get; set; }
+    public Type Type { get; set; }
     public LLVMValueRef LLVMValue { get; set; }
     public Class ClassOfType { get; set; }
-    public bool IsVariable { get; set; }
 
-    public ValueContext(LLVMTypeRef type, LLVMValueRef value, Class classOfType, bool isVariable)
+    public ValueContext(Type type, LLVMValueRef value, Class classOfType)
     {
-        LLVMType = type;
+        Type = type;
         LLVMValue = value;
         ClassOfType = classOfType;
-        IsVariable = isVariable;
     }
 }
