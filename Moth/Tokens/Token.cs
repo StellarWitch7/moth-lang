@@ -96,5 +96,6 @@ public enum TokenType
     Cast,
     ClosingGenericBracket,
     OpeningGenericBracket,
-    Then
+    Then,
+    GenericTypeRef
 }

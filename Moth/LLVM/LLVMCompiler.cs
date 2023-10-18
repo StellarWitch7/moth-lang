@@ -918,7 +918,7 @@ public static class LLVMCompiler
                 {
                     refNode = refNode.Child;
 
-                    if (refNode is MethodCallNode methodCall)
+                    if (refNode is FuncCallNode methodCall)
                     {
                         context = CompileFuncCall(compiler, context, scope, methodCall, @class);
                         refNode = refNode.Child;
@@ -940,7 +940,7 @@ public static class LLVMCompiler
                     throw new Exception($"Type \"{typeRef.Name}\" does not exist.");
                 }
             }
-            else if (refNode is MethodCallNode methodCall)
+            else if (refNode is FuncCallNode methodCall)
             {
                 context = CompileFuncCall(compiler, context, scope, methodCall);
                 refNode = refNode.Child;
@@ -1006,7 +1006,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, MethodCallNode methodCall,
+    public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, FuncCallNode methodCall,
         Class staticClass = null)
     {
         List<LLVMValueRef> args = new List<LLVMValueRef>();

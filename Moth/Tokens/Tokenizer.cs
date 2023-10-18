@@ -143,28 +143,17 @@ public static class Tokenizer
                         break;
                     }
 
-				case '#':
+				case '#' when char.IsLetter((char)stream.Next):
+				case '?' when char.IsLetter((char)stream.Next):
 					{
-                        if (char.IsLetter((char)stream.Next))
+						char character = (char)stream.Current;
+                        tokens.Add(new Token()
                         {
-                            tokens.Add(new Token()
-                            {
-                                Text = "#".AsMemory(),
-                                Type = TokenType.TypeRef,
-                            });
+                            Text = $"{character}".AsMemory(),
+                            Type = character == '?' ? TokenType.GenericTypeRef : TokenType.TypeRef,
+                        });
 
-                            break;
-                        }
-                        else
-                        {
-                            throw new TokenizerException
-                            {
-                                Character = (char)stream.Next,
-                                Line = stream.CurrentLine,
-                                Column = stream.CurrentColumn,
-                                Position = stream.Position,
-                            };
-                        }
+                        break;
                     }
 
                 // Parse symbols

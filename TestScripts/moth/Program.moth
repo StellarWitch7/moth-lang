@@ -5,36 +5,36 @@ func main() #i32 {
     #Sys.Input("Enter something: ");
     #Sys.WriteLine("Goodbye!");
 
-    // local chars ?= #Array<\#char, 4\>.init();
-    // chars.SetIndex(0, '\n');
+    local chars ?= #Array<\#char, 4\>.init();
+    chars.SetIndex(0, '\n');
 
     return 0;
 }
 
-// public class Array<\T, SIZE\> {
-//     private value ?T*;
+public class Array<\T, SIZE\> {
+    private value ?T*;
 
-//     static init() #Array<\T, SIZE\> {
-//         self.value = malloc(SIZE * ?T.sizeof());
-//         return self;
-//     }
+    static init() #Array<\T, SIZE\> {
+        self.value = malloc(SIZE * ?T.sizeof());
+        return self;
+    }
 
-//     public GetIndex(index #u32, ref val ?T) #bool {
-//         val = if index > 0 and index < SIZE - 1 then self.value[index] else null;
-//         return if index > 0 and index < SIZE - 1 then true else;
-//     }
+    public GetIndex(index #u32, ref val ?T) #bool {
+        val = if index > 0 and index < SIZE - 1 then self.value[index] else null;
+        return if index > 0 and index < SIZE - 1 then true else;
+    }
 
-//     public SetIndex(index #u32, item ?T) #bool {
+    public SetIndex(index #u32, item ?T) #bool {
 
-//         if index < 0 or index > SIZE - 1 {
-//             return false;
-//         }
+        if index < 0 or index > SIZE - 1 {
+            return false;
+        }
 
-//         self.value[index] = item;
-//         return true;
-//     }
+        self.value[index] = item;
+        return true;
+    }
 
-//     public ToPointer() ?T* {
-//         return value;
-//     }
-// }
+    public ToPointer() ?T* {
+        return value;
+    }
+}

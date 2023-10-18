@@ -118,18 +118,75 @@ public static class TokenParser
 
     public static ClassNode ProcessClass(ParseContext context, PrivacyType privacy, string name)
     {
-        if (context.Current?.Type == TokenType.OpeningCurlyBraces)
+        if (context.Current?.Type == TokenType.OpeningGenericBracket)
         {
+            List<GenericParameterNode> @params = new List<GenericParameterNode>();
             context.MoveNext();
-            return new ClassNode(name, privacy, ProcessBlock(context, true));
+
+            while (context.Current != null)
+            {
+                @params.Add(ProcessGenericParam(context));
+
+                if (context.Current?.Type == TokenType.Comma)
+                {
+                    context.MoveNext();
+                }
+                else if (context.Current?.Type == TokenType.ClosingGenericBracket)
+                {
+                    context.MoveNext();
+
+                    if (context.Current?.Type == TokenType.OpeningCurlyBraces)
+                    {
+                        context.MoveNext();
+                        return new GenericClassNode(name, privacy, @params, ProcessBlock(context, true));
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                    }
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(context.Current.Value);
+                }
+            }
+
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingGenericBracket);
         }
         else
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+            if (context.Current?.Type == TokenType.OpeningCurlyBraces)
+            {
+                context.MoveNext();
+                return new ClassNode(name, privacy, ProcessBlock(context, true));
+            }
+            else
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+            }
         }
     }
 
-    public static ScopeNode ProcessBlock(ParseContext context, bool isClassRoot = false) //TODO: Rewrite time!
+    private static GenericParameterNode ProcessGenericParam(ParseContext context)
+    {
+        if (context.Current?.Type != TokenType.Name)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+        }
+
+        string name = context.Current.Value.Text.ToString();
+        context.MoveNext();
+
+        if (context.Current?.Type != TokenType.TypeRef)
+        {
+            return new GenericParameterNode(name);
+        }
+
+        var typeRef = ProcessTypeRef(context);
+        return new ConstGenericParameterNode(name, typeRef);
+    }
+
+    public static ScopeNode ProcessBlock(ParseContext context, bool isClassRoot = false)
     {
         List<StatementNode> statements = new List<StatementNode>();
 
@@ -557,15 +614,25 @@ public static class TokenParser
 
     public static TypeRefNode ProcessTypeRef(ParseContext context)
     {
-        if (context.Current?.Type == TokenType.TypeRef)
+        if (context.Current?.Type == TokenType.TypeRef
+            || context.Current?.Type == TokenType.GenericTypeRef)
         {
+            var startToken = context.Current?.Type;
             context.MoveNext();
 
             if (context.Current?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
+                var genericParams = new List<ExpressionNode>();
                 var pointerDepth = 0;
                 context.MoveNext();
+
+                if (startToken != TokenType.GenericTypeRef
+                    && context.Current?.Type == TokenType.OpeningGenericBracket)
+                {
+                    context.MoveNext();
+                    //TODO: actually adding the params
+                }
 
                 while (context.Current?.Type == TokenType.Asterix)
                 {
@@ -573,7 +640,14 @@ public static class TokenParser
                     context.MoveNext();
                 }
 
-                return new TypeRefNode(retTypeName, pointerDepth);
+                if (genericParams.Count != 0)
+                {
+                    return new GenericTypeRefNode(retTypeName, genericParams, pointerDepth);
+                }
+                else
+                {
+                    return new TypeRefNode(retTypeName, pointerDepth);
+                }
             }
             else
             {
@@ -923,7 +997,7 @@ public static class TokenParser
                     case TokenType.OpeningParentheses:
                         {
                             context.MoveNext();
-                            var childNode = new MethodCallNode(name, ProcessArgs(context));
+                            var childNode = new FuncCallNode(name, ProcessArgs(context));
 
                             if (currentNode == null)
                             {
