@@ -8,8 +8,8 @@ namespace Moth.AST.Node;
 
 public class InferredLocalDefNode : LocalDefNode
 {
-    public InferredLocalDefNode(string name, PrivacyType privacy, ExpressionNode defaultVal)
-        : base(name, privacy, null, defaultVal)
+    public InferredLocalDefNode(string name, ExpressionNode defaultVal) : base(name, null)
     {
+        DefaultValue = defaultVal;
     }
 }

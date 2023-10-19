@@ -97,5 +97,6 @@ public enum TokenType
     ClosingGenericBracket,
     OpeningGenericBracket,
     Then,
-    GenericTypeRef
+    GenericTypeRef,
+    Ref
 }

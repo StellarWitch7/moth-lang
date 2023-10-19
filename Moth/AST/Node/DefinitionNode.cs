@@ -12,9 +12,8 @@ public class DefinitionNode : StatementNode
 
 public enum PrivacyType
 {
-    Public,
     Private,
-    Local,
+    Public,
     Static,
     Global,
     Foreign

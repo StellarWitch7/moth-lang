@@ -83,6 +83,7 @@ public static class Tokenizer
 								Type = keyword.Span switch
 								{
 									"if" => TokenType.If,
+									"ref" => TokenType.Ref,
                                     "null" => TokenType.Null,
 									"local" => TokenType.Local,
 									"self" => TokenType.This,

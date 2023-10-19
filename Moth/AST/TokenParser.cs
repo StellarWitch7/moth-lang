@@ -2,7 +2,7 @@
 using Moth.Tokens;
 using Moth.AST.Node;
 
-namespace Moth.AST;
+namespace Moth.AST; //TODO: make local var defs expressions //TODO: allow calling functions on expressions
 
 public static class TokenParser
 {
@@ -138,7 +138,7 @@ public static class TokenParser
                     if (context.Current?.Type == TokenType.OpeningCurlyBraces)
                     {
                         context.MoveNext();
-                        return new GenericClassNode(name, privacy, @params, ProcessBlock(context, true));
+                        return new GenericClassNode(name, privacy, @params, ProcessScope(context, true));
                     }
                     else
                     {
@@ -158,7 +158,7 @@ public static class TokenParser
             if (context.Current?.Type == TokenType.OpeningCurlyBraces)
             {
                 context.MoveNext();
-                return new ClassNode(name, privacy, ProcessBlock(context, true));
+                return new ClassNode(name, privacy, ProcessScope(context, true));
             }
             else
             {
@@ -186,7 +186,7 @@ public static class TokenParser
         return new ConstGenericParameterNode(name, typeRef);
     }
 
-    public static ScopeNode ProcessBlock(ParseContext context, bool isClassRoot = false)
+    public static ScopeNode ProcessScope(ParseContext context, bool isClassRoot = false)
     {
         List<StatementNode> statements = new List<StatementNode>();
 
@@ -227,7 +227,7 @@ public static class TokenParser
                         return new ScopeNode(statements);
                     case TokenType.OpeningCurlyBraces:
                         context.MoveNext();
-                        statements.Add(ProcessBlock(context));
+                        statements.Add(ProcessScope(context));
                         break;
                     case TokenType.If:
                         context.MoveNext();
@@ -251,8 +251,6 @@ public static class TokenParser
                             break;
                         }
                     case TokenType.Local:
-                        statements.Add(ProcessDefinition(context));
-                        break;
                     case TokenType.TypeRef:
                     case TokenType.This:
                     case TokenType.Name:
@@ -315,7 +313,7 @@ public static class TokenParser
         }
 
         context.MoveNext();
-        var then = ProcessBlock(context);
+        var then = ProcessScope(context);
         return new WhileNode(condition, then);
     }
 
@@ -379,10 +377,6 @@ public static class TokenParser
         {
             privacy = PrivacyType.Private;
         }
-        else if (context.Current?.Type == TokenType.Local && attributes == null)
-        {
-            privacy = PrivacyType.Local;
-        }
         else
         {
             throw new UnexpectedTokenException(context.Current.Value);
@@ -404,7 +398,7 @@ public static class TokenParser
                 if (privacy != PrivacyType.Foreign && context.Current?.Type == TokenType.OpeningCurlyBraces)
                 {
                     context.MoveNext();
-                    return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessBlock(context), isVariadic, attributes);
+                    return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessScope(context), isVariadic, attributes);
                 }
                 else if (privacy == PrivacyType.Foreign && context.Current?.Type == TokenType.Semicolon)
                 {
@@ -423,45 +417,7 @@ public static class TokenParser
                 if (context.Current?.Type == TokenType.Semicolon)
                 {
                     context.MoveNext();
-
-                    if (privacy == PrivacyType.Local)
-                    {
-                        return new LocalDefNode(name, privacy, typeRef);
-                    }
-                    else
-                    {
-                        return new FieldDefNode(name, privacy, typeRef, attributes);
-                    }
-                }
-                else if (context.Current?.Type == TokenType.Assign)
-                {
-                    context.MoveNext();
-                    var value = ProcessExpression(context, null);
-
-                    if (context.Current?.Type == TokenType.Semicolon)
-                    {
-                        context.MoveNext();
-                        return new LocalDefNode(name, privacy, typeRef, value);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
-                    }
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value);
-                }
-            }
-            else if (privacy == PrivacyType.Local && context.Current?.Type == TokenType.InferAssign)
-            {
-                context.MoveNext();
-                var value = ProcessExpression(context, null);
-
-                if (context.Current?.Type == TokenType.Semicolon)
-                {
-                    context.MoveNext();
-                    return new InferredLocalDefNode(name, privacy, value);
+                    return new FieldDefNode(name, privacy, typeRef, attributes);
                 }
                 else
                 {
@@ -552,7 +508,7 @@ public static class TokenParser
         }
 
         context.MoveNext();
-        var then = ProcessBlock(context);
+        var then = ProcessScope(context);
         var @else = ProcessElse(context);
         return new IfNode(condition, then, @else);
     }
@@ -574,7 +530,7 @@ public static class TokenParser
             else
             {
                 context.MoveNext();
-                return ProcessBlock(context);
+                return ProcessScope(context);
             }
         }
         else
@@ -710,6 +666,10 @@ public static class TokenParser
                     lastCreatedNode = new ConstantNode(3.14159265358979323846264f);
                     context.MoveNext();
                     break;
+                case TokenType.Ref:
+                    throw new NotImplementedException();
+                case TokenType.Local:
+                    throw new NotImplementedException();
                 case TokenType.If:
                     context.MoveNext();
                     var condition = ProcessExpression(context, null);
