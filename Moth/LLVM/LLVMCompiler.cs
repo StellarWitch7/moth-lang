@@ -3,7 +3,7 @@ using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM; //TODO: allow compilation of generic classes
 
 public static class LLVMCompiler
 {
@@ -250,8 +250,7 @@ public static class LLVMCompiler
             var @new = new Variable(Reserved.Self,
                 compiler.Builder.BuildAlloca(func.OwnerClass.Type.LLVMType, Reserved.Self),
                 func.OwnerClass.Type,
-                func.OwnerClass,
-                PrivacyType.Local);
+                func.OwnerClass);
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
@@ -274,8 +273,7 @@ public static class LLVMCompiler
                 new Variable(param.Name,
                     paramAsVar, //TODO: maybe failing?
                     param.Type,
-                    param.ClassOfType,
-                    PrivacyType.Local));
+                    param.ClassOfType));
         }
 
         if (!CompileScope(compiler, func.OpeningScope, funcDefNode.ExecutionBlock))
@@ -321,38 +319,6 @@ public static class LLVMCompiler
                 }
 
                 return true;
-            }
-            else if (statement is LocalDefNode varDef)
-            {
-                if (varDef is InferredLocalDefNode inferredVarDef)
-                {
-                    var defaultVal = CompileExpression(compiler, scope, inferredVarDef.DefaultValue);
-                    var lLVMVar = compiler.Builder.BuildAlloca(defaultVal.Type.LLVMType, varDef.Name);
-                    compiler.Builder.BuildStore(SafeLoad(compiler, defaultVal), lLVMVar);
-                    scope.Variables.Add(varDef.Name,
-                        new Variable(varDef.Name,
-                            lLVMVar,
-                            defaultVal.Type,
-                            defaultVal.ClassOfType,
-                            varDef.Privacy));
-                }
-                else if (compiler.Classes.TryGetValue(UnVoid(varDef.TypeRef), out Class classOfType))
-                {
-                    Type varType = ResolveTypeRef(compiler, varDef.TypeRef);
-
-                    var lLVMVar = compiler.Builder.BuildAlloca(varType.LLVMType, varDef.Name);
-                    scope.Variables.Add(varDef.Name, new Variable(varDef.Name, lLVMVar, varType, classOfType, varDef.Privacy));
-
-                    if (varDef.DefaultValue != null)
-                    {
-                        var value = CompileExpression(compiler, scope, varDef.DefaultValue);
-                        compiler.Builder.BuildStore(SafeLoad(compiler, value), lLVMVar);
-                    }
-                }
-                else
-                {
-                    throw new Exception("Failure at: \"Moth.LLVM.LLVMCompiler#CompileScope(CompilerContext, Scope, ScopeNode)\"");
-                }
             }
             else if (statement is ScopeNode newScopeNode)
             {
@@ -475,23 +441,54 @@ public static class LLVMCompiler
 
     public static Type ResolveTypeRef(CompilerContext compiler, TypeRefNode typeRef)
     {
-        if (compiler.Classes.TryGetValue(UnVoid(typeRef), out Class @class))
+        Type type;
+
+        if (typeRef is GenericTypeRefNode genTypeRef)
         {
-            var type = new Type(@class.Type.LLVMType);
-            int index = 0;
-
-            while (index < typeRef.PointerDepth)
+            if (compiler.CurrentFunction.OwnerClass != null)
             {
-                type = new PtrType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0));
-                index++;
+                if (compiler.CurrentFunction.OwnerClass is GenericClass genClass)
+                {
+                    if (genClass.TypeParams.TryGetValue(genTypeRef.Name, out Type typeParam))
+                    {
+                        type = typeParam;
+                    }
+                    else
+                    {
+                        throw new Exception($"The generic type parameter "
+                            + $"\"{typeRef.Name}\" is undefined within the class \"{genClass.Name}\"");
+                    }
+                }
+                else
+                {
+                    throw new Exception($"Cannot get generic type in "
+                        + $"\"{compiler.CurrentFunction.OwnerClass.Name}\" as it is not generic.");
+                }
             }
-
-            return type;
+            else
+            {
+                throw new Exception($"Cannot get generic type in owner class as "
+                    + $"\"{compiler.CurrentFunction.Name}\" is not a member of a class.");
+            }
+        }
+        else if (compiler.Classes.TryGetValue(UnVoid(typeRef), out Class @class))
+        {
+            type = new Type(@class.Type.LLVMType);
         }
         else
         {
             throw new Exception($"Type \"{typeRef.Name}\" is undefined.");
         }
+
+        int index = 0;
+
+        while (index < typeRef.PointerDepth)
+        {
+            type = new PtrType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0));
+            index++;
+        }
+
+        return type;
     }
 
     public static ValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
@@ -500,17 +497,30 @@ public static class LLVMCompiler
         {
             if (binaryOp.Type == OperationType.Assignment)
             {
+                ValueContext variableAssigned;
+
                 if (binaryOp.Left is RefNode @ref)
                 {
-                    var variableAssigned = CompileRef(compiler, scope, @ref);
-                    var value = CompileExpression(compiler, scope, binaryOp.Right);
-                    compiler.Builder.BuildStore(SafeLoad(compiler, value), variableAssigned.LLVMValue);
-                    return new ValueContext(WrapAsRef(variableAssigned.Type), variableAssigned.LLVMValue, variableAssigned.ClassOfType);
+                    variableAssigned = CompileRef(compiler, scope, @ref);
+                    
+                }
+                else if (binaryOp.Left is LocalDefNode localDef && localDef is not InferredLocalDefNode)
+                {
+                    variableAssigned = CompileLocal(compiler, scope, localDef);
                 }
                 else
                 {
-                    throw new Exception();
+                    throw new Exception("Invalid left-hand operand for assignment.");
                 }
+
+                if (variableAssigned.Type is not RefType)
+                {
+                    throw new Exception($"Cannot assign to \"{variableAssigned.LLVMValue.PrintToString()}\" as it is not a reference.");
+                }
+
+                var value = CompileExpression(compiler, scope, binaryOp.Right);
+                compiler.Builder.BuildStore(SafeLoad(compiler, value), variableAssigned.LLVMValue);
+                return new ValueContext(WrapAsRef(variableAssigned.Type), variableAssigned.LLVMValue, variableAssigned.ClassOfType);
             }
             else if (binaryOp.Type == OperationType.Cast)
             {
@@ -707,6 +717,10 @@ public static class LLVMCompiler
                 }
             }
         }
+        else if (expr is LocalDefNode localDef)
+        {
+            return CompileLocal(compiler, scope, localDef);
+        }
         else if (expr is InlineIfNode @if)
         {
             var condition = CompileExpression(compiler, scope, @if.Condition);
@@ -873,6 +887,40 @@ public static class LLVMCompiler
         else
         {
             throw new NotImplementedException();
+        }
+    }
+
+    public static ValueContext CompileLocal(CompilerContext compiler, Scope scope, LocalDefNode localDef)
+    {
+        ValueContext value = null;
+        Type type;
+
+        if (localDef is InferredLocalDefNode inferredLocalDef)
+        {
+            value = CompileExpression(compiler, scope, inferredLocalDef.Value);
+            type = value.Type;
+        }
+        else
+        {
+            type = ResolveTypeRef(compiler, localDef.TypeRef);
+        }
+
+        var @var = compiler.Builder.BuildAlloca(type.LLVMType, localDef.Name);
+
+        if (compiler.Classes.TryGetValue(UnVoid(localDef.TypeRef), out Class classOfType))
+        {
+            scope.Variables.Add(localDef.Name, new Variable(localDef.Name, @var, type, classOfType));
+
+            if (value != null)
+            {
+                compiler.Builder.BuildStore(SafeLoad(compiler, value), @var);
+            }
+
+            return new ValueContext(WrapAsRef(type), @var, classOfType);
+        }
+        else
+        {
+            throw new Exception($"Class \"{localDef.TypeRef.Name}\" does not exist.");
         }
     }
 

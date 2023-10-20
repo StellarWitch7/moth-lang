@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class InferredLocalDefNode : LocalDefNode
+public class ReferenceNode : ExpressionNode
 {
     public ExpressionNode Value { get; set; }
 
-    public InferredLocalDefNode(string name, ExpressionNode val) : base(name, null)
+    public ReferenceNode(ExpressionNode value)
     {
-        Value = val;
+        Value = value;
     }
 }

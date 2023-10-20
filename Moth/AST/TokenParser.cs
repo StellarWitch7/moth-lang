@@ -2,7 +2,7 @@
 using Moth.Tokens;
 using Moth.AST.Node;
 
-namespace Moth.AST; //TODO: make local var defs expressions //TODO: allow calling functions on expressions
+namespace Moth.AST; //TODO: allow calling functions on expressions
 
 public static class TokenParser
 {
@@ -250,13 +250,10 @@ public static class TokenParser
                             context.MoveNext();
                             break;
                         }
-                    case TokenType.Local:
-                    case TokenType.TypeRef:
-                    case TokenType.This:
-                    case TokenType.Name:
+                    default:
                         statements.Add(ProcessExpression(context, null));
 
-                        if (context.Current?.Type == TokenType.Semicolon) //TODO: swap
+                        if (context.Current?.Type == TokenType.Semicolon)
                         {
                             context.MoveNext();
                             break;
@@ -265,12 +262,6 @@ public static class TokenParser
                         {
                             throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
                         }
-                    case TokenType.Increment:
-                    case TokenType.Decrement:
-                        statements.Add(ProcessIncrementDecrement(context));
-                        break;
-                    default:
-                        throw new UnexpectedTokenException(context.Current.Value);
                 }
             }
         }
@@ -350,7 +341,7 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value, TokenType.AttributeMarker);
         }
 
-        throw new NotImplementedException(); //TODO: attributes!
+        throw new NotImplementedException();
     }
 
     public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode> attributes = null)
@@ -410,7 +401,7 @@ public static class TokenParser
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
                 }
             }
-            else if (context.Current?.Type == TokenType.TypeRef)
+            else
             {
                 var typeRef = ProcessTypeRef(context);
 
@@ -423,10 +414,6 @@ public static class TokenParser
                 {
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
                 }
-            }
-            else
-            {
-                throw new UnexpectedTokenException(context.Current.Value);
             }
         }
         else
@@ -477,7 +464,14 @@ public static class TokenParser
     public static ParameterNode ProcessParameter(ParseContext context, out bool isVariadic)
     {
         string name;
+        bool requireRefType = false;
         isVariadic = false;
+
+        if (context.Current?.Type == TokenType.Ref)
+        {
+            requireRefType = true;
+            context.MoveNext();
+        }
 
         if (context.Current?.Type == TokenType.Name)
         {
@@ -495,7 +489,7 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
 
-        return new ParameterNode(name, ProcessTypeRef(context));
+        return new ParameterNode(name, ProcessTypeRef(context), requireRefType);
     }
 
     public static IfNode ProcessIf(ParseContext context)
@@ -587,7 +581,30 @@ public static class TokenParser
                     && context.Current?.Type == TokenType.OpeningGenericBracket)
                 {
                     context.MoveNext();
-                    //TODO: actually adding the params
+
+                    while (context.Current?.Type != TokenType.ClosingGenericBracket)
+                    {
+                        if (context.Current?.Type == TokenType.TypeRef
+                            || context.Current?.Type == TokenType.GenericTypeRef)
+                        {
+                            genericParams.Add(ProcessTypeRef(context));
+                        }
+                        else
+                        {
+                            genericParams.Add(ProcessExpression(context, null));
+                        }
+
+                        if (context.Current?.Type == TokenType.Comma)
+                        {
+                            context.MoveNext();
+                        }
+                        else if (context.Current?.Type != TokenType.ClosingGenericBracket)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+                    }
+
+                    context.MoveNext();
                 }
 
                 while (context.Current?.Type == TokenType.Asterix)
@@ -667,9 +684,34 @@ public static class TokenParser
                     context.MoveNext();
                     break;
                 case TokenType.Ref:
-                    throw new NotImplementedException();
+                    context.MoveNext();
+                    lastCreatedNode = new ReferenceNode(ProcessExpression(context, null));
+                    break;
                 case TokenType.Local:
-                    throw new NotImplementedException();
+                    context.MoveNext();
+
+                    if (context.Current?.Type == TokenType.Name)
+                    {
+                        string name = context.Current.Value.Text.ToString();
+                        context.MoveNext();
+
+                        if (context.Current?.Type == TokenType.InferAssign)
+                        {
+                            context.MoveNext();
+                            lastCreatedNode = new InferredLocalDefNode(name, ProcessExpression(context, null));
+                        }
+                        else
+                        {
+                            var type = ProcessTypeRef(context);
+                            lastCreatedNode = new LocalDefNode(name, type);
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+                    }
+
+                    break;
                 case TokenType.If:
                     context.MoveNext();
                     var condition = ProcessExpression(context, null);
@@ -882,6 +924,7 @@ public static class TokenParser
                 case TokenType.Decrement:
                     lastCreatedNode = ProcessIncrementDecrement(context);
                     break;
+                case TokenType.GenericTypeRef:
                 case TokenType.TypeRef:
                 case TokenType.Name:
                 case TokenType.This:
@@ -930,7 +973,8 @@ public static class TokenParser
                 return newRefNode;
             }
         }
-        else if (context.Current?.Type == TokenType.TypeRef)
+        else if (context.Current?.Type == TokenType.TypeRef
+            || context.Current?.Type == TokenType.GenericTypeRef)
         {
             newRefNode = ProcessTypeRef(context);
 
