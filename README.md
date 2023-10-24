@@ -4,7 +4,7 @@
 
 # About
 
-A fun little language parser. Currently barely functional. 
+Moth's official compiler, written in C#. It takes Moth code and converts it to LLVM IR, which is then passed to a C compiler. Currently only compatible with the Clang compiler. Read the [wiki](https://github.com/StellarWitch7/Moth/wiki) for Moth's documentation. Please report any bugs to the [issue tracker](https://github.com/StellarWitch7/Moth/issues), as it helps to improve Moth's compiler. 
 
 ### Arguments
 ```

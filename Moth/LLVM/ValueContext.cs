@@ -12,12 +12,10 @@ public class ValueContext
 {
     public Type Type { get; set; }
     public LLVMValueRef LLVMValue { get; set; }
-    public Class ClassOfType { get; set; }
 
-    public ValueContext(Type type, LLVMValueRef value, Class classOfType)
+    public ValueContext(Type type, LLVMValueRef value)
     {
         Type = type;
         LLVMValue = value;
-        ClassOfType = classOfType;
     }
 }

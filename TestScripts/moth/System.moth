@@ -74,36 +74,36 @@ public class Sys {
     }
 }
 
-public class Array<\T, SIZE #i32\> {
-    private value ?T*;
-
-    static init() #Array<\?T, SIZE\> {
-        self.value = malloc(SIZE * ?T.sizeof());
-        return self;
-    }
-
-    public GetIndex(index #u32, ref val ?T) #bool {
-        ref val = if index > 0
-            and index < SIZE - 1
-            then self.value[index]
-            else null;
-        return if index > 0
-            and index < SIZE - 1
-            then true
-            else false;
-    }
-
-    public SetIndex(index #u32, item ?T) #bool {
-
-        if index < 0 or index > SIZE - 1 {
-            return false;
-        }
-
-        self.value[index] = item;
-        return true;
-    }
-
-    public AsPointer() ?T* {
-        return value;
-    }
-}
+//public class Array<\T, SIZE #i32\> {
+//    private value ?T*;
+//
+//    static init() #Array<\?T, SIZE\> {
+//        self.value = malloc(SIZE * ?T.sizeof());
+//        return self;
+//    }
+//
+//    public GetIndex(index #u32, ref val ?T) #bool {
+//        ref val = if index > 0
+//            and index < SIZE - 1
+//            then self.value[index]
+//            else null;
+//        return if index > 0
+//            and index < SIZE - 1
+//            then true
+//            else false;
+//    }
+//
+//    public SetIndex(index #u32, item ?T) #bool {
+//
+//        if index < 0 or index > SIZE - 1 {
+//            return false;
+//        }
+//
+//        self.value[index] = item;
+//        return true;
+//    }
+//
+//    public AsPointer() ?T* {
+//        return value;
+//    }
+//}

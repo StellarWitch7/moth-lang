@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class FuncDictionary : Dictionary<Signature, Function>
+public class SignedDictionary : Dictionary<Signature, Function>
 {
-    public FuncDictionary() : base(new SigEqualityComparer())
+    public SignedDictionary() : base(new SigEqualityComparer())
     {
     }
 }

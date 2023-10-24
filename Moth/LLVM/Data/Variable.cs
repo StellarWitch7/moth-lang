@@ -13,13 +13,11 @@ public class Variable : CompilerData
     public string Name { get; set; }
     public LLVMValueRef LLVMVariable { get; set; }
     public Type Type { get; set; }
-    public Class ClassOfType { get; set; }
 
-    public Variable(string name, LLVMValueRef lLVMVariable, Type type, Class classOfType)
+    public Variable(string name, LLVMValueRef lLVMVariable, Type type)
     {
         Name = name;
         LLVMVariable = lLVMVariable;
         Type = type;
-        ClassOfType = classOfType;
     }
 }

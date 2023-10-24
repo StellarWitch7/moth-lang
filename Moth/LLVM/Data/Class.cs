@@ -15,15 +15,15 @@ public class Class : CompilerData
     public Type Type { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
-    public FuncDictionary Methods { get; set; } = new FuncDictionary();
+    public SignedDictionary Methods { get; set; } = new SignedDictionary();
     public Dictionary<string, Field> StaticFields { get; set; } = new Dictionary<string, Field>();
-    public FuncDictionary StaticMethods { get; set; } = new FuncDictionary();
+    public SignedDictionary StaticMethods { get; set; } = new SignedDictionary();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(string name, Type type, PrivacyType privacy)
+    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy)
     {
         Name = name;
-        Type = type;
+        Type = new Type(lLVMType, this);
         Privacy = privacy;
     }
 
@@ -35,7 +35,7 @@ public class Class : CompilerData
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
                 var func = new Function(Reserved.SizeOf, compiler.Module.AddFunction($"{Name}.{Reserved.SizeOf}", funcType),
-                    funcType, new Type(LLVMTypeRef.Int64), classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
+                    funcType, new Type(LLVMTypeRef.Int64, classOfReturnType), PrivacyType.Public, null, new List<Parameter>(), false);
                 
                 StaticMethods.Add(new Signature(Reserved.SizeOf, new TypeRefNode[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
@@ -63,7 +63,7 @@ public class Class : CompilerData
             {
                 var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
                 var func = new Function(Reserved.AlignOf, compiler.Module.AddFunction($"{Name}.{Reserved.AlignOf}", funcType),
-                    funcType, new Type(LLVMTypeRef.Int64), classOfReturnType, PrivacyType.Public, null, new List<Parameter>(), false);
+                    funcType, new Type(LLVMTypeRef.Int64, classOfReturnType), PrivacyType.Public, null, new List<Parameter>(), false);
 
                 StaticMethods.Add(new Signature(Reserved.AlignOf, new TypeRefNode[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));

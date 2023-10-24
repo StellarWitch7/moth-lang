@@ -170,13 +170,13 @@ public static class Tokenizer
 							'>' when next is '=' => TokenType.LargerThanOrEqual,
 							'+' when next is '+' => TokenType.Increment,
 							'-' when next is '-' => TokenType.Decrement,
-							'*' when next is '^' => TokenType.Exponential,
 							'~' when next is '~' => TokenType.Variadic,
 							'?' when next is '=' => TokenType.InferAssign,
 							'<' when next is '-' => TokenType.Cast,
 							'<' when next is '\\' => TokenType.OpeningGenericBracket,
 							'\\' when next is '>' => TokenType.ClosingGenericBracket,
 							':' => TokenType.Colon,
+							'^' => TokenType.Exponential,
 							',' => TokenType.Comma,
 							'.' => TokenType.Period,
 							';' => TokenType.Semicolon,
@@ -214,8 +214,8 @@ public static class Tokenizer
 							Text = type switch
 							{
 								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual
-								    or TokenType.LargerThanOrEqual or TokenType.Exponential
-									or TokenType.Cast or TokenType.Increment or TokenType.Decrement
+								    or TokenType.LargerThanOrEqual or TokenType.Cast
+									or TokenType.Increment or TokenType.Decrement
                                     or TokenType.OpeningGenericBracket or TokenType.ClosingGenericBracket
                                     or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),

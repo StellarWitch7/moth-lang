@@ -29,7 +29,7 @@ public class ConstantNode : ExpressionNode
         }
 
         writer.Write(") ");
-        writer.Write(Value);
+        writer.Write(Value is char ch ? (ulong)ch : Value);
         writer.Write(" }");
     }
 }

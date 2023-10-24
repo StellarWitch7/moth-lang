@@ -565,7 +565,7 @@ public static class TokenParser
     public static TypeRefNode ProcessTypeRef(ParseContext context)
     {
         if (context.Current?.Type == TokenType.TypeRef
-            || context.Current?.Type == TokenType.GenericTypeRef)
+            || context.Current?.Type == TokenType.GenericTypeRef) //TODO: handle this patheticness
         {
             var startToken = context.Current?.Type;
             context.MoveNext();
