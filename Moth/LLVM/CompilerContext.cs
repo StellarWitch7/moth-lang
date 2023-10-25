@@ -17,10 +17,10 @@ public class CompilerContext
     public string ModuleName { get; set; }
     public Logger Logger { get; } = new Logger("moth/compiler");
     public Dictionary<string, Class> Classes { get; set; } = new Dictionary<string, Class>();
-    public SignedDictionary GlobalFunctions { get; set; } = new SignedDictionary();
+    public SignedDictionary<Function> GlobalFunctions { get; set; } = new SignedDictionary<Function>();
     public Dictionary<string, Constant> GlobalConstants { get; set; } = new Dictionary<string, Constant>();
     public Dictionary<string, GenericClassNode> GenericClassTemplates { get; set; } = new Dictionary<string, GenericClassNode>();
-    public SignedDictionary GenericClasses { get; set; } = new SignedDictionary();
+    public SignedDictionary<GenericClass> GenericClasses { get; set; } = new SignedDictionary<GenericClass>();
     public Function? CurrentFunction { get; set; }
 
     public CompilerContext(string moduleName)

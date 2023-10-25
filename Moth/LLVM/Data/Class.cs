@@ -15,9 +15,9 @@ public class Class : CompilerData
     public Type Type { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
-    public SignedDictionary Methods { get; set; } = new SignedDictionary();
+    public SignedDictionary<Function> Methods { get; set; } = new SignedDictionary<Function>();
     public Dictionary<string, Field> StaticFields { get; set; } = new Dictionary<string, Field>();
-    public SignedDictionary StaticMethods { get; set; } = new SignedDictionary();
+    public SignedDictionary<Function> StaticMethods { get; set; } = new SignedDictionary<Function>();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
     public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy)

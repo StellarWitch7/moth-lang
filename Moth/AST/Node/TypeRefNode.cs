@@ -14,4 +14,17 @@ public class TypeRefNode : RefNode
     {
         PointerDepth = pointerDepth;
     }
+
+    public override string ToString()
+    {
+        var builder = new StringBuilder();
+        builder.Append(Name);
+
+        for (int i = 0; i < PointerDepth; i++)
+        {
+            builder.Append('*');
+        }
+
+        return builder.ToString();
+    }
 }

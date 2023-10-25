@@ -687,6 +687,8 @@ public static class TokenParser
                     context.MoveNext();
                     lastCreatedNode = new ReferenceNode(ProcessExpression(context, null));
                     break;
+                case TokenType.Period:
+                    throw new NotImplementedException("Access operations on expressions are not currently supported.");
                 case TokenType.Local:
                     context.MoveNext();
 
@@ -1080,7 +1082,7 @@ public static class TokenParser
 
     public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)
     {
-        var right = ProcessExpression(context, left);
+        var right = ProcessExpression(context, null);
 
         if (left is BinaryOperationNode bin)
         {

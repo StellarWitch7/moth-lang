@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class SignedDictionary : Dictionary<Signature, Function>
+public class SignedDictionary<T> : Dictionary<Signature, T>
 {
     public SignedDictionary() : base(new SigEqualityComparer())
     {

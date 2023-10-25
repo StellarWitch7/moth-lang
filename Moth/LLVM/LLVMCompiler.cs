@@ -128,15 +128,9 @@ public static class LLVMCompiler
     public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         int index = 0;
-        string funcName = funcDefNode.Name;
         List<TypeRefNode> paramTypeRefs = new List<TypeRefNode>();
         List<Parameter> @params = new List<Parameter>();
         List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
-
-        if (@class != null)
-        {
-            funcName = $"{@class.Name}.{funcName}";
-        }
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
@@ -155,6 +149,16 @@ public static class LLVMCompiler
             index++;
         }
 
+        Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray(), funcDefNode.IsVariadic);
+        string funcName = funcDefNode.Privacy == PrivacyType.Foreign
+            ? funcDefNode.Name
+            : sig.ToString();
+        
+        if (@class != null)
+        {
+            funcName = $"{@class.Name}.{funcName}";
+        }
+
         Type returnType = ResolveTypeRef(compiler, funcDefNode.ReturnTypeRef);
         LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramTypes.ToArray(), funcDefNode.IsVariadic);
         LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcName, lLVMFuncType);
@@ -166,7 +170,6 @@ public static class LLVMCompiler
             @class,
             @params,
             funcDefNode.IsVariadic);
-        Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray(), funcDefNode.IsVariadic);
 
         if (@class != null)
         {

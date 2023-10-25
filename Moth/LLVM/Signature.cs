@@ -19,4 +19,18 @@ public class Signature
         Params = @params;
         IsVariadic = isVariadic;
     }
+
+    public override string ToString()
+    {
+        var builder = new StringBuilder();
+        builder.Append($"{Name}:");
+
+        foreach (var param in Params)
+        {
+            builder.Append($"{param.ToString()}.");
+        }
+
+        builder.Remove(builder.Length - 1, 1);
+        return builder.ToString();
+    }
 }
