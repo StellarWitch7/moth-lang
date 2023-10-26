@@ -6,12 +6,20 @@ func main() #i32 {
     #Sys.WriteLine("Goodbye!");
 
 	return 0;
-    //local chars ?= #Array<\#char, 4\>.init();
-    //chars.SetIndex(0, '\n');
-    //
-    //if chars.GetIndex(ref local val #char) {
-    //    return #i32 <- val;
-    //} else {
-    //    return 1;
-    //}
 }
+
+// The example on the wiki
+// func main() #i32 {
+//     local dog #Dog = #Dog.init("Jeffrey");
+//     #Sys.WriteLine(dog.Name);
+//     return 0;
+// }
+
+// public class Dog {
+//     public Name #char*;
+
+//     static init(name #char*) #Dog {
+//         self.Name = name;
+//         return self;
+//     }
+// }

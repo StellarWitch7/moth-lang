@@ -252,7 +252,7 @@ public static class LLVMCompiler
             }
 
             var @new = new Variable(Reserved.Self,
-                compiler.Builder.BuildMalloc(func.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: is malloc correct, or should it be alloc?
+                compiler.Builder.BuildMalloc(func.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: malloc or alloc?
                 func.OwnerClass.Type);
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
@@ -983,8 +983,9 @@ public static class LLVMCompiler
         {
             if (context.Type.Class.Fields.TryGetValue(refNode.Name, out Field field))
             {
+                var type = context.Type is RefType refType ? refType.BaseType : context.Type;
                 return new ValueContext(WrapAsRef(field.Type),
-                    compiler.Builder.BuildStructGEP2(context.Type.LLVMType,
+                    compiler.Builder.BuildStructGEP2(type.LLVMType,
                         context.LLVMValue,
                         field.FieldIndex));
             }

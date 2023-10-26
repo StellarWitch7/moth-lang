@@ -170,6 +170,10 @@ public static class Tokenizer
 							'>' when next is '=' => TokenType.GreaterThanOrEqual,
 							'+' when next is '=' => TokenType.AddAssign,
 							'-' when next is '=' => TokenType.SubAssign,
+							'*' when next is '=' => TokenType.MulAssign,
+							'/' when next is '=' => TokenType.DivAssign,
+							'%' when next is '=' => TokenType.ModAssign,
+							'^' when next is '=' => TokenType.ExpAssign,
 							'+' when next is '+' => TokenType.Increment,
 							'-' when next is '-' => TokenType.Decrement,
 							'~' when next is '~' => TokenType.Variadic,
@@ -215,11 +219,14 @@ public static class Tokenizer
 						{
 							Text = type switch
 							{
-								TokenType.Equal or TokenType.NotEqual or TokenType.LesserThanOrEqual
-								    or TokenType.GreaterThanOrEqual or TokenType.Cast or TokenType.SubAssign
-                                    or TokenType.Increment or TokenType.Decrement or TokenType.AddAssign
+                                TokenType.Cast or TokenType.Variadic or TokenType.InferAssign
+                                    or TokenType.AddAssign or TokenType.SubAssign
+									or TokenType.MulAssign or TokenType.DivAssign
+									or TokenType.ModAssign or TokenType.ExpAssign
+                                    or TokenType.Increment or TokenType.Decrement
                                     or TokenType.OpeningGenericBracket or TokenType.ClosingGenericBracket
-                                    or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
+                                    or TokenType.LesserThanOrEqual or TokenType.GreaterThanOrEqual
+                                    or TokenType.Equal or TokenType.NotEqual => stream.Peek(2),
 								_ => stream.Peek(1),
 							},
 							Type = (TokenType)type,

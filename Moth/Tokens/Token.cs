@@ -100,5 +100,9 @@ public enum TokenType
     GenericTypeRef,
     Ref,
     AddAssign,
-    SubAssign
+    SubAssign,
+    MulAssign,
+    DivAssign,
+    ModAssign,
+    ExpAssign
 }

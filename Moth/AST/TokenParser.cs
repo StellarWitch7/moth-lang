@@ -737,27 +737,27 @@ public static class TokenParser
                     lastCreatedNode = new InlineIfNode(condition, then, @else);
                     break;
                 case TokenType.AddAssign:
-                    context.MoveNext();
-
-                    if (lastCreatedNode != null)
-                    {
-                        lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
-                            ProcessBinaryOp(context, OperationType.Addition, lastCreatedNode),
-                            OperationType.Assignment);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    break;
                 case TokenType.SubAssign:
+                case TokenType.MulAssign:
+                case TokenType.DivAssign:
+                case TokenType.ModAssign:
+                case TokenType.ExpAssign:
+                    OperationType opType = context.Current?.Type switch
+                    {
+                        TokenType.AddAssign => OperationType.Addition,
+                        TokenType.SubAssign => OperationType.Subtraction,
+                        TokenType.MulAssign => OperationType.Multiplication,
+                        TokenType.DivAssign => OperationType.Division,
+                        TokenType.ModAssign => OperationType.Modulo,
+                        TokenType.ExpAssign => OperationType.Exponential,
+                        _ => throw new UnexpectedTokenException(context.Current.Value)
+                    };
                     context.MoveNext();
 
                     if (lastCreatedNode != null)
                     {
                         lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
-                            ProcessBinaryOp(context, OperationType.Subtraction, lastCreatedNode),
+                            ProcessBinaryOp(context, opType, lastCreatedNode),
                             OperationType.Assignment);
                     }
                     else
@@ -795,6 +795,7 @@ public static class TokenParser
                 case TokenType.Plus:
                 case TokenType.Asterix:
                 case TokenType.ForwardSlash:
+                case TokenType.Modulo:
                 case TokenType.Exponential:
                 case TokenType.Equal:
                 case TokenType.NotEqual:
