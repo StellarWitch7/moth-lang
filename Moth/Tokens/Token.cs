@@ -51,10 +51,10 @@ public enum TokenType
 	Asterix,
 	ForwardSlash,
 	Exponential,
-	LessThan,
-	LessThanOrEqual,
-	LargerThan,
-	LargerThanOrEqual,
+	LesserThan,
+	LesserThanOrEqual,
+	GreaterThan,
+	GreaterThanOrEqual,
 	Equal,
 	NotEqual,
 	Class,
@@ -98,5 +98,7 @@ public enum TokenType
     OpeningGenericBracket,
     Then,
     GenericTypeRef,
-    Ref
+    Ref,
+    AddAssign,
+    SubAssign
 }

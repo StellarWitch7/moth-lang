@@ -166,8 +166,10 @@ public static class Tokenizer
                             '.' when next is '.' => TokenType.Range,
 							'=' when next is '=' => TokenType.Equal,
 							'!' when next is '=' => TokenType.NotEqual,
-							'<' when next is '=' => TokenType.LessThanOrEqual,
-							'>' when next is '=' => TokenType.LargerThanOrEqual,
+							'<' when next is '=' => TokenType.LesserThanOrEqual,
+							'>' when next is '=' => TokenType.GreaterThanOrEqual,
+							'+' when next is '=' => TokenType.AddAssign,
+							'-' when next is '=' => TokenType.SubAssign,
 							'+' when next is '+' => TokenType.Increment,
 							'-' when next is '-' => TokenType.Decrement,
 							'~' when next is '~' => TokenType.Variadic,
@@ -186,8 +188,8 @@ public static class Tokenizer
 							')' => TokenType.ClosingParentheses,
 							'[' => TokenType.OpeningSquareBrackets,
 							']' => TokenType.ClosingSquareBrackets,
-							'>' => TokenType.LargerThan,
-							'<' => TokenType.LessThan,
+							'>' => TokenType.GreaterThan,
+							'<' => TokenType.LesserThan,
 							'|' => TokenType.Or,
 							'&' => TokenType.And,
 							'!' => TokenType.Not,
@@ -213,9 +215,9 @@ public static class Tokenizer
 						{
 							Text = type switch
 							{
-								TokenType.Equal or TokenType.NotEqual or TokenType.LessThanOrEqual
-								    or TokenType.LargerThanOrEqual or TokenType.Cast
-									or TokenType.Increment or TokenType.Decrement
+								TokenType.Equal or TokenType.NotEqual or TokenType.LesserThanOrEqual
+								    or TokenType.GreaterThanOrEqual or TokenType.Cast or TokenType.SubAssign
+                                    or TokenType.Increment or TokenType.Decrement or TokenType.AddAssign
                                     or TokenType.OpeningGenericBracket or TokenType.ClosingGenericBracket
                                     or TokenType.Variadic or TokenType.InferAssign => stream.Peek(2),
 								_ => stream.Peek(1),

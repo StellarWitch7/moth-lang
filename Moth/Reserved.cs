@@ -8,6 +8,7 @@ namespace Moth.LLVM;
 
 public static class Reserved
 {
+    public static readonly string Main = "main";
     public static readonly string Self = "self";
     public static readonly string Init = "init";
     public static readonly string SizeOf = "sizeof";

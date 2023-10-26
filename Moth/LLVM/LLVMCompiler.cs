@@ -150,7 +150,7 @@ public static class LLVMCompiler
         }
 
         Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray(), funcDefNode.IsVariadic);
-        string funcName = funcDefNode.Privacy == PrivacyType.Foreign
+        string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.Privacy == PrivacyType.Foreign
             ? funcDefNode.Name
             : sig.ToString();
         
@@ -628,20 +628,20 @@ public static class LLVMCompiler
                             }
 
                             break;
-                        case OperationType.LargerThan:
-                        case OperationType.LargerThanOrEqual:
-                        case OperationType.LessThan:
-                        case OperationType.LessThanOrEqual:
+                        case OperationType.GreaterThan:
+                        case OperationType.GreaterThanOrEqual:
+                        case OperationType.LesserThan:
+                        case OperationType.LesserThanOrEqual:
                             if (left.Type.Class.Name == Reserved.Float16
                                 || left.Type.Class.Name == Reserved.Float32
                                 || left.Type.Class.Name == Reserved.Float64)
                             {
                                 builtVal = compiler.Builder.BuildFCmp(binaryOp.Type switch
                                 {
-                                    OperationType.LargerThan => LLVMRealPredicate.LLVMRealOGT,
-                                    OperationType.LargerThanOrEqual => LLVMRealPredicate.LLVMRealOGE,
-                                    OperationType.LessThan => LLVMRealPredicate.LLVMRealOLT,
-                                    OperationType.LessThanOrEqual => LLVMRealPredicate.LLVMRealOLE,
+                                    OperationType.GreaterThan => LLVMRealPredicate.LLVMRealOGT,
+                                    OperationType.GreaterThanOrEqual => LLVMRealPredicate.LLVMRealOGE,
+                                    OperationType.LesserThan => LLVMRealPredicate.LLVMRealOLT,
+                                    OperationType.LesserThanOrEqual => LLVMRealPredicate.LLVMRealOLE,
                                     _ => throw new NotImplementedException(),
                                 }, leftVal, rightVal);
                             }
@@ -653,10 +653,10 @@ public static class LLVMCompiler
                             {
                                 builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
                                 {
-                                    OperationType.LargerThan => LLVMIntPredicate.LLVMIntUGT,
-                                    OperationType.LargerThanOrEqual => LLVMIntPredicate.LLVMIntUGE,
-                                    OperationType.LessThan => LLVMIntPredicate.LLVMIntULT,
-                                    OperationType.LessThanOrEqual => LLVMIntPredicate.LLVMIntULE,
+                                    OperationType.GreaterThan => LLVMIntPredicate.LLVMIntUGT,
+                                    OperationType.GreaterThanOrEqual => LLVMIntPredicate.LLVMIntUGE,
+                                    OperationType.LesserThan => LLVMIntPredicate.LLVMIntULT,
+                                    OperationType.LesserThanOrEqual => LLVMIntPredicate.LLVMIntULE,
                                     _ => throw new NotImplementedException(),
                                 }, leftVal, rightVal);
                             }
@@ -666,10 +666,10 @@ public static class LLVMCompiler
                             {
                                 builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
                                 {
-                                    OperationType.LargerThan => LLVMIntPredicate.LLVMIntSGT,
-                                    OperationType.LargerThanOrEqual => LLVMIntPredicate.LLVMIntSGE,
-                                    OperationType.LessThan => LLVMIntPredicate.LLVMIntSLT,
-                                    OperationType.LessThanOrEqual => LLVMIntPredicate.LLVMIntSLE,
+                                    OperationType.GreaterThan => LLVMIntPredicate.LLVMIntSGT,
+                                    OperationType.GreaterThanOrEqual => LLVMIntPredicate.LLVMIntSGE,
+                                    OperationType.LesserThan => LLVMIntPredicate.LLVMIntSLT,
+                                    OperationType.LesserThanOrEqual => LLVMIntPredicate.LLVMIntSLE,
                                     _ => throw new NotImplementedException(),
                                 }, leftVal, rightVal);
                             }

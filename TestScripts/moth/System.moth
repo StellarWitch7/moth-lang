@@ -45,7 +45,7 @@ public class Sys {
             string[++len] = ch;
             
             if len >= #i32 <- size {
-                string = realloc(string, size = size + #u32 <- 512);
+                string = realloc(string, size += #u32 <- 512);
 
                 if string == null {
                     return string;
