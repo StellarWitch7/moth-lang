@@ -1,4 +1,4 @@
-namespace Moth;
+namespace MothStd; //Part of the standard libs
 
 public class Sys {
 

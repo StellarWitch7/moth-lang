@@ -40,51 +40,51 @@ public class CompilerContext
                 LLVMTypeRef.Void,
                 PrivacyType.Public));
         Classes.Add(Reserved.Float16,
-            new Class(Reserved.Float16,
+            new Float(Reserved.Float16,
                 LLVMTypeRef.Half,
                 PrivacyType.Public));
         Classes.Add(Reserved.Float32,
-            new Class(Reserved.Float32,
+            new Float(Reserved.Float32,
                 LLVMTypeRef.Float,
                 PrivacyType.Public));
         Classes.Add(Reserved.Float64,
-            new Class(Reserved.Float64,
+            new Float(Reserved.Float64,
                 LLVMTypeRef.Double,
                 PrivacyType.Public));
         Classes.Add(Reserved.Bool,
-            new Class(Reserved.Bool,
+            new UnsignedInt(Reserved.Bool,
                 LLVMTypeRef.Int1,
                 PrivacyType.Public));
         Classes.Add(Reserved.Char,
-            new Class(Reserved.Char,
+            new UnsignedInt(Reserved.Char,
                 LLVMTypeRef.Int8,
                 PrivacyType.Public));
         Classes.Add(Reserved.UnsignedInt16,
-            new Class(Reserved.UnsignedInt16,
+            new UnsignedInt(Reserved.UnsignedInt16,
                 LLVMTypeRef.Int16,
                 PrivacyType.Public));
         Classes.Add(Reserved.UnsignedInt32,
-            new Class(Reserved.UnsignedInt32,
+            new UnsignedInt(Reserved.UnsignedInt32,
                 LLVMTypeRef.Int32,
                 PrivacyType.Public));
         Classes.Add(Reserved.UnsignedInt64,
-            new Class(Reserved.UnsignedInt64,
+            new UnsignedInt(Reserved.UnsignedInt64,
                 LLVMTypeRef.Int64,
                 PrivacyType.Public));
         Classes.Add(Reserved.SignedInt8,
-            new Class(Reserved.SignedInt8,
+            new SignedInt(Reserved.SignedInt8,
                 LLVMTypeRef.Int8,
                 PrivacyType.Public));
         Classes.Add(Reserved.SignedInt16,
-            new Class(Reserved.SignedInt16,
+            new SignedInt(Reserved.SignedInt16,
                 LLVMTypeRef.Int16,
                 PrivacyType.Public));
         Classes.Add(Reserved.SignedInt32,
-            new Class(Reserved.SignedInt32,
+            new SignedInt(Reserved.SignedInt32,
                 LLVMTypeRef.Int32,
                 PrivacyType.Public));
         Classes.Add(Reserved.SignedInt64,
-            new Class(Reserved.SignedInt64,
+            new SignedInt(Reserved.SignedInt64,
                 LLVMTypeRef.Int64,
                 PrivacyType.Public));
 

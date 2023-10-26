@@ -736,62 +736,19 @@ public static class TokenParser
 
                     lastCreatedNode = new InlineIfNode(condition, then, @else);
                     break;
-                case TokenType.AddAssign:
-                case TokenType.SubAssign:
-                case TokenType.MulAssign:
-                case TokenType.DivAssign:
-                case TokenType.ModAssign:
-                case TokenType.ExpAssign:
-                    OperationType opType = context.Current?.Type switch
-                    {
-                        TokenType.AddAssign => OperationType.Addition,
-                        TokenType.SubAssign => OperationType.Subtraction,
-                        TokenType.MulAssign => OperationType.Multiplication,
-                        TokenType.DivAssign => OperationType.Division,
-                        TokenType.ModAssign => OperationType.Modulo,
-                        TokenType.ExpAssign => OperationType.Exponential,
-                        _ => throw new UnexpectedTokenException(context.Current.Value)
-                    };
-                    context.MoveNext();
-
-                    if (lastCreatedNode != null)
-                    {
-                        lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
-                            ProcessBinaryOp(context, opType, lastCreatedNode),
-                            OperationType.Assignment);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    break;
-                case TokenType.Cast:
-                    context.MoveNext();
-
-                    if (lastCreatedNode != null && lastCreatedNode is TypeRefNode)
-                    {
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Cast, lastCreatedNode);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
-                    break;
                 case TokenType.Hyphen:
-                    context.MoveNext();
-
                     if (lastCreatedNode != null)
                     {
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Subtraction, lastCreatedNode);
+                        goto case TokenType.Cast;
                     }
                     else
                     {
+                        context.MoveNext();
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, new ConstantNode(-1));
+                        break;
                     }
-
-                    break;
+                case TokenType.Cast:
+                case TokenType.Assign:
                 case TokenType.Plus:
                 case TokenType.Asterix:
                 case TokenType.ForwardSlash:
@@ -805,33 +762,70 @@ public static class TokenParser
                 case TokenType.LesserThanOrEqual:
                 case TokenType.Or:
                 case TokenType.And:
-                    OperationType opType = context.Current?.Type switch
                     {
-                        TokenType.Plus => OperationType.Addition,
-                        TokenType.Asterix => OperationType.Multiplication,
-                        TokenType.ForwardSlash => OperationType.Exponential,
-                        TokenType.Equal => OperationType.Equal,
-                        TokenType.NotEqual => OperationType.NotEqual,
-                        TokenType.GreaterThan => OperationType.GreaterThan,
-                        TokenType.LesserThan => OperationType.LesserThan,
-                        TokenType.GreaterThanOrEqual => OperationType.GreaterThanOrEqual,
-                        TokenType.LesserThanOrEqual => OperationType.LesserThanOrEqual,
-                        TokenType.Or => OperationType.Or,
-                        TokenType.And => OperationType.And,
-                        _ => throw new UnexpectedTokenException(context.Current.Value)
-                    };
-                    context.MoveNext();
+                        OperationType opType = context.Current?.Type switch
+                        {
+                            TokenType.Assign => OperationType.Assignment,
+                            TokenType.Cast => OperationType.Cast,
+                            TokenType.Plus => OperationType.Addition,
+                            TokenType.Hyphen => OperationType.Subtraction,
+                            TokenType.Asterix => OperationType.Multiplication,
+                            TokenType.ForwardSlash => OperationType.Exponential,
+                            TokenType.Equal => OperationType.Equal,
+                            TokenType.NotEqual => OperationType.NotEqual,
+                            TokenType.GreaterThan => OperationType.GreaterThan,
+                            TokenType.LesserThan => OperationType.LesserThan,
+                            TokenType.GreaterThanOrEqual => OperationType.GreaterThanOrEqual,
+                            TokenType.LesserThanOrEqual => OperationType.LesserThanOrEqual,
+                            TokenType.Or => OperationType.Or,
+                            TokenType.And => OperationType.And,
+                            _ => throw new UnexpectedTokenException(context.Current.Value)
+                        };
+                        context.MoveNext();
 
-                    if (lastCreatedNode != null)
-                    {
-                        lastCreatedNode = ProcessBinaryOp(context, opType, lastCreatedNode);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
+                        if (lastCreatedNode != null)
+                        {
+                            lastCreatedNode = ProcessBinaryOp(context, opType, lastCreatedNode);
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
 
-                    break;
+                        break;
+                    }
+                case TokenType.AddAssign:
+                case TokenType.SubAssign:
+                case TokenType.MulAssign:
+                case TokenType.DivAssign:
+                case TokenType.ModAssign:
+                case TokenType.ExpAssign:
+                    {
+                        OperationType opType = context.Current?.Type switch
+                        {
+                            TokenType.AddAssign => OperationType.Addition,
+                            TokenType.SubAssign => OperationType.Subtraction,
+                            TokenType.MulAssign => OperationType.Multiplication,
+                            TokenType.DivAssign => OperationType.Division,
+                            TokenType.ModAssign => OperationType.Modulo,
+                            TokenType.ExpAssign => OperationType.Exponential,
+                            _ => throw new UnexpectedTokenException(context.Current.Value)
+                        };
+                        context.MoveNext();
+
+                        if (lastCreatedNode != null)
+                        {
+                            lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
+                                ProcessBinaryOp(context, opType, lastCreatedNode),
+                                OperationType.Assignment);
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+
+                        break;
+                    }
                 case TokenType.Not:
                     context.MoveNext();
                     lastCreatedNode = new InverseNode(ProcessAccess(context));
@@ -845,18 +839,6 @@ public static class TokenParser
                 case TokenType.Name:
                 case TokenType.This:
                     lastCreatedNode = ProcessAccess(context);
-                    break;
-                case TokenType.Assign:
-                    if (lastCreatedNode != null)
-                    {
-                        context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Assignment, lastCreatedNode);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value);
-                    }
-
                     break;
                 default:
                     if (!nullAllowed && lastCreatedNode == null)

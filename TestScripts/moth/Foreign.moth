@@ -1,4 +1,4 @@
-namespace Moth;
+namespace MothStd; //Part of the standard libs
 
 foreign malloc(size #u32) #void*;
 foreign realloc(ptr #void*, size #u32) #void*;

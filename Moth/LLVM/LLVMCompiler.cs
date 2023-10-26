@@ -499,28 +499,18 @@ public static class LLVMCompiler
             }
             else if (binaryOp.Type == OperationType.Cast)
             {
-                if (binaryOp.Left is TypeRefNode left && compiler.Classes.TryGetValue(left.Name, out Class @class))
+                if (binaryOp.Left is TypeRefNode left && compiler.Classes.TryGetValue(UnVoid(left), out Class @class))
                 {
 
                     var right = CompileExpression(compiler, scope, binaryOp.Right);
                     Type type = ResolveTypeRef(compiler, left);
                     LLVMValueRef builtVal;
 
-                    if (left.Name == Reserved.Bool
-                        || left.Name == Reserved.Char
-                        || left.Name == Reserved.UnsignedInt16
-                        || left.Name == Reserved.UnsignedInt32
-                        || left.Name == Reserved.UnsignedInt64
-                        || left.Name == Reserved.SignedInt8
-                        || left.Name == Reserved.SignedInt16
-                        || left.Name == Reserved.SignedInt32
-                        || left.Name == Reserved.SignedInt64)
+                    if (@class is Int)
                     {
                         builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right), type.LLVMType);
                     }
-                    else if (left.Name == Reserved.Float16
-                        || left.Name == Reserved.Float32
-                        || left.Name == Reserved.Float64)
+                    else if (@class is Float)
                     {
                         builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right), type.LLVMType);
                     }
@@ -557,28 +547,61 @@ public static class LLVMCompiler
                     switch (binaryOp.Type)
                     {
                         case OperationType.Addition:
-                            builtVal = compiler.Builder.BuildAdd(leftVal, rightVal);
-                            break;
-                        case OperationType.Subtraction:
-                            builtVal = compiler.Builder.BuildSub(leftVal, rightVal);
-                            break;
-                        case OperationType.Multiplication:
-                            builtVal = compiler.Builder.BuildMul(leftVal, rightVal);
-                            break;
-                        case OperationType.Division:
-                            if (left.Type.Class.Name == Reserved.Bool
-                                || left.Type.Class.Name == Reserved.Char
-                                || left.Type.Class.Name == Reserved.UnsignedInt16
-                                || left.Type.Class.Name == Reserved.UnsignedInt32
-                                || left.Type.Class.Name == Reserved.UnsignedInt64)
+                            if (left.Type.Class is Float)
                             {
-                                builtVal = compiler.Builder.BuildUDiv(leftVal, rightVal);
+                                builtVal = compiler.Builder.BuildFAdd(leftVal, rightVal);
                             }
                             else
                             {
+                                builtVal = compiler.Builder.BuildAdd(leftVal, rightVal);
+                            }
+
+                            break;
+                        case OperationType.Subtraction:
+                            if (left.Type.Class is Float)
+                            {
+                                builtVal = compiler.Builder.BuildFSub(leftVal, rightVal);
+                            }
+                            else
+                            {
+                                builtVal = compiler.Builder.BuildSub(leftVal, rightVal);
+                            }
+
+                            break;
+                        case OperationType.Multiplication:
+                            if (left.Type.Class is Float)
+                            {
+                                builtVal = compiler.Builder.BuildFMul(leftVal, rightVal);
+                            }
+                            else
+                            {
+                                builtVal = compiler.Builder.BuildMul(leftVal, rightVal);
+                            }
+
+                            break;
+                        case OperationType.Division:
+                            if (left.Type.Class is Float)
+                            {
+                                builtVal = compiler.Builder.BuildFDiv(leftVal, rightVal);
+                            }
+                            else if (left.Type.Class is UnsignedInt)
+                            {
+                                builtVal = compiler.Builder.BuildUDiv(leftVal, rightVal);
+                            }
+                            else if (left.Type.Class is SignedInt)
+                            {
                                 builtVal = compiler.Builder.BuildSDiv(leftVal, rightVal);
                             }
+                            else
+                            {
+                                throw new NotImplementedException();
+                            }
+
                             break;
+                        case OperationType.Modulo:
+                            throw new NotImplementedException();
+                        case OperationType.Exponential:
+                            throw new NotImplementedException();
                         case OperationType.And:
                             builtVal = compiler.Builder.BuildAnd(leftVal, rightVal);
                             break;
@@ -599,23 +622,14 @@ public static class LLVMCompiler
                                     ? compiler.Builder.BuildIsNull(rightVal)
                                     : compiler.Builder.BuildIsNotNull(rightVal);
                             }
-                            else if (left.Type.Class.Name == Reserved.Float16
-                                || left.Type.Class.Name == Reserved.Float32
-                                || left.Type.Class.Name == Reserved.Float64)
+                            else if (left.Type.Class is Float)
                             {
                                 builtVal = compiler.Builder.BuildFCmp(binaryOp.Type == OperationType.Equal
                                     ? LLVMRealPredicate.LLVMRealOEQ
                                     : LLVMRealPredicate.LLVMRealUNE,
                                     leftVal, rightVal);
                             }
-                            else if (left.Type.Class.Name == Reserved.Bool
-                                || left.Type.Class.Name == Reserved.Char
-                                || left.Type.Class.Name == Reserved.UnsignedInt16
-                                || left.Type.Class.Name == Reserved.UnsignedInt32
-                                || left.Type.Class.Name == Reserved.UnsignedInt64
-                                || left.Type.Class.Name == Reserved.SignedInt16
-                                || left.Type.Class.Name == Reserved.SignedInt32
-                                || left.Type.Class.Name == Reserved.SignedInt64)
+                            else if (left.Type.Class is Int)
                             {
                                 builtVal = compiler.Builder.BuildICmp(binaryOp.Type == OperationType.Equal
                                     ? LLVMIntPredicate.LLVMIntEQ
@@ -632,9 +646,7 @@ public static class LLVMCompiler
                         case OperationType.GreaterThanOrEqual:
                         case OperationType.LesserThan:
                         case OperationType.LesserThanOrEqual:
-                            if (left.Type.Class.Name == Reserved.Float16
-                                || left.Type.Class.Name == Reserved.Float32
-                                || left.Type.Class.Name == Reserved.Float64)
+                            if (left.Type.Class is Float)
                             {
                                 builtVal = compiler.Builder.BuildFCmp(binaryOp.Type switch
                                 {
@@ -645,11 +657,7 @@ public static class LLVMCompiler
                                     _ => throw new NotImplementedException(),
                                 }, leftVal, rightVal);
                             }
-                            else if (left.Type.Class.Name == Reserved.Bool
-                                || left.Type.Class.Name == Reserved.Char
-                                || left.Type.Class.Name == Reserved.UnsignedInt16
-                                || left.Type.Class.Name == Reserved.UnsignedInt32
-                                || left.Type.Class.Name == Reserved.UnsignedInt64)
+                            else if (left.Type.Class is UnsignedInt)
                             {
                                 builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
                                 {
@@ -660,9 +668,7 @@ public static class LLVMCompiler
                                     _ => throw new NotImplementedException(),
                                 }, leftVal, rightVal);
                             }
-                            else if (left.Type.Class.Name == Reserved.SignedInt16
-                                || left.Type.Class.Name == Reserved.SignedInt32
-                                || left.Type.Class.Name == Reserved.SignedInt64)
+                            else if (left.Type.Class is SignedInt)
                             {
                                 builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
                                 {
