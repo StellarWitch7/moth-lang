@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
-public class SignedDictionary<T> : Dictionary<Signature, T>
+public class FuncDictionary : Dictionary<Signature, Function>
 {
-    public SignedDictionary() : base(new SigEqualityComparer())
+    public FuncDictionary() : base(new SigEqualityComparer())
     {
     }
 }
@@ -42,8 +42,14 @@ class SigEqualityComparer : IEqualityComparer<Signature>
 
         foreach (var @param in x.Params.Length < y.Params.Length ? x.Params : y.Params)
         {
-            if (@param.PointerDepth != y.Params[index].PointerDepth
-                || @param.Name != y.Params[index].Name)
+            if (@param.Class.Name != y.Params[index].Class.Name
+                || (@param is BasedType
+                    && y.Params[index] is BasedType
+                    && ((BasedType)@param).GetDepth() != ((BasedType)y.Params[index]).GetDepth())
+                || (@param is RefType
+                    && y.Params[index] is not RefType)
+                || (@param is not RefType
+                    && y.Params[index] is RefType))
             {
                 isEqual = false;
                 break;

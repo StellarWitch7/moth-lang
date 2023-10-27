@@ -3,6 +3,7 @@ using Moth.LLVM.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,24 +19,61 @@ public class Type
         LLVMType = lLVMType;
         Class = @class;
     }
-}
 
-public sealed class RefType : Type
-{
-    public readonly Type BaseType;
-
-    public RefType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(lLVMType, classOfType)
+    public override string ToString()
     {
-        BaseType = baseType;
+        return Class.Name;
     }
 }
 
-public sealed class PtrType : Type
+public class BasedType : Type
 {
     public readonly Type BaseType;
 
-    public PtrType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(lLVMType, classOfType)
+    public BasedType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(lLVMType, classOfType)
     {
         BaseType = baseType;
+    }
+
+    public uint GetDepth()
+    {
+        var type = BaseType;
+        uint depth = 0;
+
+        while (type != null)
+        {
+            depth++;
+            type = type is BasedType bType ? bType.BaseType : null;
+        }
+
+        return depth;
+    }
+
+    public override string ToString()
+    {
+        StringBuilder builder = new StringBuilder(Class.Name);
+        var type = BaseType;
+
+        while (type != null)
+        {
+            builder.Append('*');
+            type = type is BasedType bType ? bType.BaseType : null;
+        }
+
+        return builder.ToString();
+    }
+}
+
+public sealed class RefType : BasedType
+{
+    public RefType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(baseType, lLVMType, classOfType)
+    {
+    }
+}
+
+public sealed class PtrType : BasedType
+{
+    public PtrType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(baseType, lLVMType, classOfType)
+    {
     }
 }

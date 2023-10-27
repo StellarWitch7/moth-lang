@@ -10,10 +10,10 @@ namespace Moth.LLVM;
 public class Signature
 {
     public string Name { get; set; }
-    public TypeRefNode[] Params { get; set; }
+    public Type[] Params { get; set; }
     public bool IsVariadic { get; set; }
 
-    public Signature(string name, TypeRefNode[] @params, bool isVariadic = false)
+    public Signature(string name, Type[] @params, bool isVariadic = false)
     {
         Name = name;
         Params = @params;

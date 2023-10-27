@@ -685,7 +685,11 @@ public static class TokenParser
                     break;
                 case TokenType.Ref:
                     context.MoveNext();
-                    lastCreatedNode = new ReferenceNode(ProcessExpression(context, null));
+                    lastCreatedNode = new AsReferenceNode(ProcessExpression(context, null));
+                    break;
+                case TokenType.DeRef:
+                    context.MoveNext();
+                    lastCreatedNode = new DeReferenceNode(ProcessExpression(context, null));
                     break;
                 case TokenType.Period:
                     throw new NotImplementedException("Access operations on expressions are not currently supported."); //TODO

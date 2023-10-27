@@ -4,8 +4,46 @@ func main() #i32 {
     #Sys.WriteLine("Welcome!");
     #Sys.Input("Enter something: ");
     #Sys.WriteLine("Goodbye!");
+    local array #TestArray = #TestArray.init(#u64 <- 10);
+    array.SetIndex(#u64 <- 0, 1);
+    local val #i32;
+    local test #i32* = ref -1;
+    return if !array.GetIndex(#u64 <- 0, ref val) then val else deref test;
+}
 
-	return 0;
+public class TestArray {
+    private value #i32*;
+    private size #u64;
+
+    static init(size #u64) #TestArray {
+        self.value = malloc(size * #i32.sizeof());
+        self.size = size;
+        return self;
+    }
+
+    public GetIndex(index #u64, ref val #i32) #bool {
+        val = if (index >= #u64 <- 0)
+            and index < self.size
+            then self.value[index]
+            else 0;
+        return if (index >= #u64 <- 0)
+            and index < self.size
+            then true
+            else false;
+    }
+
+    public SetIndex(index #u64, item #i32) #bool {
+        if (index < #u64 <- 0) or index >= self.size {
+            return false;
+        }
+
+        self.value[index] = item;
+        return true;
+    }
+
+    public AsPointer() #i32* {
+        return self.value;
+    }
 }
 
 // The example on the wiki

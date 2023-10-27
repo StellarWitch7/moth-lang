@@ -15,9 +15,9 @@ public class Class : CompilerData
     public Type Type { get; set; }
     public PrivacyType Privacy { get; set; }
     public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
-    public SignedDictionary<Function> Methods { get; set; } = new SignedDictionary<Function>();
+    public FuncDictionary Methods { get; set; } = new FuncDictionary();
     public Dictionary<string, Field> StaticFields { get; set; } = new Dictionary<string, Field>();
-    public SignedDictionary<Function> StaticMethods { get; set; } = new SignedDictionary<Function>();
+    public FuncDictionary StaticMethods { get; set; } = new FuncDictionary();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
     public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy)
@@ -37,7 +37,7 @@ public class Class : CompilerData
                 var func = new Function(Reserved.SizeOf, compiler.Module.AddFunction($"{Name}.{Reserved.SizeOf}", funcType),
                     funcType, new Type(LLVMTypeRef.Int64, classOfReturnType), PrivacyType.Public, null, new List<Parameter>(), false);
                 
-                StaticMethods.Add(new Signature(Reserved.SizeOf, new TypeRefNode[0]), func);
+                StaticMethods.Add(new Signature(Reserved.SizeOf, new Type[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 
@@ -65,7 +65,7 @@ public class Class : CompilerData
                 var func = new Function(Reserved.AlignOf, compiler.Module.AddFunction($"{Name}.{Reserved.AlignOf}", funcType),
                     funcType, new Type(LLVMTypeRef.Int64, classOfReturnType), PrivacyType.Public, null, new List<Parameter>(), false);
 
-                StaticMethods.Add(new Signature(Reserved.AlignOf, new TypeRefNode[0]), func);
+                StaticMethods.Add(new Signature(Reserved.AlignOf, new Type[0]), func);
                 func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
                 compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 

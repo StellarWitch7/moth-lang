@@ -1,7 +1,7 @@
 namespace MothStd; //Part of the standard libs
 
-foreign malloc(size #u32) #void*;
-foreign realloc(ptr #void*, size #u32) #void*;
+foreign malloc(size #u64) #void*;
+foreign realloc(ptr #void*, size #u64) #void*;
 foreign free(pointer #void*) #void;
 
 foreign printf(text #char*, ~~) #i32;

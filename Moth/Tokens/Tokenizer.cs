@@ -84,6 +84,7 @@ public static class Tokenizer
 								{
 									"if" => TokenType.If,
 									"ref" => TokenType.Ref,
+                                    "deref" => TokenType.DeRef,
                                     "null" => TokenType.Null,
 									"local" => TokenType.Local,
 									"self" => TokenType.This,

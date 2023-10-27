@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class AsReferenceNode : ExpressionNode
+public class DeReferenceNode : ExpressionNode
 {
     public ExpressionNode Value { get; set; }
 
-    public AsReferenceNode(ExpressionNode value)
+    public DeReferenceNode(ExpressionNode value)
     {
         Value = value;
     }

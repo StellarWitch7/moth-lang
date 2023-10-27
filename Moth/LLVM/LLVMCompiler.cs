@@ -128,28 +128,27 @@ public static class LLVMCompiler
     public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         int index = 0;
-        List<TypeRefNode> paramTypeRefs = new List<TypeRefNode>();
         List<Parameter> @params = new List<Parameter>();
-        List<LLVMTypeRef> paramTypes = new List<LLVMTypeRef>();
+        List<Type> paramTypes = new List<Type>();
+        List<LLVMTypeRef> paramLLVMTypes = new List<LLVMTypeRef>();
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
-            paramTypes.Add(LLVMTypeRef.CreatePointer(@class.Type.LLVMType, 0));
+            paramLLVMTypes.Add(LLVMTypeRef.CreatePointer(@class.Type.LLVMType, 0));
             index++;
         }
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
-            Type paramType = ResolveTypeRef(compiler, paramNode.TypeRef);
-
+            Type paramType = ResolveParameter(compiler, paramNode);
             paramNode.TypeRef.Name = UnVoid(paramNode.TypeRef);
-            paramTypeRefs.Add(paramNode.TypeRef);
-            paramTypes.Add(paramType.LLVMType);
             @params.Add(new Parameter(index, paramNode.Name, paramType));
+            paramTypes.Add(paramType);
+            paramLLVMTypes.Add(paramType.LLVMType);
             index++;
         }
 
-        Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray(), funcDefNode.IsVariadic);
+        Signature sig = new Signature(funcDefNode.Name, paramTypes.ToArray(), funcDefNode.IsVariadic);
         string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.Privacy == PrivacyType.Foreign
             ? funcDefNode.Name
             : sig.ToString();
@@ -160,7 +159,7 @@ public static class LLVMCompiler
         }
 
         Type returnType = ResolveTypeRef(compiler, funcDefNode.ReturnTypeRef);
-        LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramTypes.ToArray(), funcDefNode.IsVariadic);
+        LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramLLVMTypes.ToArray(), funcDefNode.IsVariadic);
         LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcName, lLVMFuncType);
         Function func = new Function(funcDefNode.Name,
             lLVMFunc,
@@ -208,14 +207,14 @@ public static class LLVMCompiler
     public static void CompileFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         Function func;
-        List<TypeRefNode> paramTypeRefs = new List<TypeRefNode>();
+        List<Type> paramTypes = new List<Type>();
 
-        foreach (var @param in funcDefNode.Params)
+        foreach (var param in funcDefNode.Params)
         {
-            paramTypeRefs.Add(@param.TypeRef);
+            paramTypes.Add(ResolveParameter(compiler, param));
         }
 
-        Signature sig = new Signature(funcDefNode.Name, paramTypeRefs.ToArray());
+        Signature sig = new Signature(funcDefNode.Name, paramTypes.ToArray());
 
         if (funcDefNode.Privacy == PrivacyType.Foreign && funcDefNode.ExecutionBlock == null)
         {
@@ -281,6 +280,21 @@ public static class LLVMCompiler
         if (!CompileScope(compiler, func.OpeningScope, funcDefNode.ExecutionBlock))
         {
             throw new Exception("Function is not guaranteed to return.");
+        }
+    }
+
+    public static Type ResolveParameter(CompilerContext compiler, ParameterNode param)
+    {
+        var type = ResolveTypeRef(compiler, param.TypeRef);
+
+        if (param.RequireRefType)
+        {
+            var newType = new PtrType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
+            return new RefType(newType, LLVMTypeRef.CreatePointer(newType.LLVMType, 0), newType.Class);
+        }
+        else
+        {
+            return type;
         }
     }
 
@@ -472,21 +486,7 @@ public static class LLVMCompiler
         {
             if (binaryOp.Type == OperationType.Assignment)
             {
-                ValueContext variableAssigned;
-
-                if (binaryOp.Left is RefNode @ref)
-                {
-                    variableAssigned = CompileRef(compiler, scope, @ref);
-                    
-                }
-                else if (binaryOp.Left is LocalDefNode localDef && localDef is not InferredLocalDefNode)
-                {
-                    variableAssigned = CompileLocal(compiler, scope, localDef);
-                }
-                else
-                {
-                    throw new Exception("Invalid left-hand operand for assignment.");
-                }
+                ValueContext variableAssigned = CompileExpression(compiler, scope, binaryOp.Left);
 
                 if (variableAssigned.Type is not RefType)
                 {
@@ -494,7 +494,7 @@ public static class LLVMCompiler
                 }
 
                 var value = CompileExpression(compiler, scope, binaryOp.Right);
-                compiler.Builder.BuildStore(SafeLoad(compiler, value), variableAssigned.LLVMValue);
+                compiler.Builder.BuildStore(SafeLoad(compiler, value), ReferenceToReferenceLoad(compiler, variableAssigned));
                 return new ValueContext(WrapAsRef(variableAssigned.Type), variableAssigned.LLVMValue);
             }
             else if (binaryOp.Type == OperationType.Cast)
@@ -853,6 +853,31 @@ public static class LLVMCompiler
             return new ValueContext(WrapAsRef(@ref.Type),
                 @ref.LLVMValue);
         }
+        else if (expr is AsReferenceNode asReference)
+        {
+            var value = CompileExpression(compiler, scope, asReference.Value);
+            var newVal = compiler.Builder.BuildAlloca(value.Type.LLVMType);
+            compiler.Builder.BuildStore(value.LLVMValue, newVal);
+            return new ValueContext(new PtrType(value.Type, LLVMTypeRef.CreatePointer(value.Type.LLVMType, 0), value.Type.Class), newVal);
+        }
+        else if (expr is DeReferenceNode deReference)
+        {
+            var value = CompileExpression(compiler, scope, deReference.Value);
+            
+            if (value.Type is RefType @ref)
+            {
+                value = new ValueContext(@ref.BaseType, compiler.Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue));
+            }
+
+            if (value.Type is BasedType bType)
+            {
+                return new ValueContext(bType.BaseType, compiler.Builder.BuildLoad2(value.Type.LLVMType, value.LLVMValue));
+            }
+            else
+            {
+                throw new Exception("Attempted to de-reference a value.");
+            }
+        }
         else if (expr is RefNode @ref)
         {
             return CompileRef(compiler, scope, @ref);
@@ -865,6 +890,18 @@ public static class LLVMCompiler
         else
         {
             throw new NotImplementedException();
+        }
+    }
+
+    public static LLVMValueRef ReferenceToReferenceLoad(CompilerContext compiler, ValueContext value)
+    {
+        if (value.Type is PtrType ptr && ptr.BaseType is RefType)
+        {
+            return compiler.Builder.BuildLoad2(ptr.BaseType.LLVMType, value.LLVMValue);
+        }
+        else
+        {
+            return value.LLVMValue;
         }
     }
 
@@ -1022,8 +1059,8 @@ public static class LLVMCompiler
     public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, FuncCallNode methodCall,
         Class staticClass = null)
     {
+        List<Type> argTypes = new List<Type>();
         List<LLVMValueRef> args = new List<LLVMValueRef>();
-        List<TypeRefNode> argsAsTyperefs = new List<TypeRefNode>();
         bool contextWasNull = context == null;
         Function func;
 
@@ -1039,38 +1076,17 @@ public static class LLVMCompiler
         foreach (ExpressionNode arg in methodCall.Arguments)
         {
             var val = CompileExpression(compiler, scope, arg);
-            var type = val.Type;
-            int depth = 0;
-
-            if (type is RefType @ref)
-            {
-                type = @ref.BaseType;
-            }
-
-            while (type != null)
-            {
-                if (type is PtrType ptr)
-                {
-                    depth++;
-                    type = ptr.BaseType;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            argsAsTyperefs.Add(new TypeRefNode(val.Type.Class.Name, depth));
+            argTypes.Add(val.Type is RefType @ref ? @ref.BaseType : val.Type);
             args.Add(SafeLoad(compiler, val));
         }
 
-        Signature sig = new Signature(methodCall.Name, argsAsTyperefs.ToArray());
+        Signature sig = new Signature(methodCall.Name, argTypes.ToArray());
 
         if (context != null && context.Type.Class.Methods.TryGetValue(sig, out func))
         {
             if (context.Type.LLVMType == func.LLVMFuncType.ParamTypes[0])
             {
-                var newArgs = new List<LLVMValueRef>() { SafeLoad(compiler, context) };
+                var newArgs = new List<LLVMValueRef>() { context.LLVMValue };
                 newArgs.AddRange(args);
                 args = newArgs;
             }

@@ -3,7 +3,7 @@ namespace MothStd; //Part of the standard libs
 public class Sys {
 
     static Write(string #char*, end #char, file #void*) #void {
-        local toPrint #char* = malloc(#u32 <- 10000);
+        local toPrint #char* = malloc(#u64 <- 10000);
         sprintf(toPrint, "%s%c", string, end);
         fputs(toPrint, file);
         fflush(file);
@@ -32,7 +32,7 @@ public class Sys {
     }
 
     static ReadLine(file #void*) #char* {
-        local size #u32 = 512;
+        local size #u64 = 512;
         local string #char* = malloc(size);
         local ch #char = #Sys.GetChar(file);
         local len #i32 = -1;
@@ -45,7 +45,7 @@ public class Sys {
             string[++len] = ch;
             
             if len >= #i32 <- size {
-                string = realloc(string, size += #u32 <- 512);
+                string = realloc(string, size += #u64 <- 512);
 
                 if string == null {
                     return string;
@@ -60,7 +60,7 @@ public class Sys {
         }
 
         string[++len] = ch;
-        string = realloc(string, #u32 <- ++len);
+        string = realloc(string, #u64 <- ++len);
         return string;
     }
 

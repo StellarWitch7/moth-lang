@@ -104,5 +104,6 @@ public enum TokenType
     MulAssign,
     DivAssign,
     ModAssign,
-    ExpAssign
+    ExpAssign,
+    DeRef
 }
