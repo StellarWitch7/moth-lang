@@ -88,7 +88,6 @@ public enum TokenType
 	Pi,
     Range,
     Variadic,
-    DollarSign,
     Static,
     InferAssign,
     AttributeMarker,

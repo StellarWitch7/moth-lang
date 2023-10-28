@@ -13,9 +13,11 @@ public class Type
 {
     public LLVMTypeRef LLVMType { get; set; }
     public Class Class { get; set; }
+    public string Is { get; init; }
 
     public Type(LLVMTypeRef lLVMType, Class @class)
     {
+        Is = "Type";
         LLVMType = lLVMType;
         Class = @class;
     }
@@ -32,6 +34,7 @@ public class BasedType : Type
 
     public BasedType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(lLVMType, classOfType)
     {
+        Is = "BasedType";
         BaseType = baseType;
     }
 
@@ -68,6 +71,7 @@ public sealed class RefType : BasedType
 {
     public RefType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(baseType, lLVMType, classOfType)
     {
+        Is = "RefType";
     }
 }
 
@@ -75,5 +79,6 @@ public sealed class PtrType : BasedType
 {
     public PtrType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(baseType, lLVMType, classOfType)
     {
+        Is = "PtrType";
     }
 }

@@ -84,7 +84,7 @@ public static class Tokenizer
 								{
 									"if" => TokenType.If,
 									"ref" => TokenType.Ref,
-                                    "deref" => TokenType.DeRef,
+									"load" => TokenType.DeRef,
                                     "null" => TokenType.Null,
 									"local" => TokenType.Local,
 									"self" => TokenType.This,
@@ -198,7 +198,6 @@ public static class Tokenizer
 							'|' => TokenType.Or,
 							'&' => TokenType.And,
 							'!' => TokenType.Not,
-							'$' => TokenType.DollarSign,
 							'+' => TokenType.Plus,
 							'/' => TokenType.ForwardSlash,
 							'-' => TokenType.Hyphen,

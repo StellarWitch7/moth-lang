@@ -23,6 +23,8 @@ public class CompilerContext
     public GenericDictionary GenericClasses { get; set; } = new GenericDictionary();
     public Function? CurrentFunction { get; set; }
 
+    private Dictionary<string, LLVMValueRef> _intrinsics = new Dictionary<string, LLVMValueRef>();
+
     public CompilerContext(string moduleName)
     {
         Context = LLVMContextRef.Global;
@@ -31,6 +33,54 @@ public class CompilerContext
         ModuleName = moduleName;
 
         InsertDefaultTypes();
+    }
+
+    public LLVMValueRef GetIntrinsic(string name)
+    {
+        if (_intrinsics.TryGetValue(name, out LLVMValueRef func))
+        {
+            return func;
+        }
+        else
+        {
+            return CreateIntrinsic(name);
+        }
+    }
+
+    private LLVMValueRef CreateIntrinsic(string name)
+    {
+        var funcType = name switch
+        {
+            "llvm.powi.f32.i32" => LLVMTypeRef.CreateFunction(LLVMTypeRef.Float,
+                new LLVMTypeRef[]
+                {
+                    LLVMTypeRef.Float,
+                    LLVMTypeRef.Int32
+                }),
+            "llvm.powi.f64.i16" => LLVMTypeRef.CreateFunction(LLVMTypeRef.Double,
+                new LLVMTypeRef[]
+                {
+                    LLVMTypeRef.Double,
+                    LLVMTypeRef.Int16
+                }),
+            "llvm.pow.f32" => LLVMTypeRef.CreateFunction(LLVMTypeRef.Float,
+                new LLVMTypeRef[]
+                {
+                    LLVMTypeRef.Float,
+                    LLVMTypeRef.Float
+                }),
+            "llvm.pow.f64" => LLVMTypeRef.CreateFunction(LLVMTypeRef.Double,
+                new LLVMTypeRef[]
+                {
+                    LLVMTypeRef.Double,
+                    LLVMTypeRef.Double
+                }),
+            _ => throw new NotImplementedException(),
+        };
+
+        var func = Module.AddFunction(name, funcType); //TODO: sobbing fr
+        _intrinsics.Add(name, func);
+        return func;
     }
 
     private void InsertDefaultTypes()

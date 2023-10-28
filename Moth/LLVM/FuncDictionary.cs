@@ -49,7 +49,11 @@ class SigEqualityComparer : IEqualityComparer<Signature>
                 || (@param is RefType
                     && y.Params[index] is not RefType)
                 || (@param is not RefType
-                    && y.Params[index] is RefType))
+                    && y.Params[index] is RefType)
+                || (@param is PtrType
+                    && y.Params[index] is not PtrType)
+                || (@param is not PtrType
+                    && y.Params[index] is PtrType))
             {
                 isEqual = false;
                 break;

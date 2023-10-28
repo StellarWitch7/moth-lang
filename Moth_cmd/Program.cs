@@ -328,7 +328,7 @@ internal class Program
                     logger.WriteEmptyLine();
                     logger.WriteLine($"Failed to compile due to: {e}");
 
-                    if (!options.Verbose)
+                    if (options.Verbose)
                     {
                         logger.WriteLine("Dumping LLVM IR for reviewal...");
                         logger.WriteSeparator();
