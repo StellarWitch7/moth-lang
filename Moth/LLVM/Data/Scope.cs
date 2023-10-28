@@ -16,4 +16,16 @@ public class Scope : CompilerData
     {
         LLVMBlock = lLVMBlock;
     }
+
+    public Variable GetVariable(string name)
+    {
+        if (Variables.TryGetValue(name, out Variable @var))
+        {
+            return @var;
+        }
+        else
+        {
+            throw new Exception($"Variable \"{name}\" does not exist in the current scope.");
+        }
+    }
 }

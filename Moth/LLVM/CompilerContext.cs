@@ -47,6 +47,30 @@ public class CompilerContext
         }
     }
 
+    public Function GetFunction(Signature sig)
+    {
+        if (GlobalFunctions.TryGetValue(sig, out Function func))
+        {
+            return func;
+        }
+        else
+        {
+            throw new Exception($"Function \"{sig}\" does not exist.");
+        }
+    }
+
+    public Class GetClass(string name)
+    {
+        if (Classes.TryGetValue(name, out Class @class))
+        {
+            return @class;
+        }
+        else
+        {
+            throw new Exception($"Class \"{name}\" does not exist.");
+        }
+    }
+
     private LLVMValueRef CreateIntrinsic(string name)
     {
         var funcType = name switch
@@ -78,8 +102,9 @@ public class CompilerContext
             _ => throw new NotImplementedException(),
         };
 
-        var func = Module.AddFunction(name, funcType); //TODO: sobbing fr
+        var func = Module.AddFunction(name, funcType);
         _intrinsics.Add(name, func);
+        Module.Dump(); //TODO: testing
         return func;
     }
 

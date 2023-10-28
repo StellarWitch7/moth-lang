@@ -30,16 +30,11 @@ public static class LLVMCompiler
             {
                 if (classNode is not GenericClassNode)
                 {
-                    if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
+                    var @class = compiler.GetClass(classNode.Name);
+                    
+                    foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
-                        {
-                            DefineFunction(compiler, funcDefNode, @class);
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("Unnamed critical error. Report ASAP.");
+                        DefineFunction(compiler, funcDefNode, @class);
                     }
                 }
             }
@@ -72,16 +67,11 @@ public static class LLVMCompiler
             {
                 if (classNode is not GenericClassNode)
                 {
-                    if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
+                    var @class = compiler.GetClass(classNode.Name);
+
+                    foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
-                        {
-                            CompileFunction(compiler, funcDefNode, @class);
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("Unnamed critical error. Report ASAP.");
+                        CompileFunction(compiler, funcDefNode, @class);
                     }
                 }
             }
@@ -103,26 +93,20 @@ public static class LLVMCompiler
 
     public static void CompileClass(CompilerContext compiler, ClassNode classNode)
     {
-        uint index = 0;
         List<LLVMTypeRef> lLVMTypes = new List<LLVMTypeRef>();
+        var @class = compiler.GetClass(classNode.Name);
+        uint index = 0;
 
-        if (compiler.Classes.TryGetValue(classNode.Name, out Class @class))
+        foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
         {
-            foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
-            {
-                Type fieldType = ResolveTypeRef(compiler, field.TypeRef);
+            Type fieldType = ResolveTypeRef(compiler, field.TypeRef);
 
-                lLVMTypes.Add(fieldType.LLVMType);
-                @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
-                index++;
-            }
+            lLVMTypes.Add(fieldType.LLVMType);
+            @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
+            index++;
+        }
 
-            @class.Type.LLVMType.StructSetBody(lLVMTypes.ToArray(), false);
-        }
-        else
-        {
-            throw new Exception("Tried to get a class that doesn't exist. This is a critical error that must be reported.");
-        }
+        @class.Type.LLVMType.StructSetBody(lLVMTypes.ToArray(), false);
     }
 
     public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
@@ -460,13 +444,10 @@ public static class LLVMCompiler
         {
             throw new NotImplementedException();
         }
-        else if (compiler.Classes.TryGetValue(UnVoid(typeRef), out Class @class))
-        {
-            type = new Type(@class.Type.LLVMType, @class);
-        }
         else
         {
-            throw new Exception($"Type \"{typeRef.Name}\" is undefined.");
+            var @class = compiler.GetClass(UnVoid(typeRef));
+            type = new Type(@class.Type.LLVMType, @class);
         }
 
         int index = 0;
@@ -613,83 +594,36 @@ public static class LLVMCompiler
     {
         if (constNode.Value is string str)
         {
-            if (compiler.Classes.TryGetValue(Reserved.Char, out Class @class))
-            {
-                var constStr = compiler.Context.GetConstString(str, false);
-                var global = compiler.Module.AddGlobal(constStr.TypeOf, "");
-                global.Initializer = constStr;
-                return new ValueContext(new PtrType(@class.Type, LLVMTypeRef.CreatePointer(@class.Type.LLVMType, 0), @class), global);
-            }
-            else
-            {
-                throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Char}\".");
-            }
+            var @class = compiler.GetClass(Reserved.Char);
+            var constStr = compiler.Context.GetConstString(str, false);
+            var global = compiler.Module.AddGlobal(constStr.TypeOf, "");
+            global.Initializer = constStr;
+            return new ValueContext(new PtrType(@class.Type, LLVMTypeRef.CreatePointer(@class.Type.LLVMType, 0), @class), global);
         }
         else if (constNode.Value is bool @bool)
         {
-            if (compiler.Classes.TryGetValue(Reserved.Bool, out Class @class))
-            {
-                ulong i;
-
-                if (@bool)
-                {
-                    i = 1;
-                }
-                else
-                {
-                    i = 0;
-                }
-
-                return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, i));
-            }
-            else
-            {
-                throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Bool}\".");
-            }
+            var @class = compiler.GetClass(Reserved.Bool);
+            return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
         }
         else if (constNode.Value is int i32)
         {
-            if (compiler.Classes.TryGetValue(Reserved.SignedInt32, out Class @class))
-            {
-                return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
-            }
-            else
-            {
-                throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.SignedInt32}\".");
-            }
+            var @class = compiler.GetClass(Reserved.SignedInt32);
+            return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
         }
         else if (constNode.Value is float f32)
         {
-            if (compiler.Classes.TryGetValue(Reserved.Float32, out Class @class))
-            {
-                return new ValueContext(@class.Type, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
-            }
-            else
-            {
-                throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Float32}\".");
-            }
+            var @class = compiler.GetClass(Reserved.Float32);
+            return new ValueContext(@class.Type, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
         }
         else if (constNode.Value is char ch)
         {
-            if (compiler.Classes.TryGetValue(Reserved.Char, out Class @class))
-            {
-                return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, (ulong)ch));
-            }
-            else
-            {
-                throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Char}\".");
-            }
+            var @class = compiler.GetClass(Reserved.Char);
+            return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, (ulong)ch));
         }
         else if (constNode.Value == null)
         {
-            if (compiler.Classes.TryGetValue(Reserved.Char, out Class @class))
-            {
-                return new ValueContext(@class.Type, LLVMValueRef.CreateConstNull(@class.Type.LLVMType));
-            }
-            else
-            {
-                throw new Exception($"Critical failure: compiler cannot find the primitive type \"{Reserved.Char}\".");
-            }
+            var @class = compiler.GetClass(Reserved.Char);
+            return new ValueContext(@class.Type, LLVMValueRef.CreateConstNull(@class.Type.LLVMType));
         }
         else
         {
@@ -892,156 +826,140 @@ public static class LLVMCompiler
 
     public static ValueContext CompileCast(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
     {
-        if (binaryOp.Left is TypeRefNode left && compiler.Classes.TryGetValue(UnVoid(left), out Class @class))
-        {
-
-            var right = CompileExpression(compiler, scope, binaryOp.Right);
-            Type type = ResolveTypeRef(compiler, left);
-            LLVMValueRef builtVal;
-
-            if (@class is Int)
-            {
-                builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right), type.LLVMType);
-            }
-            else if (@class is Float)
-            {
-                builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right), type.LLVMType);
-            }
-            else
-            {
-                builtVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast,
-                    SafeLoad(compiler, right),
-                    type.LLVMType);
-            }
-
-            return new ValueContext(type, builtVal);
-        }
-        else
+        if (binaryOp.Left is not TypeRefNode left)
         {
             throw new Exception("Cast destination is invalid.");
         }
+
+        var @class = compiler.GetClass(UnVoid(left));
+        var right = CompileExpression(compiler, scope, binaryOp.Right);
+        Type type = ResolveTypeRef(compiler, left);
+        LLVMValueRef builtVal;
+
+        if (@class is Int)
+        {
+            builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right), type.LLVMType);
+        }
+        else if (@class is Float)
+        {
+            builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right), type.LLVMType);
+        }
+        else
+        {
+            builtVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast,
+                SafeLoad(compiler, right),
+                type.LLVMType);
+        }
+
+        return new ValueContext(type, builtVal);
     }
 
     public static ValueContext CompilePow(CompilerContext compiler, ValueContext left, ValueContext right)
     {
-        Class i16 = null;
-        Class i32 = null;
-        Class f32 = null;
-        Class f64 = null;
+        Class i16 = compiler.GetClass(Reserved.SignedInt16);
+        Class i32 = compiler.GetClass(Reserved.SignedInt32);
+        Class f32 = compiler.GetClass(Reserved.Float32);
+        Class f64 = compiler.GetClass(Reserved.Float64);
+        
+        LLVMValueRef val;
+        string intrinsic;
+        var destType = LLVMTypeRef.Float;
 
-        if (compiler.Classes.TryGetValue(Reserved.SignedInt16, out i16)
-            && compiler.Classes.TryGetValue(Reserved.SignedInt32, out i32)
-            && compiler.Classes.TryGetValue(Reserved.Float32, out f32)
-            && compiler.Classes.TryGetValue(Reserved.Float64, out f64))
+        if (left.Type.Class is Int)
         {
-            var destType = LLVMTypeRef.Float;
-            LLVMValueRef val;
-            string intrinsic;
-
-            if (left.Type.Class is Int)
+            if (left.Type.Class.Name == Reserved.UnsignedInt64
+                || left.Type.Class.Name == Reserved.SignedInt64)
             {
-                if (left.Type.Class.Name == Reserved.UnsignedInt64
-                    || left.Type.Class.Name == Reserved.SignedInt64)
-                {
-                    destType = LLVMTypeRef.Double;
-                }
-
-                if (left.Type.Class is SignedInt)
-                {
-                    val = compiler.Builder.BuildSIToFP(SafeLoad(compiler, left), destType);
-                }
-                else if (left.Type.Class is UnsignedInt)
-                {
-                    val = compiler.Builder.BuildUIToFP(SafeLoad(compiler, left), destType);
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-
-                left = new ValueContext(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind ? f64.Type : f32.Type, val);
+                destType = LLVMTypeRef.Double;
             }
-            else if (left.Type.Class is Float
-                && left.Type.Class.Name != Reserved.Float64)
+
+            if (left.Type.Class is SignedInt)
             {
-                val = compiler.Builder.BuildFPCast(SafeLoad(compiler, left), destType);
-                left = new ValueContext(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind ? f64.Type : f32.Type, val);
+                val = compiler.Builder.BuildSIToFP(SafeLoad(compiler, left), destType); //TODO: not appearing in the module's IR?
+            }
+            else if (left.Type.Class is UnsignedInt)
+            {
+                val = compiler.Builder.BuildUIToFP(SafeLoad(compiler, left), destType);
             }
             else
             {
                 throw new NotImplementedException();
             }
 
-            if (right.Type.Class is Float)
-            {
-                if (left.Type.Class.Name == Reserved.Float64)
-                {
-                    if (right.Type.Class.Name != Reserved.Float64)
-                    {
-                        val = compiler.Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
-                        right = new ValueContext(f64.Type, val);
-                    }
-
-                    intrinsic = "llvm.pow.f64";
-                }
-                else
-                {
-                    if (right.Type.Class.Name != Reserved.Float32)
-                    {
-                        val = compiler.Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
-                        right = new ValueContext(f32.Type, val);
-                    }
-
-                    intrinsic = "llvm.pow.f32";
-                }
-            }
-            else if (right.Type.Class is Int)
-            {
-                if (left.Type.Class.Name == Reserved.Float64)
-                {
-                    if (right.Type.Class.Name != Reserved.SignedInt16
-                        && right.Type.Class.Name != Reserved.UnsignedInt16)
-                    {
-                        val = compiler.Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
-                        right = new ValueContext(i16.Type, val);
-                    }
-
-                    intrinsic = "llvm.powi.f64.i16";
-                }
-                else
-                {
-                    if (right.Type.Class.Name != Reserved.SignedInt32
-                        && right.Type.Class.Name != Reserved.UnsignedInt32)
-                    {
-                        val = compiler.Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
-                        right = new ValueContext(i32.Type, val);
-                    }
-
-                    intrinsic = "llvm.powi.f32.i32";
-                }
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-
-            return new ValueContext(left.Type,
-                        compiler.Builder.BuildCall2(left.Type.LLVMType,
-                            compiler.GetIntrinsic(intrinsic),
-                            new LLVMValueRef[]
-                            {
-                            SafeLoad(compiler, left),
-                            SafeLoad(compiler, right)
-                            }));
+            left = new ValueContext(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind ? f64.Type : f32.Type, val);
+        }
+        else if (left.Type.Class is Float
+            && left.Type.Class.Name != Reserved.Float64)
+        {
+            val = compiler.Builder.BuildFPCast(SafeLoad(compiler, left), destType);
+            left = new ValueContext(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind ? f64.Type : f32.Type, val);
         }
         else
         {
-            throw new Exception($"Searched for \"{Reserved.SignedInt16}\", "
-                + $"\"{Reserved.SignedInt32}\", "
-                + $"\"{Reserved.Float32}\", "
-                + $"and \"{Reserved.Float64}\". "
-                + $"Found \"{i16}\", \"{i32}\", \"{f32}\", and \"{f64}\".");
+            throw new NotImplementedException();
         }
+
+        if (right.Type.Class is Float)
+        {
+            if (left.Type.Class.Name == Reserved.Float64)
+            {
+                if (right.Type.Class.Name != Reserved.Float64)
+                {
+                    val = compiler.Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
+                    right = new ValueContext(f64.Type, val);
+                }
+
+                intrinsic = "llvm.pow.f64";
+            }
+            else
+            {
+                if (right.Type.Class.Name != Reserved.Float32)
+                {
+                    val = compiler.Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
+                    right = new ValueContext(f32.Type, val);
+                }
+
+                intrinsic = "llvm.pow.f32";
+            }
+        }
+        else if (right.Type.Class is Int)
+        {
+            if (left.Type.Class.Name == Reserved.Float64)
+            {
+                if (right.Type.Class.Name != Reserved.SignedInt16
+                    && right.Type.Class.Name != Reserved.UnsignedInt16)
+                {
+                    val = compiler.Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
+                    right = new ValueContext(i16.Type, val);
+                }
+
+                intrinsic = "llvm.powi.f64.i16";
+            }
+            else
+            {
+                if (right.Type.Class.Name != Reserved.SignedInt32
+                    && right.Type.Class.Name != Reserved.UnsignedInt32)
+                {
+                    val = compiler.Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
+                    right = new ValueContext(i32.Type, val);
+                }
+
+                intrinsic = "llvm.powi.f32.i32";
+            }
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+
+        return new ValueContext(left.Type,
+                    compiler.Builder.BuildCall2(left.Type.LLVMType,
+                        compiler.GetIntrinsic(intrinsic),
+                        new LLVMValueRef[]
+                        {
+                            SafeLoad(compiler, left),
+                            SafeLoad(compiler, right)
+                        }));
     }
 
     public static ValueContext CompileAssignment(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
@@ -1099,16 +1017,9 @@ public static class LLVMCompiler
 
                 if (compiler.CurrentFunction.Name == Reserved.Init)
                 {
-                    if (scope.Variables.TryGetValue(Reserved.Self, out Variable self))
-                    {
-                        context = new ValueContext(WrapAsRef(self.Type),
+                    var self = scope.GetVariable(Reserved.Self);
+                    context = new ValueContext(WrapAsRef(self.Type),
                             self.LLVMVariable);
-                    }
-                    else
-                    {
-                        throw new Exception("Critical failure: \"self\" does not exist within constructor. " +
-                            "!!THIS IS NOT A USER ERROR. REPORT ASAP!!");
-                    }
                 }
                 else
                 {
@@ -1120,30 +1031,18 @@ public static class LLVMCompiler
             }
             else if (refNode is TypeRefNode typeRef)
             {
-                if (compiler.Classes.TryGetValue(UnVoid(typeRef), out Class @class))
-                {
-                    refNode = refNode.Child;
+                var @class = compiler.GetClass(UnVoid(typeRef));
+                refNode = refNode.Child;
 
-                    if (refNode is FuncCallNode methodCall)
-                    {
-                        context = CompileFuncCall(compiler, context, scope, methodCall, @class);
-                        refNode = refNode.Child;
-                    }
-                    else
-                    {
-                        if (@class.StaticFields.TryGetValue(refNode.Name, out Field field))
-                        {
-                            throw new NotImplementedException();
-                        }
-                        else
-                        {
-                            throw new Exception($"Field {refNode.Name} does not exist as static on the class {@class.Name}.");
-                        }
-                    }
+                if (refNode is FuncCallNode methodCall)
+                {
+                    context = CompileFuncCall(compiler, context, scope, methodCall, @class);
+                    refNode = refNode.Child;
                 }
                 else
                 {
-                    throw new Exception($"Type \"{typeRef.Name}\" does not exist.");
+                    var field = @class.GetStaticField(refNode.Name);
+                    throw new NotImplementedException();
                 }
             }
             else if (refNode is FuncCallNode methodCall)
@@ -1177,18 +1076,12 @@ public static class LLVMCompiler
     {
         if (context != null)
         {
-            if (context.Type.Class.Fields.TryGetValue(refNode.Name, out Field field))
-            {
-                var type = context.Type is RefType refType ? refType.BaseType : context.Type;
-                return new ValueContext(WrapAsRef(field.Type),
-                    compiler.Builder.BuildStructGEP2(type.LLVMType,
-                        context.LLVMValue,
-                        field.FieldIndex));
-            }
-            else
-            {
-                throw new Exception($"Field \"{refNode.Name}\" does not exist.");
-            }
+            var field = context.Type.Class.GetField(refNode.Name);
+            var type = context.Type is RefType refType ? refType.BaseType : context.Type;
+            return new ValueContext(WrapAsRef(field.Type),
+                compiler.Builder.BuildStructGEP2(type.LLVMType,
+                    context.LLVMValue,
+                    field.FieldIndex));
         }
         else
         {

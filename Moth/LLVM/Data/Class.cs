@@ -27,6 +27,54 @@ public class Class : CompilerData
         Privacy = privacy;
     }
 
+    public Field GetField(string name)
+    {
+        if (Fields.TryGetValue(name, out Field field))
+        {
+            return field;
+        }
+        else
+        {
+            throw new Exception($"Field \"{name}\" does not exist on class \"{Name}\"!");
+        }
+    }
+
+    public Field GetStaticField(string name)
+    {
+        if (StaticFields.TryGetValue(name, out Field field))
+        {
+            return field;
+        }
+        else
+        {
+            throw new Exception($"Static field \"{name}\" does not exist on class \"{Name}\"!");
+        }
+    }
+
+    public Function GetMethod(Signature sig)
+    {
+        if (Methods.TryGetValue(sig, out Function func))
+        {
+            return func;
+        }
+        else
+        {
+            throw new Exception($"Method \"{sig}\" does not exist on class \"{Name}\"!");
+        }
+    }
+
+    public Function GetStaticMethod(Signature sig)
+    {
+        if (StaticMethods.TryGetValue(sig, out Function func))
+        {
+            return func;
+        }
+        else
+        {
+            throw new Exception($"Static method \"{sig}\" does not exist on class \"{Name}\"!");
+        }
+    }
+
     public void AddBuiltins(CompilerContext compiler)
     {
         // sizeof()
