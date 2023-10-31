@@ -952,14 +952,15 @@ public static class LLVMCompiler
             throw new NotImplementedException();
         }
 
+        var func = compiler.GetIntrinsic(intrinsic);
         return new ValueContext(left.Type,
-                    compiler.Builder.BuildCall2(left.Type.LLVMType,
-                        compiler.GetIntrinsic(intrinsic),
+                    compiler.Builder.BuildCall2(func.LLVMFuncType,
+                        func.LLVMFunc,
                         new LLVMValueRef[]
                         {
                             SafeLoad(compiler, left),
                             SafeLoad(compiler, right)
-                        }));
+                        }, "pow"));
     }
 
     public static ValueContext CompileAssignment(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)

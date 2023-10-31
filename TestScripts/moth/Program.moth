@@ -12,7 +12,7 @@ func main() #i32 {
     // #Sys.WriteLine("I guess it worked.");
     // return result;
 
-    return 2 ^ 2;
+    return #i32 <- 2 ^ 2; // cannot cast from float to int, or int to float
 }
 
 public class TestArray {

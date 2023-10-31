@@ -23,7 +23,7 @@ public class CompilerContext
     public GenericDictionary GenericClasses { get; set; } = new GenericDictionary();
     public Function? CurrentFunction { get; set; }
 
-    private Dictionary<string, LLVMValueRef> _intrinsics = new Dictionary<string, LLVMValueRef>();
+    private Dictionary<string, Intrinsic> _intrinsics = new Dictionary<string, Intrinsic>();
 
     public CompilerContext(string moduleName)
     {
@@ -35,9 +35,9 @@ public class CompilerContext
         InsertDefaultTypes();
     }
 
-    public LLVMValueRef GetIntrinsic(string name)
+    public Intrinsic GetIntrinsic(string name)
     {
-        if (_intrinsics.TryGetValue(name, out LLVMValueRef func))
+        if (_intrinsics.TryGetValue(name, out Intrinsic func))
         {
             return func;
         }
@@ -71,7 +71,7 @@ public class CompilerContext
         }
     }
 
-    private LLVMValueRef CreateIntrinsic(string name)
+    private Intrinsic CreateIntrinsic(string name)
     {
         var funcType = name switch
         {
@@ -102,7 +102,8 @@ public class CompilerContext
             _ => throw new NotImplementedException(),
         };
 
-        var func = Module.AddFunction(name, funcType);
+        var funcVal = Module.AddFunction(name, funcType);
+        var func = new Intrinsic(name, funcVal, funcType);
         _intrinsics.Add(name, func);
         Module.Dump(); //TODO: testing
         return func;
