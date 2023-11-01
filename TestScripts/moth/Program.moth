@@ -12,9 +12,9 @@ func main() #i32 {
     // #Sys.WriteLine("I guess it worked.");
     // return result;
 
-    local val #f32 = 2.0;
+    local val #i32 = 2;
     val ^= 2;
-    return #i32 <- val;
+    return val;
 }
 
 // public class TestArray {

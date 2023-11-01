@@ -896,12 +896,14 @@ public static class LLVMCompiler
     {
         Class i16 = compiler.GetClass(Reserved.SignedInt16);
         Class i32 = compiler.GetClass(Reserved.SignedInt32);
+        Class i64 = compiler.GetClass(Reserved.SignedInt64);
         Class f32 = compiler.GetClass(Reserved.Float32);
         Class f64 = compiler.GetClass(Reserved.Float64);
         
         LLVMValueRef val;
         string intrinsic;
         var destType = LLVMTypeRef.Float;
+        bool returnInt = left.Type.Class is Int && right.Type.Class is Int;
 
         if (left.Type.Class is Int)
         {
@@ -913,7 +915,7 @@ public static class LLVMCompiler
 
             if (left.Type.Class is SignedInt)
             {
-                val = compiler.Builder.BuildSIToFP(SafeLoad(compiler, left).LLVMValue, destType); //TODO: not appearing in the module's IR?
+                val = compiler.Builder.BuildSIToFP(SafeLoad(compiler, left).LLVMValue, destType);
             }
             else if (left.Type.Class is UnsignedInt)
             {
@@ -991,14 +993,33 @@ public static class LLVMCompiler
         }
 
         var func = compiler.GetIntrinsic(intrinsic);
-        return new ValueContext(left.Type,
-                    compiler.Builder.BuildCall2(func.LLVMFuncType,
-                        func.LLVMFunc,
-                        new LLVMValueRef[]
-                        {
-                            SafeLoad(compiler, left).LLVMValue,
-                            SafeLoad(compiler, right).LLVMValue
-                        }, "pow"));
+        var result = new ValueContext(left.Type,
+            compiler.Builder.BuildCall2(func.LLVMFuncType,
+                func.LLVMFunc,
+                new LLVMValueRef[]
+                {
+                    SafeLoad(compiler, left).LLVMValue,
+                    SafeLoad(compiler, right).LLVMValue
+                },
+                "pow"));
+
+        if (returnInt)
+        {
+            if (result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind)
+            {
+                result = new ValueContext(i64.Type,
+                    compiler.Builder.BuildFPToSI(result.LLVMValue,
+                        LLVMTypeRef.Int64));
+            }
+            else
+            {
+                result = new ValueContext(i32.Type,
+                    compiler.Builder.BuildFPToSI(result.LLVMValue,
+                        LLVMTypeRef.Int32));
+            }
+        }
+
+        return result;
     }
 
     public static ValueContext CompileAssignment(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)

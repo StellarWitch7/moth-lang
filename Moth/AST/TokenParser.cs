@@ -775,6 +775,7 @@ public static class TokenParser
                             TokenType.Hyphen => OperationType.Subtraction,
                             TokenType.Asterix => OperationType.Multiplication,
                             TokenType.ForwardSlash => OperationType.Division,
+                            TokenType.Modulo => OperationType.Modulo,
                             TokenType.Exponential => OperationType.Exponential,
                             TokenType.Equal => OperationType.Equal,
                             TokenType.NotEqual => OperationType.NotEqual,
