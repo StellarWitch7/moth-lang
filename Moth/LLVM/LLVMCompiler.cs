@@ -831,27 +831,71 @@ public static class LLVMCompiler
             throw new Exception("Cast destination is invalid.");
         }
 
-        var @class = compiler.GetClass(UnVoid(left));
+        var destClass = compiler.GetClass(UnVoid(left));
         var right = CompileExpression(compiler, scope, binaryOp.Right);
-        Type type = ResolveTypeRef(compiler, left);
+        Type destType = ResolveTypeRef(compiler, left);
         LLVMValueRef builtVal;
 
-        if (@class is Int)
+        if (destClass is Int)
         {
-            builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right), type.LLVMType);
+            if (right.Type.Class is Int)
+            {
+                builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right), destType.LLVMType);
+            }
+            else if (right.Type.Class is Float)
+            {
+                if (destClass is UnsignedInt)
+                {
+                    builtVal = compiler.Builder.BuildFPToUI(SafeLoad(compiler, right), destType.LLVMType);
+                }
+                else if (destClass is SignedInt)
+                {
+                    builtVal = compiler.Builder.BuildFPToSI(SafeLoad(compiler, right), destType.LLVMType);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
-        else if (@class is Float)
+        else if (destClass is Float)
         {
-            builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right), type.LLVMType);
+            if (right.Type.Class is Float)
+            {
+                builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right), destType.LLVMType);
+            }
+            else if (right.Type.Class is Int)
+            {
+                if (right.Type.Class is UnsignedInt)
+                {
+                    builtVal = compiler.Builder.BuildUIToFP(SafeLoad(compiler, right), destType.LLVMType);
+                }
+                else if (right.Type.Class is SignedInt)
+                {
+                    builtVal = compiler.Builder.BuildSIToFP(SafeLoad(compiler, right), destType.LLVMType);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
         else
         {
             builtVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast,
                 SafeLoad(compiler, right),
-                type.LLVMType);
+                destType.LLVMType);
         }
 
-        return new ValueContext(type, builtVal);
+        return new ValueContext(destType, builtVal);
     }
 
     public static ValueContext CompilePow(CompilerContext compiler, ValueContext left, ValueContext right)
