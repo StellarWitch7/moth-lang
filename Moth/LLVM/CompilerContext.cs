@@ -105,7 +105,6 @@ public class CompilerContext
         var funcVal = Module.AddFunction(name, funcType);
         var func = new Intrinsic(name, funcVal, funcType);
         _intrinsics.Add(name, func);
-        Module.Dump(); //TODO: testing
         return func;
     }
 

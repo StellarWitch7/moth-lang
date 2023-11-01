@@ -11,6 +11,16 @@ public static class LLVMCompiler
     {
         foreach (var script in scripts)
         {
+            foreach (var constDefNode in script.GlobalConstants)
+            {
+                DefineConstant(compiler, constDefNode);
+            }
+
+            foreach (var funcDefNode in script.GlobalFunctions)
+            {
+                DefineFunction(compiler, funcDefNode);
+            }
+
             foreach (var @class in script.ClassNodes)
             {
                 if (@class is GenericClassNode genericClass)
@@ -22,36 +32,28 @@ public static class LLVMCompiler
                     DefineClass(compiler, @class);
                 }
             }
-        }
 
-        foreach (var script in scripts)
-        {
             foreach (var classNode in script.ClassNodes)
             {
                 if (classNode is not GenericClassNode)
                 {
                     var @class = compiler.GetClass(classNode.Name);
-                    
+
                     foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
                         DefineFunction(compiler, funcDefNode, @class);
                     }
                 }
             }
-
-            foreach (var funcDefNode in script.GlobalFunctions)
-            {
-                DefineFunction(compiler, funcDefNode);
-            }
-
-            foreach (var constDefNode in script.GlobalConstants)
-            {
-                DefineConstant(compiler, constDefNode);
-            }
         }
 
         foreach (var script in scripts)
         {
+            foreach (var funcDefNode in script.GlobalFunctions)
+            {
+                CompileFunction(compiler, funcDefNode);
+            }
+
             foreach (var @class in script.ClassNodes)
             {
                 if (@class is not GenericClassNode)
@@ -59,10 +61,7 @@ public static class LLVMCompiler
                     CompileClass(compiler, @class);
                 }
             }
-        }
 
-        foreach (var script in scripts)
-        {
             foreach (var classNode in script.ClassNodes)
             {
                 if (classNode is not GenericClassNode)
@@ -74,11 +73,6 @@ public static class LLVMCompiler
                         CompileFunction(compiler, funcDefNode, @class);
                     }
                 }
-            }
-
-            foreach (var funcDefNode in script.GlobalFunctions)
-            {
-                CompileFunction(compiler, funcDefNode);
             }
         }
     }
