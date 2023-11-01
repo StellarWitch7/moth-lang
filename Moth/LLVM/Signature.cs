@@ -33,4 +33,48 @@ public class Signature
         builder.Remove(builder.Length - 1, 1);
         return builder.ToString();
     }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Signature sig)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, sig))
+        {
+            return true;
+        }
+
+        if (Name != sig.Name)
+        {
+            return false;
+        }
+
+        if (!(IsVariadic || sig.IsVariadic))
+        {
+            if (Params.Length != sig.Params.Length)
+            {
+                return false;
+            }
+        }
+
+        bool isEqual = true;
+        int index = 0;
+
+        foreach (var @param in Params.Length < sig.Params.Length ? Params : sig.Params)
+        {
+            if (!@param.Equals(sig.Params[index]))
+            {
+                isEqual = false;
+                break;
+            }
+
+            index++;
+        }
+
+        return isEqual;
+    }
+
+    public override int GetHashCode() => 3 * Name.GetHashCode();
 }

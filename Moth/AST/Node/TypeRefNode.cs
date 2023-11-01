@@ -8,9 +8,9 @@ namespace Moth.AST.Node;
 
 public class TypeRefNode : RefNode
 {
-    public int PointerDepth { get; set; }
+    public uint PointerDepth { get; set; }
 
-    public TypeRefNode(string name, int pointerDepth = 0) : base(name)
+    public TypeRefNode(string name, uint pointerDepth = 0) : base(name)
     {
         PointerDepth = pointerDepth;
     }

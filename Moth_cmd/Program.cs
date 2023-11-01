@@ -103,6 +103,7 @@ internal class Program
                         logger.WriteSeparator();
                     }
 
+                    logger.WriteLine("Verifying IR validity...");
                     compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
                     string linkerName = null;
 
@@ -257,43 +258,10 @@ internal class Program
                                 {
                                     FileName = Path.Join(dir, testName),
                                     WorkingDirectory = dir,
-                                    RedirectStandardOutput = true,
-                                    RedirectStandardError = true,
                                 });
 
                                 Logger testLogger = new Logger(testName);
-
-                                while (!testProgram.HasExited)
-                                {
-                                    while (!testProgram.StandardOutput.EndOfStream)
-                                    {
-                                        int ch = testProgram.StandardOutput.Read();
-
-                                        if (ch > 0)
-                                        {
-                                            testLogger.WriteUnsigned((char)ch);
-                                        }
-                                        else
-                                        {
-                                            break;
-                                        }
-                                    }
-
-                                    while (!testProgram.StandardError.EndOfStream)
-                                    {
-                                        int ch = testProgram.StandardError.Read();
-
-                                        if (ch > 0)
-                                        {
-                                            testLogger.WriteUnsigned((char)ch);
-                                        }
-                                        else
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
-
+                                testProgram.WaitForExit();
                                 testLogger.WriteEmptyLine();
                                 testLogger.WriteSeparator();
                                 testLogger.WriteLine($"Exited with code {testProgram.ExitCode}");
@@ -326,16 +294,16 @@ internal class Program
                 catch (Exception e)
                 {
                     logger.WriteEmptyLine();
-                    logger.WriteLine($"Failed to compile due to: {e}");
 
                     if (options.Verbose)
                     {
-                        logger.WriteLine("Dumping LLVM IR for reviewal...");
                         logger.WriteSeparator();
                         logger.WriteLine(compiler.Module.PrintToString());
                         logger.WriteSeparator();
+                        logger.WriteLine("Dumped LLVM IR for reviewal.");
                     }
 
+                    logger.WriteLine($"Failed to compile due to: {e}");
                     return;
                 }
             });

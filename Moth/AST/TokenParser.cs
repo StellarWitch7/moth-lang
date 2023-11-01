@@ -574,7 +574,7 @@ public static class TokenParser
             {
                 string retTypeName = context.Current.Value.Text.ToString();
                 var genericParams = new List<ExpressionNode>();
-                var pointerDepth = 0;
+                uint pointerDepth = 0;
                 context.MoveNext();
 
                 if (startToken != TokenType.GenericTypeRef

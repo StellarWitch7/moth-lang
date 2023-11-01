@@ -26,6 +26,31 @@ public class Type
     {
         return Class.Name;
     }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Type type)
+        {
+            return false;
+        }
+
+        if (LLVMType.Kind != type.LLVMType.Kind)
+        {
+            return false;
+        }
+
+        if (Is != type.Is)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public override int GetHashCode()
+    {
+        return Is.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
+    }
 }
 
 public class BasedType : Type
@@ -64,6 +89,28 @@ public class BasedType : Type
         }
 
         return builder.ToString();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (!base.Equals(obj))
+        {
+            return false;
+        }
+
+        if (obj is BasedType bType)
+        {
+            return BaseType.Equals(bType.BaseType);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public override int GetHashCode()
+    {
+        return base.GetHashCode() * BaseType.GetHashCode();
     }
 }
 
