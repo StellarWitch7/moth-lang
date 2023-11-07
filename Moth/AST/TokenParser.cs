@@ -1,6 +1,5 @@
-﻿using System.Text;
+﻿using Moth.AST.Node;
 using Moth.Tokens;
-using Moth.AST.Node;
 
 namespace Moth.AST; //TODO: allow calling functions on expressions
 

@@ -1,9 +1,4 @@
 ﻿using LLVMSharp.Interop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Moth.LLVM.Data;
 
@@ -13,10 +8,10 @@ public class Intrinsic : CompilerData
     public LLVMValueRef LLVMFunc { get; set; }
     public LLVMTypeRef LLVMFuncType { get; set; }
 
-    public Intrinsic(string name, LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType)
+    public Intrinsic(string name, LLVMValueRef llvmFunc, LLVMTypeRef llvmFuncType)
     {
         Name = name;
-        LLVMFunc = lLVMFunc;
-        LLVMFuncType = lLVMFuncType;
+        LLVMFunc = llvmFunc;
+        LLVMFuncType = llvmFuncType;
     }
 }

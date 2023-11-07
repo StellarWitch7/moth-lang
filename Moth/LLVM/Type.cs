@@ -1,13 +1,14 @@
 ﻿using LLVMSharp.Interop;
 using Moth.LLVM.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.AccessControl;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Moth.LLVM;
+
+public enum TypeKind
+{
+    Class,
+    Pointer,
+    Reference,
+}
 
 public class Type
 {
@@ -30,31 +31,24 @@ public class Type
     public override bool Equals(object? obj)
     {
         if (obj is not Type type)
-        {
             return false;
-        }
 
         if (LLVMType.Kind != type.LLVMType.Kind)
-        {
             return false;
-        }
 
         if (Class.Name != type.Class.Name)
-        {
             return false;
-        }
 
         if (Is != type.Is)
         {
             return false;
-        }
 
         return true;
     }
 
     public override int GetHashCode()
     {
-        return Is.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
+        return Kind.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
     }
 }
 
@@ -64,7 +58,6 @@ public class BasedType : Type
 
     public BasedType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(lLVMType, classOfType)
     {
-        Is = "BasedType";
         BaseType = baseType;
     }
 

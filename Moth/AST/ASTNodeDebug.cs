@@ -1,11 +1,11 @@
-﻿using System.CodeDom.Compiler;
+﻿using System.Runtime.CompilerServices;
+using System.CodeDom.Compiler;
 using System.Collections;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Moth.AST;
 
-public partial class ASTNode
+public abstract partial class ASTNode
 {
 	public string GetDebugString(string? indent = null)
 	{

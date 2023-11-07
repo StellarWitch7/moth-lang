@@ -1,10 +1,5 @@
 ﻿using LLVMSharp.Interop;
 using Moth.AST.Node;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Moth.LLVM.Data;
 
@@ -20,12 +15,12 @@ public class Function : CompilerData
     public List<Parameter> Params { get; set; }
     public bool IsVariadic { get; set; }
 
-    public Function(string name, LLVMValueRef lLVMFunc, LLVMTypeRef lLVMFuncType, Type returnType,
+    public Function(string name, LLVMValueRef llvmFunc, LLVMTypeRef lLvmFuncType, Type returnType,
         PrivacyType privacy, Class? ownerClass, List<Parameter> @params, bool isVariadic)
     {
         Name = name;
-        LLVMFunc = lLVMFunc;
-        LLVMFuncType = lLVMFuncType;
+        LLVMFunc = llvmFunc;
+        LLVMFuncType = lLvmFuncType;
         ReturnType = returnType;
         Privacy = privacy;
         OwnerClass = ownerClass;
