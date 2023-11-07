@@ -2,12 +2,12 @@ name: Build
 
 on:
   push:
+  workflow_dispatch:
   pull_request:
     branches: [ main ]
     paths:
     - '**.cs'
     - '**.csproj'
-    - '**.yml'
 
 env:
   DOTNET_VERSION: '7.0.203'
@@ -32,7 +32,7 @@ jobs:
       run: dotnet restore
       
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release
     
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test --verbosity normal
