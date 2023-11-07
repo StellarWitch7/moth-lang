@@ -39,6 +39,11 @@ public class Type
             return false;
         }
 
+        if (Class.Name != type.Class.Name)
+        {
+            return false;
+        }
+
         if (Is != type.Is)
         {
             return false;

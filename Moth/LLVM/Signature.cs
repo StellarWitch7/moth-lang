@@ -53,7 +53,7 @@ public class Signature
 
         if (!(IsVariadic || sig.IsVariadic))
         {
-            if (Params.Length != sig.Params.Length)
+            if (ToString() != sig.ToString())
             {
                 return false;
             }

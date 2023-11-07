@@ -237,9 +237,7 @@ public static class LLVMCompiler
             foreach (Field field in @new.Type.Class.Fields.Values)
             {
                 var lLVMField = compiler.Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
-                var zeroedVal = lLVMField.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind
-                    ? LLVMValueRef.CreateConstPointerNull(field.Type.LLVMType)
-                    : LLVMValueRef.CreateConstNull(field.Type.LLVMType);
+                var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
 
                 compiler.Builder.BuildStore(zeroedVal, lLVMField);
             }
@@ -251,7 +249,7 @@ public static class LLVMCompiler
             compiler.Builder.BuildStore(func.LLVMFunc.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
-                    paramAsVar, //TODO: maybe failing?
+                    paramAsVar,
                     param.Type));
         }
 
@@ -267,8 +265,8 @@ public static class LLVMCompiler
 
         if (param.RequireRefType)
         {
-            var newType = new PtrType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
-            return new RefType(newType, LLVMTypeRef.CreatePointer(newType.LLVMType, 0), newType.Class);
+            var newType = new RefType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
+            return new PtrType(newType, LLVMTypeRef.CreatePointer(newType.LLVMType, 0), newType.Class);
         }
         else
         {
@@ -554,16 +552,11 @@ public static class LLVMCompiler
         }
         else if (expr is DeReferenceNode deReference)
         {
-            var value = CompileExpression(compiler, scope, deReference.Value);
-            
-            //if (value.Type is RefType @ref)
-            //{
-            //    value = new ValueContext(@ref.BaseType, compiler.Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue));
-            //}
+            var value = SafeLoad(compiler, CompileExpression(compiler, scope, deReference.Value));
 
-            if (value.Type is BasedType bType)
+            if (value.Type is PtrType ptrType)
             {
-                return new ValueContext(bType.BaseType, compiler.Builder.BuildLoad2(value.Type.LLVMType, value.LLVMValue));
+                return new ValueContext(ptrType.BaseType, compiler.Builder.BuildLoad2(value.Type.LLVMType, value.LLVMValue));
             }
             else
             {
@@ -822,7 +815,7 @@ public static class LLVMCompiler
     {
         if (binaryOp.Left is not TypeRefNode left)
         {
-            throw new Exception("Cast destination is invalid.");
+            throw new Exception($"Cast destination (\"{binaryOp.Left}\") is invalid.");
         }
 
         var destClass = compiler.GetClass(UnVoid(left));
@@ -1024,7 +1017,7 @@ public static class LLVMCompiler
 
     public static ValueContext CompileAssignment(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
     {
-        ValueContext variableAssigned = CompileExpression(compiler, scope, binaryOp.Left);
+        ValueContext variableAssigned = CompileExpression(compiler, scope, binaryOp.Left); //TODO: does not work with arrays
 
         if (variableAssigned.Type is not BasedType varType)
         {
@@ -1119,10 +1112,17 @@ public static class LLVMCompiler
             }
             else if (refNode is IndexAccessNode indexAccess)
             {
-                context = CompileVarRef(compiler, context, scope, refNode);
-                context = new ValueContext(WrapAsRef(context.Type.Class.Type),
-                    compiler.Builder.BuildInBoundsGEP2(context.Type.Class.Type.LLVMType,
-                        SafeLoad(compiler, context).LLVMValue,
+                context = SafeLoad(compiler, CompileVarRef(compiler, context, scope, refNode));
+
+                var resultType = context.Type is PtrType ptrType
+                    ? ptrType.BaseType
+                    : throw new Exception($"Tried to use an index access on non-pointer \"{context.Type.LLVMType}\".");
+
+                context = new ValueContext(new RefType(resultType,
+                        LLVMTypeRef.CreatePointer(resultType.LLVMType, 0),
+                        resultType.Class),
+                    compiler.Builder.BuildInBoundsGEP2(resultType.LLVMType,
+                        context.LLVMValue,
                         new LLVMValueRef[1]
                         {
                             compiler.Builder.BuildIntCast(SafeLoad(compiler,
@@ -1146,11 +1146,12 @@ public static class LLVMCompiler
         if (context != null)
         {
             var field = context.Type.Class.GetField(refNode.Name);
-            var type = context.Type is RefType refType ? refType.BaseType : context.Type;
+            var type = SafeLoad(compiler, context).Type;
             return new ValueContext(WrapAsRef(field.Type),
                 compiler.Builder.BuildStructGEP2(type.LLVMType,
                     context.LLVMValue,
-                    field.FieldIndex));
+                    field.FieldIndex,
+                    field.Name));
         }
         else
         {

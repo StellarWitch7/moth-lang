@@ -12,3 +12,6 @@ Moth's official compiler, written in C#. It takes Moth code and converts it to L
 -o, --output => The name of the output file. Please forego the extension.
 -i, --input => The files to compile. 
 ```
+
+# !!WARNING!!
+Moth is currently **unfinished**. Many things are unlikely to function well, and for the time being, only Windows is supported. 

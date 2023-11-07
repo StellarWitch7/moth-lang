@@ -1,13 +1,48 @@
-namespace MothStd; //Part of the standard libs
+namespace MothStd; // part of the standard libs
 
 public class Sys {
 
+    static Write(char #char) #void {
+        #Sys.Write(char, stdout());
+        return;
+    }
+
+    static Write(char #char, file #void*) #void {
+        #Sys.Write("", char, file);
+        return;
+    }
+
+    static Write(string #char*, end #char) #void {
+        #Sys.Write(string, end, stdout());
+        return;
+    }
+
     static Write(string #char*, end #char, file #void*) #void {
-        local toPrint #char* = malloc(#u64 <- 10000);
+        local size #u64 = #u64 <- 10000;
+        local toPrint #char* = malloc(size); //TODO: terrible
+
+        while toPrint == null {
+            if size > (#u64 <- 0) {
+                toPrint = malloc(--size);
+            } else {
+                return;
+            }
+        }
+
         sprintf(toPrint, "%s%c", string, end);
-        fputs(toPrint, file);
-        fflush(file);
+        #Sys.Write(toPrint);
         free(toPrint);
+        return;
+    }
+
+    static Write(string #char*) #void {
+        #Sys.Write(string, stdout());
+        return;
+    }
+
+    static Write(string #char*, file #void*) #void {
+        fputs(string, file);
+        fflush(file);
         return;
     }
 
@@ -32,34 +67,28 @@ public class Sys {
     }
 
     static ReadLine(file #void*) #char* {
-        local size #u64 = 512;
+        local size #u64 = #u64 <- 512;
         local string #char* = malloc(size);
-        local ch #char = #Sys.GetChar(file);
-        local len #i32 = -1;
+        local ch #char;
+        local len ?= -1;
 
         if string == null {
             return string;
         }
 
-        while ch != '\0' {
+        while (ch = #Sys.GetChar(file)) != '\0' and ch != '\n' {
             string[++len] = ch;
             
-            if len >= #i32 <- size {
-                string = realloc(string, size += #u64 <- 512);
+            if len >= (#i32 <- size) {
+                string = realloc(string, size += (#u64 <- 512));
 
                 if string == null {
                     return string;
                 }
             }
-
-            if ch == '\n' {
-                ch = '\0';
-            } else {
-                ch = #Sys.GetChar(file);
-            }
         }
 
-        string[++len] = ch;
+        string[++len] = '\0';
         string = realloc(string, #u64 <- ++len);
         return string;
     }

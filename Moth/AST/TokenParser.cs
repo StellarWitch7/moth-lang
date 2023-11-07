@@ -634,7 +634,8 @@ public static class TokenParser
     }
 
     // Set lastCreatedNode to null when calling the parent, if not calling parent pass down the variable through all methods.
-    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode? lastCreatedNode, bool nullAllowed = false)
+    public static ExpressionNode ProcessExpression(ParseContext context, ExpressionNode? lastCreatedNode,
+        bool nullAllowed = false, int opPriority = 0)
     {
         while (context.Current != null)
         {
@@ -787,11 +788,15 @@ public static class TokenParser
                             TokenType.And => OperationType.And,
                             _ => throw new UnexpectedTokenException(context.Current.Value)
                         };
-                        context.MoveNext();
-
                         if (lastCreatedNode != null)
                         {
-                            lastCreatedNode = ProcessBinaryOp(context, opType, lastCreatedNode);
+                            if (GetOpPriority(opType) < opPriority)
+                            {
+                                return lastCreatedNode;
+                            }
+
+                            context.MoveNext();
+                            lastCreatedNode = ProcessBinaryOp(context, opType, lastCreatedNode); //TODO: check for op priority
                         }
                         else
                         {
@@ -984,7 +989,7 @@ public static class TokenParser
 
     public static ExpressionNode ProcessBinaryOp(ParseContext context, OperationType opType, ExpressionNode left)
     {
-        var right = ProcessExpression(context, null);
+        var right = ProcessExpression(context, null, false, GetOpPriority(opType));
 
         if (left is BinaryOperationNode bin)
         {
@@ -1003,21 +1008,22 @@ public static class TokenParser
         switch (operationType)
         {
             case OperationType.Exponential:
-                return 5;
+                return 6;
             case OperationType.Modulo:
             case OperationType.Multiplication:
             case OperationType.Division:
-                return 4;
+                return 5;
             case OperationType.Addition:
             case OperationType.Subtraction:
-                return 3;
+                return 4;
             case OperationType.Equal:
             case OperationType.NotEqual:
             case OperationType.LesserThanOrEqual:
             case OperationType.GreaterThanOrEqual:
-            case OperationType.Or:
             case OperationType.LesserThan:
             case OperationType.GreaterThan:
+                return 3;
+            case OperationType.Or:
             case OperationType.And:
                 return 2;
             case OperationType.Cast:
