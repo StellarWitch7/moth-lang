@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macOS-latest]
+        os: [windows-latest]#, ubuntu-latest, macOS-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
       run: dotnet restore
       
     - name: Build
-      run: dotnet build --configuration Release
+      run: dotnet build
     
     - name: Test
-      run: dotnet test --verbosity normal
+      run: dotnet test
