@@ -9,30 +9,31 @@ public class CompilerContext
     public LLVMContextRef Context { get; set; }
     public LLVMBuilderRef Builder { get; set; }
     public LLVMModuleRef Module { get; set; }
-    public string ModuleName { get; set; }
-    public Logger Logger { get; } = new Logger("moth/compiler");
     public Dictionary<string, Class> Classes { get; set; } = new Dictionary<string, Class>();
     public FuncDictionary GlobalFunctions { get; set; } = new FuncDictionary();
     public Dictionary<string, Constant> GlobalConstants { get; set; } = new Dictionary<string, Constant>();
     public Dictionary<string, GenericClassNode> GenericClassTemplates { get; set; } = new Dictionary<string, GenericClassNode>();
     public GenericDictionary GenericClasses { get; set; } = new GenericDictionary();
-    public LlvmFunction? CurrentFunction { get; set; }
+    public LLVMFunction? CurrentFunction { get; set; }
+
+    public Logger Logger { get; } = new Logger("moth/compiler");
+    public readonly string ModuleName;
 
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
 
     public CompilerContext(string moduleName)
     {
+        ModuleName = moduleName;
         Context = LLVMContextRef.Global;
         Builder = Context.CreateBuilder();
-        Module = Context.CreateModuleWithName(moduleName);
-        ModuleName = moduleName;
+        Module = Context.CreateModuleWithName(ModuleName);
 
         InsertDefaultTypes();
     }
 
     public IntrinsicFunction GetIntrinsic(string name)
     {
-        if (_intrinsics.TryGetValue(name, out IntrinsicFunction func))
+        if (_intrinsics.TryGetValue(name, out var func))
         {
             return func;
         }
@@ -56,7 +57,7 @@ public class CompilerContext
 
     public Class GetClass(string name)
     {
-        if (Classes.TryGetValue(name, out Class @class))
+        if (Classes.TryGetValue(name, out var @class))
         {
             return @class;
         }
@@ -74,7 +75,7 @@ public class CompilerContext
             "llvm.powi.f64.i16" => new Pow(name, Module, Float.Float64.Type, LLVMTypeRef.Double, LLVMTypeRef.Int16),
             "llvm.pow.f32" => new Pow(name, Module, Float.Float32.Type, LLVMTypeRef.Float, LLVMTypeRef.Float),
             "llvm.pow.f64" => new Pow(name, Module, Float.Float64.Type, LLVMTypeRef.Double, LLVMTypeRef.Double),
-            _ => throw new NotImplementedException(),
+            _ => throw new NotImplementedException($"Intrinsic \"{name}\" is not implemented."),
         };
 
         _intrinsics.Add(name, func);
@@ -83,10 +84,7 @@ public class CompilerContext
 
     private void InsertDefaultTypes()
     {
-        Classes.Add(Reserved.Void,
-            new Class(Reserved.Void,
-                LLVMTypeRef.Void,
-                PrivacyType.Public));
+        Classes.Add(Reserved.Void, new Class(Reserved.Void, LLVMTypeRef.Void, PrivacyType.Public));
         Classes.Add(Reserved.Float16, Float.Float16);
         Classes.Add(Reserved.Float32, Float.Float32);
         Classes.Add(Reserved.Float64, Float.Float64);

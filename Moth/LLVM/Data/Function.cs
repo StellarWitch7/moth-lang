@@ -19,7 +19,7 @@ public abstract class Function : CompilerData
     public abstract LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters);
 }
 
-public sealed class LlvmFunction : Function
+public sealed class LLVMFunction : Function
 {
     public override LLVMValueRef LLVMFunc { get; }
     public override LLVMTypeRef LLVMFuncType { get; }
@@ -29,10 +29,10 @@ public sealed class LlvmFunction : Function
     public readonly IReadOnlyList<Parameter> Params;
     public readonly bool IsVariadic;
 
-    public LlvmFunction(string name, LLVMValueRef llvmFunc, LLVMTypeRef lLvmFuncType, Type returnType, PrivacyType privacy, Class? ownerClass, IReadOnlyList<Parameter> @params, bool isVariadic) : base(name, returnType)
+    public LLVMFunction(string name, LLVMValueRef llvmFunc, LLVMTypeRef llvmFuncType, Type returnType, PrivacyType privacy, Class? ownerClass, IReadOnlyList<Parameter> @params, bool isVariadic) : base(name, returnType)
     {
         LLVMFunc = llvmFunc;
-        LLVMFuncType = lLvmFuncType;
+        LLVMFuncType = llvmFuncType;
         Privacy = privacy;
         OwnerClass = ownerClass;
         Params = @params;
@@ -41,14 +41,19 @@ public sealed class LlvmFunction : Function
     
     public override LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters)
     {
-        return builder.BuildCall2(LLVMFuncType, LLVMFunc, parameters, "");
+        return builder.BuildCall2(LLVMFuncType,
+            LLVMFunc,
+            parameters,
+            ReturnType.LLVMType.Kind != LLVMTypeKind.LLVMVoidTypeKind
+                ? Name
+                : "");
     }
 }
 
 public abstract class IntrinsicFunction : Function
 {
-    protected LLVMValueRef InternalLlvmFunc;
-    protected LLVMTypeRef InternalLlvmFuncType;
+    protected LLVMValueRef InternalLLVMFunc;
+    protected LLVMTypeRef InternalLLVMFuncType;
     
     protected IntrinsicFunction(string name, Type returnType) : base(name, returnType) {}
     
@@ -56,23 +61,27 @@ public abstract class IntrinsicFunction : Function
     {
         get
         {
-            if (InternalLlvmFunc == default)
-                (InternalLlvmFunc, InternalLlvmFuncType) = GenerateLlvmData();
+            if (InternalLLVMFunc == default)
+            {
+                (InternalLLVMFunc, InternalLLVMFuncType) = GenerateLLVMData();
+            }
 
-            return InternalLlvmFunc;
+            return InternalLLVMFunc;
         }
     }
     public override LLVMTypeRef LLVMFuncType{
         get
         {
-            if (InternalLlvmFuncType == default)
-                (InternalLlvmFunc, InternalLlvmFuncType) = GenerateLlvmData();
+            if (InternalLLVMFuncType == default)
+            {
+                (InternalLLVMFunc, InternalLLVMFuncType) = GenerateLLVMData();
+            }
 
-            return InternalLlvmFuncType;
+            return InternalLLVMFuncType;
         }
     }
 
-    protected virtual (LLVMValueRef, LLVMTypeRef) GenerateLlvmData()
+    protected virtual (LLVMValueRef, LLVMTypeRef) GenerateLLVMData()
     {
         throw new NotImplementedException("This function does not support LLVM data generation.");
     }

@@ -21,7 +21,7 @@ public sealed class ConstRetFn : IntrinsicFunction
 		return Value;
 	}
 
-	protected override (LLVMValueRef, LLVMTypeRef) GenerateLlvmData()
+	protected override (LLVMValueRef, LLVMTypeRef) GenerateLLVMData()
 	{
 		var type = LLVMTypeRef.CreateFunction(Value.TypeOf, new ReadOnlySpan<LLVMTypeRef>(), false);
 		var func = _module.AddFunction(Name, type);
@@ -38,12 +38,12 @@ public sealed class Pow : IntrinsicFunction
 {
 	public Pow(string name, LLVMModuleRef module, Type ret, LLVMTypeRef p1, LLVMTypeRef p2) : base(name, ret)
 	{
-		InternalLlvmFuncType = LLVMTypeRef.CreateFunction(ret.LLVMType, stackalloc LLVMTypeRef[] { p1, p2 }, false);
-		InternalLlvmFunc = module.AddFunction(name, InternalLlvmFuncType);
+		InternalLLVMFuncType = LLVMTypeRef.CreateFunction(ret.LLVMType, stackalloc LLVMTypeRef[] { p1, p2 }, false);
+		InternalLLVMFunc = module.AddFunction(name, InternalLLVMFuncType);
 	}
 
 	public override LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters)
 	{
-		return builder.BuildCall2(LLVMFuncType, LLVMFunc, parameters, "");
+		return builder.BuildCall2(LLVMFuncType, LLVMFunc, parameters, "pow");
 	}
 }

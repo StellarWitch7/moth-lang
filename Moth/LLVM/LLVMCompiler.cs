@@ -139,7 +139,7 @@ public static class LLVMCompiler
         Type returnType = ResolveTypeRef(compiler, funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramLLVMTypes.AsReadonlySpan(), funcDefNode.IsVariadic);
         LLVMValueRef llvmFunc = compiler.Module.AddFunction(funcName, llvmFuncType);
-        LlvmFunction func = new LlvmFunction(funcDefNode.Name,
+        LLVMFunction func = new LLVMFunction(funcDefNode.Name,
             llvmFunc,
             llvmFuncType,
             returnType,
@@ -217,7 +217,7 @@ public static class LLVMCompiler
             throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
         }
 
-        if (fn is not LlvmFunction func)
+        if (fn is not LLVMFunction func)
         {
             throw new Exception($"{fn.Name} cannot be compiled.");
         }
@@ -628,8 +628,9 @@ public static class LLVMCompiler
         var left = CompileExpression(compiler, scope, binaryOp.Left);
         var right = CompileExpression(compiler, scope, binaryOp.Right);
 
-        if (binaryOp.Type == OperationType.Exponential && right.Type.Class is Float or Int
-                                                       && left.Type.Class is Float or Int)
+        if (binaryOp.Type == OperationType.Exponential
+            && right.Type.Class is Float or Int
+            && left.Type.Class is Float or Int)
         {
             return CompilePow(compiler, left, right);
         }
@@ -1223,16 +1224,8 @@ public static class LLVMCompiler
             throw new Exception($"Function \"{methodCall.Name}\" does not exist.");
         }
 
-        if (func.ReturnType.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind)
-        {
-            return new ValueContext(func.ReturnType,
-                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.AsReadonlySpan(), ""));
-        }
-        else
-        {
-            return new ValueContext(func.ReturnType,
-                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.AsReadonlySpan(), func.Name));
-        }
+        return new ValueContext(func.ReturnType,
+            func.Call(compiler.Builder, args.AsReadonlySpan()));
     }
 
     public static void ResolveAttribute(CompilerContext compiler, Function func, AttributeNode attribute)

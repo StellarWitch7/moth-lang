@@ -14,6 +14,7 @@ internal class Utils
         var ast = TokenParser.ProcessScript(context);
         var compiler = new CompilerContext("fullcomp");
         LLVMCompiler.Compile(compiler, new ScriptAST[] { ast });
+        compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
         return compiler.Module;
     }
 }

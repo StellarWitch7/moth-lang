@@ -79,7 +79,7 @@ public class Class : CompilerData
 
             var value = new ValueContext(UnsignedInt.UInt64.Type, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", compiler.Module, value);
-            StaticMethods.Add(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
 
         // alignof()
@@ -90,7 +90,7 @@ public class Class : CompilerData
 
             var value = new ValueContext(UnsignedInt.UInt64.Type, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", compiler.Module, value);
-            StaticMethods.Add(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }
     }
 }

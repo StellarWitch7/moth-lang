@@ -31,16 +31,24 @@ public class Type
     public override bool Equals(object? obj)
     {
         if (obj is not Type type)
+        {
             return false;
+        }
 
         if (LLVMType.Kind != type.LLVMType.Kind)
+        {
             return false;
+        }
 
         if (Class.Name != type.Class.Name)
+        {
             return false;
+        }
 
         if (Kind != type.Kind)
+        {
             return false;
+        }
 
         return true;
     }
