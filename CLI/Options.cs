@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace Moth_cmd;
+namespace CLI;
 
 internal class Options
 {

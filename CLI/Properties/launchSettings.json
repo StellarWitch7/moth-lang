@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Moth_cmd": {
+    "MothCLI": {
       "commandName": "Project",
       "commandLineArgs": "-v --debug-test -o test -i D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\moth\\Program.moth D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\moth\\Foreign.moth D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\moth\\System.moth",
       "workingDirectory": "D:\\lavam\\Main\\Projects\\C#\\moth-lang\\Moth_cmd\\bin\\Debug\\net7.0"

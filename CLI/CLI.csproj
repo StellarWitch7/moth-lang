@@ -6,8 +6,8 @@
     <PublishSingleFile>true</PublishSingleFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <StartupObject>Moth_cmd.Program</StartupObject>
-    <AssemblyName>moth-cmd</AssemblyName>
+    <StartupObject>CLI.Program</StartupObject>
+    <AssemblyName>MothCLI</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 

@@ -8,7 +8,7 @@ using CommandLine;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Moth_cmd;
+namespace CLI;
 
 internal class Program
 {

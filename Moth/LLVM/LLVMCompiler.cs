@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using LLVMSharp.Interop;
-using Moth.AST;
+﻿using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
