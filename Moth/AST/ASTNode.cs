@@ -1,11 +1,6 @@
-﻿using LLVMSharp.Interop;
-using System.CodeDom.Compiler;
-using System.Collections;
-using System.Reflection;
+﻿namespace Moth.AST;
 
-namespace Moth.AST;
-
-public partial class ASTNode
+public abstract partial class ASTNode
 {
 
 }

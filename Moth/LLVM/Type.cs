@@ -1,24 +1,25 @@
 ﻿using LLVMSharp.Interop;
 using Moth.LLVM.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.AccessControl;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Moth.LLVM;
 
+public enum TypeKind
+{
+    Class,
+    Pointer,
+    Reference,
+}
+
 public class Type
 {
-    public LLVMTypeRef LLVMType { get; set; }
-    public Class Class { get; set; }
-    public string Is { get; init; }
+    public readonly LLVMTypeRef LLVMType;
+    public readonly Class Class;
+    public readonly TypeKind Kind;
 
-    public Type(LLVMTypeRef lLVMType, Class @class)
+    public Type(LLVMTypeRef llvmType, Class @class, TypeKind kind)
     {
-        Is = "Type";
-        LLVMType = lLVMType;
+        Kind = kind;
+        LLVMType = llvmType;
         Class = @class;
     }
 
@@ -30,41 +31,33 @@ public class Type
     public override bool Equals(object? obj)
     {
         if (obj is not Type type)
-        {
             return false;
-        }
 
         if (LLVMType.Kind != type.LLVMType.Kind)
-        {
             return false;
-        }
 
         if (Class.Name != type.Class.Name)
-        {
             return false;
-        }
 
-        if (Is != type.Is)
-        {
+        if (Kind != type.Kind)
             return false;
-        }
 
         return true;
     }
 
     public override int GetHashCode()
     {
-        return Is.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
+        return Kind.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
     }
 }
 
-public class BasedType : Type
+public abstract class BasedType : Type
 {
     public readonly Type BaseType;
 
-    public BasedType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(lLVMType, classOfType)
+    public BasedType(Type baseType, LLVMTypeRef llvmType, Class classOfType, TypeKind kind) 
+        : base(llvmType, classOfType, kind)
     {
-        Is = "BasedType";
         BaseType = baseType;
     }
 
@@ -121,16 +114,12 @@ public class BasedType : Type
 
 public sealed class RefType : BasedType
 {
-    public RefType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(baseType, lLVMType, classOfType)
-    {
-        Is = "RefType";
-    }
+    public RefType(Type baseType, LLVMTypeRef llvmType, Class classOfType) 
+        : base(baseType, llvmType, classOfType, TypeKind.Reference) {}
 }
 
 public sealed class PtrType : BasedType
 {
-    public PtrType(Type baseType, LLVMTypeRef lLVMType, Class classOfType) : base(baseType, lLVMType, classOfType)
-    {
-        Is = "PtrType";
-    }
+    public PtrType(Type baseType, LLVMTypeRef llvmType, Class classOfType) 
+        : base(baseType, llvmType, classOfType, TypeKind.Pointer) {}
 }

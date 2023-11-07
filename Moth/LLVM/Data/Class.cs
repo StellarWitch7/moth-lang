@@ -1,11 +1,5 @@
 ﻿using LLVMSharp.Interop;
 using Moth.AST.Node;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace Moth.LLVM.Data;
 
@@ -20,10 +14,10 @@ public class Class : CompilerData
     public FuncDictionary StaticMethods { get; set; } = new FuncDictionary();
     public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
 
-    public Class(string name, LLVMTypeRef lLVMType, PrivacyType privacy)
+    public Class(string name, LLVMTypeRef llvmType, PrivacyType privacy)
     {
         Name = name;
-        Type = new Type(lLVMType, this);
+        Type = new Type(llvmType, this, TypeKind.Class);
         Privacy = privacy;
     }
 
@@ -53,7 +47,7 @@ public class Class : CompilerData
 
     public Function GetMethod(Signature sig)
     {
-        if (Methods.TryGetValue(sig, out Function func))
+        if (Methods.TryGetValue(sig, out var func))
         {
             return func;
         }
@@ -65,7 +59,7 @@ public class Class : CompilerData
 
     public Function GetStaticMethod(Signature sig)
     {
-        if (StaticMethods.TryGetValue(sig, out Function func))
+        if (StaticMethods.TryGetValue(sig, out var func))
         {
             return func;
         }
@@ -79,58 +73,24 @@ public class Class : CompilerData
     {
         // sizeof()
         {
-            if (compiler.Classes.TryGetValue(Reserved.UnsignedInt64, out Class classOfReturnType))
-            {
-                var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
-                var func = new Function(Reserved.SizeOf, compiler.Module.AddFunction($"{Name}.{Reserved.SizeOf}", funcType),
-                    funcType, new Type(LLVMTypeRef.Int64, classOfReturnType), PrivacyType.Public, null, new List<Parameter>(), false);
-                
-                StaticMethods.Add(new Signature(Reserved.SizeOf, new Type[0]), func);
-                func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
-                compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+            var retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
+                ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
+                : Type.LLVMType.SizeOf;
 
-                if (Name == Reserved.Void)
-                {
-                    compiler.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0));
-                }
-                else
-                {
-                    compiler.Builder.BuildRet(Type.LLVMType.SizeOf);
-                }
-            }
-            else
-            {
-                compiler.Warn($"Failed to create built-in static method \"{Reserved.SizeOf}() :u64\" within class"
-                    + $" \"{Name}\" as its return type (\"{Reserved.UnsignedInt64}\") does not exist.");
-            }
+            var value = new ValueContext(UnsignedInt.UInt64.Type, retValue);
+            var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", compiler.Module, value);
+            StaticMethods.Add(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
 
         // alignof()
         {
-            if (compiler.Classes.TryGetValue(Reserved.UnsignedInt64, out Class classOfReturnType))
-            {
-                var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int64, new LLVMTypeRef[0]);
-                var func = new Function(Reserved.AlignOf, compiler.Module.AddFunction($"{Name}.{Reserved.AlignOf}", funcType),
-                    funcType, new Type(LLVMTypeRef.Int64, classOfReturnType), PrivacyType.Public, null, new List<Parameter>(), false);
+            var retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
+                ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
+                : Type.LLVMType.AlignOf;
 
-                StaticMethods.Add(new Signature(Reserved.AlignOf, new Type[0]), func);
-                func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
-                compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-
-                if (Name == Reserved.Void)
-                {
-                    compiler.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1));
-                }
-                else
-                {
-                    compiler.Builder.BuildRet(Type.LLVMType.AlignOf);
-                }
-            }
-            else
-            {
-                compiler.Warn($"Failed to create built-in static method \"{Reserved.AlignOf}() :u64\" within class"
-                    + $" \"{Name}\" as its return type (\"{Reserved.UnsignedInt64}\") does not exist.");
-            }
+            var value = new ValueContext(UnsignedInt.UInt64.Type, retValue);
+            var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", compiler.Module, value);
+            StaticMethods.Add(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }
     }
 }

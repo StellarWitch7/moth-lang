@@ -1,30 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Moth.LLVM;
+﻿namespace Moth.LLVM;
 
 public static class Reserved
 {
-    public static readonly string Main = "main";
-    public static readonly string Self = "self";
-    public static readonly string Init = "init";
-    public static readonly string SizeOf = "sizeof";
-    public static readonly string AlignOf = "alignof";
+    public const string Main = "main";
+    public const string Self = "self";
+    public const string Init = "init";
+    public const string SizeOf = "sizeof";
+    public const string AlignOf = "alignof";
 
-    public static readonly string Void = "void";
-    public static readonly string Float16 = "f16";
-    public static readonly string Float32 = "f32";
-    public static readonly string Float64 = "f64";
-    public static readonly string Bool = "bool";
-    public static readonly string Char = "char";
-    public static readonly string UnsignedInt16 = "u16";
-    public static readonly string UnsignedInt32 = "u32";
-    public static readonly string UnsignedInt64 = "u64";
-    public static readonly string SignedInt8 = "i8";
-    public static readonly string SignedInt16 = "i16";
-    public static readonly string SignedInt32 = "i32";
-    public static readonly string SignedInt64 = "i64";
+    public const string Void = "void";
+    public const string Float16 = "f16";
+    public const string Float32 = "f32";
+    public const string Float64 = "f64";
+    public const string Bool = "bool";
+    public const string Char = "char";
+    public const string UnsignedInt8 = "u8";
+    public const string UnsignedInt16 = "u16";
+    public const string UnsignedInt32 = "u32";
+    public const string UnsignedInt64 = "u64";
+    public const string SignedInt8 = "i8";
+    public const string SignedInt16 = "i16";
+    public const string SignedInt32 = "i32";
+    public const string SignedInt64 = "i64";
 }
