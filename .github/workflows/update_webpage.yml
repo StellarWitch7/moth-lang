@@ -12,7 +12,7 @@ jobs:
     name: Update webpage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: mv README.md moth.md
       - run: git pull
       - uses: dmnemec/copy_file_to_another_repo_action@main
