@@ -94,7 +94,7 @@ internal class Program
                 try
                 {
                     logger.WriteLine("Compiling to LLVM IR...");
-                    LLVMCompiler.Compile(compiler, scripts.ToArray());
+                    LLVMCompiler.Compile(compiler, scripts);
 
                     if (options.Verbose)
                     {

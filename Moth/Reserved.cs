@@ -14,6 +14,7 @@ public static class Reserved
     public const string Float64 = "f64";
     public const string Bool = "bool";
     public const string Char = "char";
+    public const string UnsignedInt8 = "u8";
     public const string UnsignedInt16 = "u16";
     public const string UnsignedInt32 = "u32";
     public const string UnsignedInt64 = "u64";

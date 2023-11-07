@@ -2,9 +2,4 @@
 
 namespace Moth.LLVM;
 
-public class FuncDictionary : Dictionary<Signature, Function>
-{
-    public FuncDictionary() : base()
-    {
-    }
-}
+public sealed class FuncDictionary : Dictionary<Signature, Function> {}

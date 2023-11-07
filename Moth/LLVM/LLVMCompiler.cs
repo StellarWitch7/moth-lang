@@ -1,4 +1,5 @@
-﻿using LLVMSharp.Interop;
+﻿using System.Runtime.InteropServices;
+using LLVMSharp.Interop;
 using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
@@ -7,7 +8,7 @@ namespace Moth.LLVM; //TODO: allow compilation of generic classes
 
 public static class LLVMCompiler
 {
-    public static void Compile(CompilerContext compiler, ScriptAST[] scripts)
+    public static void Compile(CompilerContext compiler, IReadOnlyCollection<ScriptAST> scripts)
     {
         foreach (var script in scripts)
         {
@@ -87,28 +88,27 @@ public static class LLVMCompiler
 
     public static void CompileClass(CompilerContext compiler, ClassNode classNode)
     {
-        List<LLVMTypeRef> lLVMTypes = new List<LLVMTypeRef>();
+        var llvmTypes = new List<LLVMTypeRef>();
         var @class = compiler.GetClass(classNode.Name);
         uint index = 0;
 
         foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
         {
-            Type fieldType = ResolveTypeRef(compiler, field.TypeRef);
-
-            lLVMTypes.Add(fieldType.LLVMType);
+            var fieldType = ResolveTypeRef(compiler, field.TypeRef);
+            llvmTypes.Add(fieldType.LLVMType);
             @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
             index++;
         }
 
-        @class.Type.LLVMType.StructSetBody(lLVMTypes.ToArray(), false);
+        @class.Type.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
     }
 
     public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
         int index = 0;
-        List<Parameter> @params = new List<Parameter>();
-        List<Type> paramTypes = new List<Type>();
-        List<LLVMTypeRef> paramLLVMTypes = new List<LLVMTypeRef>();
+        var @params = new List<Parameter>();
+        var paramTypes = new List<Type>();
+        var paramLLVMTypes = new List<LLVMTypeRef>();
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
@@ -126,7 +126,7 @@ public static class LLVMCompiler
             index++;
         }
 
-        Signature sig = new Signature(funcDefNode.Name, paramTypes.ToArray(), funcDefNode.IsVariadic);
+        Signature sig = new Signature(funcDefNode.Name, paramTypes, funcDefNode.IsVariadic);
         string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.Privacy == PrivacyType.Foreign
             ? funcDefNode.Name
             : sig.ToString();
@@ -137,11 +137,11 @@ public static class LLVMCompiler
         }
 
         Type returnType = ResolveTypeRef(compiler, funcDefNode.ReturnTypeRef);
-        LLVMTypeRef lLVMFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramLLVMTypes.ToArray(), funcDefNode.IsVariadic);
-        LLVMValueRef lLVMFunc = compiler.Module.AddFunction(funcName, lLVMFuncType);
-        Function func = new Function(funcDefNode.Name,
-            lLVMFunc,
-            lLVMFuncType,
+        LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramLLVMTypes.AsReadonlySpan(), funcDefNode.IsVariadic);
+        LLVMValueRef llvmFunc = compiler.Module.AddFunction(funcName, llvmFuncType);
+        LlvmFunction func = new LlvmFunction(funcDefNode.Name,
+            llvmFunc,
+            llvmFuncType,
             returnType,
             funcDefNode.Privacy,
             @class,
@@ -184,7 +184,7 @@ public static class LLVMCompiler
 
     public static void CompileFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
     {
-        Function func;
+        Function fn;
         List<Type> paramTypes = new List<Type>();
 
         foreach (var param in funcDefNode.Params)
@@ -192,29 +192,34 @@ public static class LLVMCompiler
             paramTypes.Add(ResolveParameter(compiler, param));
         }
 
-        Signature sig = new Signature(funcDefNode.Name, paramTypes.ToArray());
+        Signature sig = new Signature(funcDefNode.Name, paramTypes);
 
         if (funcDefNode.Privacy == PrivacyType.Foreign && funcDefNode.ExecutionBlock == null)
         {
             return;
         }
         else if (@class != null && funcDefNode.Privacy != PrivacyType.Static
-            && @class.Methods.TryGetValue(sig, out func))
+            && @class.Methods.TryGetValue(sig, out fn))
         {
             // Keep empty
         }
         else if (@class != null && funcDefNode.Privacy == PrivacyType.Static
-            && @class.StaticMethods.TryGetValue(sig, out func))
+            && @class.StaticMethods.TryGetValue(sig, out fn))
         {
             // Keep empty
         }
-        else if (compiler.GlobalFunctions.TryGetValue(sig, out func))
+        else if (compiler.GlobalFunctions.TryGetValue(sig, out fn))
         {
             // Keep empty
         }
         else
         {
             throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
+        }
+
+        if (fn is not LlvmFunction func)
+        {
+            throw new Exception($"{fn.Name} cannot be compiled.");
         }
 
         func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
@@ -236,10 +241,10 @@ public static class LLVMCompiler
 
             foreach (Field field in @new.Type.Class.Fields.Values)
             {
-                var lLVMField = compiler.Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
+                var llvmField = compiler.Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
 
-                compiler.Builder.BuildStore(zeroedVal, lLVMField);
+                compiler.Builder.BuildStore(zeroedVal, llvmField);
             }
         }
 
@@ -439,7 +444,7 @@ public static class LLVMCompiler
         else
         {
             var @class = compiler.GetClass(UnVoid(typeRef));
-            type = new Type(@class.Type.LLVMType, @class);
+            type = new Type(@class.Type.LLVMType, @class, TypeKind.Class);
         }
 
         int index = 0;
@@ -623,11 +628,8 @@ public static class LLVMCompiler
         var left = CompileExpression(compiler, scope, binaryOp.Left);
         var right = CompileExpression(compiler, scope, binaryOp.Right);
 
-        if (binaryOp.Type == OperationType.Exponential
-            && (right.Type.Class is Float
-                || right.Type.Class is Int)
-            && (left.Type.Class is Float
-                || left.Type.Class is Int))
+        if (binaryOp.Type == OperationType.Exponential && right.Type.Class is Float or Int
+                                                       && left.Type.Class is Float or Int)
         {
             return CompilePow(compiler, left, right);
         }
@@ -794,7 +796,7 @@ public static class LLVMCompiler
                     }
                     else
                     {
-                        throw new NotImplementedException();
+                        throw new NotImplementedException($"Unimplemented comparison between {left.Type.Class.Name} and {right.Type.Class.Name}.");
                     }
 
                     break;
@@ -986,15 +988,12 @@ public static class LLVMCompiler
         }
 
         var func = compiler.GetIntrinsic(intrinsic);
-        var result = new ValueContext(left.Type,
-            compiler.Builder.BuildCall2(func.LLVMFuncType,
-                func.LLVMFunc,
-                new LLVMValueRef[]
-                {
-                    SafeLoad(compiler, left).LLVMValue,
-                    SafeLoad(compiler, right).LLVMValue
-                },
-                "pow"));
+        ReadOnlySpan<LLVMValueRef> parameters = stackalloc LLVMValueRef[]
+        {
+            SafeLoad(compiler, left).LLVMValue,
+            SafeLoad(compiler, right).LLVMValue,
+        };
+        var result = new ValueContext(left.Type, func.Call(compiler.Builder, parameters));
 
         if (returnInt)
         {
@@ -1196,13 +1195,13 @@ public static class LLVMCompiler
             args.Add(SafeLoad(compiler, val).LLVMValue);
         }
 
-        Signature sig = new Signature(methodCall.Name, argTypes.ToArray());
+        Signature sig = new Signature(methodCall.Name, argTypes);
 
         if (context != null && context.Type.Class.Methods.TryGetValue(sig, out func))
         {
             if (context.Type.LLVMType == func.LLVMFuncType.ParamTypes[0])
             {
-                var newArgs = new List<LLVMValueRef>() { context.LLVMValue };
+                var newArgs = new List<LLVMValueRef> { context.LLVMValue };
                 newArgs.AddRange(args);
                 args = newArgs;
             }
@@ -1227,12 +1226,12 @@ public static class LLVMCompiler
         if (func.ReturnType.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind)
         {
             return new ValueContext(func.ReturnType,
-                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray()));
+                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.AsReadonlySpan(), ""));
         }
         else
         {
             return new ValueContext(func.ReturnType,
-                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.ToArray(), func.Name));
+                compiler.Builder.BuildCall2(func.LLVMFuncType, func.LLVMFunc, args.AsReadonlySpan(), func.Name));
         }
     }
 
@@ -1249,8 +1248,8 @@ public static class LLVMCompiler
             {
                 if (constantNode.Value is string str)
                 {
-                    var lLVMFunc = func.LLVMFunc;
-                    lLVMFunc.FunctionCallConv = str switch
+                    var llvmFunc = func.LLVMFunc;
+                    llvmFunc.FunctionCallConv = str switch
                     {
                         "cdecl" => 0,
                         _ => throw new Exception("Invalid calling convention!"),
