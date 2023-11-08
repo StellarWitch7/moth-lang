@@ -2,33 +2,108 @@
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
-namespace Moth.LLVM; //TODO: allow compilation of generic classes
+namespace Moth.LLVM;
 
-public static class LLVMCompiler
+public class LLVMCompiler
 {
-    public static void Compile(CompilerContext compiler, IReadOnlyCollection<ScriptAST> scripts)
+    public LLVMContextRef Context { get; }
+    public LLVMBuilderRef Builder { get; }
+    public LLVMModuleRef Module { get; }
+    public Dictionary<string, Class> Classes { get; } = new Dictionary<string, Class>();
+    public FuncDictionary GlobalFunctions { get; } = new FuncDictionary();
+    public Dictionary<string, Constant> GlobalConstants { get; } = new Dictionary<string, Constant>();
+    public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
+    public GenericDictionary GenericClasses { get; } = new GenericDictionary();
+    public LLVMFunction? CurrentFunction { get; set; }
+    public string ModuleName { get; }
+
+    private Logger _logger { get; } = new Logger("moth/compiler");
+    private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
+
+    public LLVMCompiler(string moduleName)
+    {
+        ModuleName = moduleName;
+        Context = LLVMContextRef.Global;
+        Builder = Context.CreateBuilder();
+        Module = Context.CreateModuleWithName(ModuleName);
+
+        InsertDefaultTypes();
+    }
+
+    public LLVMCompiler(string moduleName, IReadOnlyCollection<ScriptAST> scripts) : this(moduleName)
+    {
+        Compile(scripts);
+    }
+
+    public IntrinsicFunction GetIntrinsic(string name)
+    {
+        if (_intrinsics.TryGetValue(name, out var func))
+        {
+            return func;
+        }
+        else
+        {
+            return CreateIntrinsic(name);
+        }
+    }
+
+    public Function GetFunction(Signature sig)
+    {
+        if (GlobalFunctions.TryGetValue(sig, out var func))
+        {
+            return func;
+        }
+        else
+        {
+            throw new Exception($"Function \"{sig}\" does not exist.");
+        }
+    }
+
+    public Class GetClass(string name)
+    {
+        if (Classes.TryGetValue(name, out var @class))
+        {
+            return @class;
+        }
+        else
+        {
+            throw new Exception($"Class \"{name}\" does not exist.");
+        }
+    }
+
+    public void Warn(string message)
+    {
+        Log($"Warning: {message}");
+    }
+
+    public void Log(string message)
+    {
+        _logger.WriteLine(message);
+    }
+
+    public LLVMCompiler Compile(IReadOnlyCollection<ScriptAST> scripts)
     {
         foreach (var script in scripts)
         {
             foreach (var constDefNode in script.GlobalConstants)
             {
-                DefineConstant(compiler, constDefNode);
+                DefineConstant(constDefNode);
             }
 
             foreach (var funcDefNode in script.GlobalFunctions)
             {
-                DefineFunction(compiler, funcDefNode);
+                DefineFunction(funcDefNode);
             }
 
             foreach (var @class in script.ClassNodes)
             {
                 if (@class is GenericClassNode genericClass)
                 {
-                    compiler.GenericClassTemplates.Add(genericClass.Name, genericClass);
+                    GenericClassTemplates.Add(genericClass.Name, genericClass);
                 }
                 else
                 {
-                    DefineClass(compiler, @class);
+                    DefineClass(@class);
                 }
             }
 
@@ -36,11 +111,11 @@ public static class LLVMCompiler
             {
                 if (classNode is not GenericClassNode)
                 {
-                    var @class = compiler.GetClass(classNode.Name);
+                    var @class = GetClass(classNode.Name);
 
                     foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        DefineFunction(compiler, funcDefNode, @class);
+                        DefineFunction(funcDefNode, @class);
                     }
                 }
             }
@@ -52,7 +127,7 @@ public static class LLVMCompiler
             {
                 if (@class is not GenericClassNode)
                 {
-                    CompileClass(compiler, @class);
+                    CompileClass(@class);
                 }
             }
         }
@@ -61,41 +136,43 @@ public static class LLVMCompiler
         {
             foreach (var funcDefNode in script.GlobalFunctions)
             {
-                CompileFunction(compiler, funcDefNode);
+                CompileFunction(funcDefNode);
             }
 
             foreach (var classNode in script.ClassNodes)
             {
                 if (classNode is not GenericClassNode)
                 {
-                    var @class = compiler.GetClass(classNode.Name);
+                    var @class = GetClass(classNode.Name);
 
                     foreach (var funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        CompileFunction(compiler, funcDefNode, @class);
+                        CompileFunction(funcDefNode, @class);
                     }
                 }
             }
         }
+
+        return this;
     }
 
-    public static void DefineClass(CompilerContext compiler, ClassNode classNode)
+    public void DefineClass(ClassNode classNode)
     {
-        LLVMTypeRef newStruct = compiler.Context.CreateNamedStruct(classNode.Name);
+        LLVMTypeRef newStruct = Context.CreateNamedStruct(classNode.Name);
         Class newClass = new Class(classNode.Name, newStruct, classNode.Privacy);
-        compiler.Classes.Add(classNode.Name, newClass);
-        newClass.AddBuiltins(compiler);
+        Classes.Add(classNode.Name, newClass);
+        newClass.AddBuiltins(this);
     }
 
-    public static void CompileClass(CompilerContext compiler, ClassNode classNode)
+    public void CompileClass(ClassNode classNode)
     {
         var llvmTypes = new List<LLVMTypeRef>();
-        var @class = compiler.GetClass(classNode.Name);
+        var @class = GetClass(classNode.Name);
         uint index = 0;
 
         foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
         {
-            var fieldType = ResolveTypeRef(compiler, field.TypeRef);
+            var fieldType = ResolveTypeRef(field.TypeRef);
             llvmTypes.Add(fieldType.LLVMType);
             @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
             index++;
@@ -104,7 +181,7 @@ public static class LLVMCompiler
         @class.Type.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
     }
 
-    public static void DefineFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
+    public void DefineFunction(FuncDefNode funcDefNode, Class @class = null)
     {
         int index = 0;
         var @params = new List<Parameter>();
@@ -119,7 +196,7 @@ public static class LLVMCompiler
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
-            Type paramType = ResolveParameter(compiler, paramNode);
+            Type paramType = ResolveParameter(paramNode);
             paramNode.TypeRef.Name = UnVoid(paramNode.TypeRef);
             @params.Add(new Parameter(index, paramNode.Name, paramType));
             paramTypes.Add(paramType);
@@ -131,15 +208,15 @@ public static class LLVMCompiler
         string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.Privacy == PrivacyType.Foreign
             ? funcDefNode.Name
             : sig.ToString();
-        
+
         if (@class != null)
         {
             funcName = $"{@class.Name}.{funcName}";
         }
 
-        Type returnType = ResolveTypeRef(compiler, funcDefNode.ReturnTypeRef);
+        Type returnType = ResolveTypeRef(funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramLLVMTypes.AsReadonlySpan(), funcDefNode.IsVariadic);
-        LLVMValueRef llvmFunc = compiler.Module.AddFunction(funcName, llvmFuncType);
+        LLVMValueRef llvmFunc = Module.AddFunction(funcName, llvmFuncType);
         LLVMFunction func = new LLVMFunction(funcDefNode.Name,
             llvmFunc,
             llvmFuncType,
@@ -162,16 +239,16 @@ public static class LLVMCompiler
         }
         else
         {
-            compiler.GlobalFunctions.Add(sig, func);
+            GlobalFunctions.Add(sig, func);
         }
 
         foreach (var attribute in funcDefNode.Attributes)
         {
-            ResolveAttribute(compiler, func, attribute);
+            ResolveAttribute(func, attribute);
         }
     }
 
-    public static string UnVoid(TypeRefNode typeRef)
+    public string UnVoid(TypeRefNode typeRef)
     {
         string typeName = typeRef.Name;
 
@@ -183,14 +260,14 @@ public static class LLVMCompiler
         return typeName;
     }
 
-    public static void CompileFunction(CompilerContext compiler, FuncDefNode funcDefNode, Class @class = null)
+    public void CompileFunction(FuncDefNode funcDefNode, Class @class = null)
     {
         Function fn;
         List<Type> paramTypes = new List<Type>();
 
         foreach (var param in funcDefNode.Params)
         {
-            paramTypes.Add(ResolveParameter(compiler, param));
+            paramTypes.Add(ResolveParameter(param));
         }
 
         Signature sig = new Signature(funcDefNode.Name, paramTypes);
@@ -209,7 +286,7 @@ public static class LLVMCompiler
         {
             // Keep empty
         }
-        else if (compiler.GlobalFunctions.TryGetValue(sig, out fn))
+        else if (GlobalFunctions.TryGetValue(sig, out fn))
         {
             // Keep empty
         }
@@ -224,8 +301,8 @@ public static class LLVMCompiler
         }
 
         func.OpeningScope = new Scope(func.LLVMFunc.AppendBasicBlock("entry"));
-        compiler.Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-        compiler.CurrentFunction = func;
+        Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+        CurrentFunction = func;
 
         if (funcDefNode.Name == Reserved.Init && funcDefNode.Privacy == PrivacyType.Static)
         {
@@ -235,39 +312,39 @@ public static class LLVMCompiler
             }
 
             var @new = new Variable(Reserved.Self,
-                compiler.Builder.BuildMalloc(func.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: malloc or alloc?
+                Builder.BuildMalloc(func.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: malloc or alloc?
                 func.OwnerClass.Type);
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
             foreach (Field field in @new.Type.Class.Fields.Values)
             {
-                var llvmField = compiler.Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
+                var llvmField = Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
 
-                compiler.Builder.BuildStore(zeroedVal, llvmField);
+                Builder.BuildStore(zeroedVal, llvmField);
             }
         }
 
-        foreach (Parameter param in compiler.CurrentFunction.Params)
+        foreach (Parameter param in CurrentFunction.Params)
         {
-            var paramAsVar = compiler.Builder.BuildAlloca(param.Type.LLVMType, param.Name);
-            compiler.Builder.BuildStore(func.LLVMFunc.Params[param.ParamIndex], paramAsVar);
+            var paramAsVar = Builder.BuildAlloca(param.Type.LLVMType, param.Name);
+            Builder.BuildStore(func.LLVMFunc.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
                     paramAsVar,
                     param.Type));
         }
 
-        if (!CompileScope(compiler, func.OpeningScope, funcDefNode.ExecutionBlock))
+        if (!CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
         {
             throw new Exception("Function is not guaranteed to return.");
         }
     }
 
-    public static Type ResolveParameter(CompilerContext compiler, ParameterNode param)
+    public Type ResolveParameter(ParameterNode param)
     {
-        var type = ResolveTypeRef(compiler, param.TypeRef);
+        var type = ResolveTypeRef(param.TypeRef);
 
         if (param.RequireRefType)
         {
@@ -280,10 +357,10 @@ public static class LLVMCompiler
         }
     }
 
-    public static void DefineConstant(CompilerContext compiler, FieldDefNode constDef, Class @class = null)
+    public void DefineConstant(FieldDefNode constDef, Class @class = null)
     {
-        Type constType = ResolveTypeRef(compiler, constDef.TypeRef);
-        var constVal = compiler.Module.AddGlobal(constType.LLVMType, constDef.Name);
+        Type constType = ResolveTypeRef(constDef.TypeRef);
+        var constVal = Module.AddGlobal(constType.LLVMType, constDef.Name);
 
         if (@class != null)
         {
@@ -291,103 +368,103 @@ public static class LLVMCompiler
         }
         else
         {
-            compiler.GlobalConstants.Add(constDef.Name, new Constant(constType, constVal));
+            GlobalConstants.Add(constDef.Name, new Constant(constType, constVal));
         }
     }
 
-    public static bool CompileScope(CompilerContext compiler, Scope scope, ScopeNode scopeNode)
+    public bool CompileScope(Scope scope, ScopeNode scopeNode)
     {
-        compiler.Builder.PositionAtEnd(scope.LLVMBlock);
+        Builder.PositionAtEnd(scope.LLVMBlock);
 
         foreach (StatementNode statement in scopeNode.Statements)
         {
             if (statement is ReturnNode @return)
             {
-                if (compiler.CurrentFunction == null)
+                if (CurrentFunction == null)
                 {
                     throw new Exception("Return is not within a function!");
                 }
 
                 if (@return.ReturnValue != null)
                 {
-                    var expr = SafeLoad(compiler, CompileExpression(compiler, scope, @return.ReturnValue));
+                    var expr = SafeLoad(CompileExpression(scope, @return.ReturnValue));
 
-                    if (expr.Type.Equals(compiler.CurrentFunction.ReturnType))
+                    if (expr.Type.Equals(CurrentFunction.ReturnType))
                     {
-                        compiler.Builder.BuildRet(expr.LLVMValue);
+                        Builder.BuildRet(expr.LLVMValue);
                     }
                     else
                     {
                         throw new Exception($"Return value \"{expr.LLVMValue}\" does not match return type of function "
-                            + $"\"{compiler.CurrentFunction.ReturnType}\".");
+                            + $"\"{CurrentFunction.Name}\" (\"{CurrentFunction.ReturnType}\").");
                     }
                 }
                 else
                 {
-                    compiler.Builder.BuildRetVoid();
+                    Builder.BuildRetVoid();
                 }
 
                 return true;
             }
             else if (statement is ScopeNode newScopeNode)
             {
-                var newScope = new Scope(compiler.CurrentFunction.LLVMFunc.AppendBasicBlock(""));
+                var newScope = new Scope(CurrentFunction.LLVMFunc.AppendBasicBlock(""));
                 newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
-                compiler.Builder.BuildBr(newScope.LLVMBlock);
-                compiler.Builder.PositionAtEnd(newScope.LLVMBlock);
-                
-                if (CompileScope(compiler, newScope, newScopeNode))
+                Builder.BuildBr(newScope.LLVMBlock);
+                Builder.PositionAtEnd(newScope.LLVMBlock);
+
+                if (CompileScope(newScope, newScopeNode))
                 {
                     return true;
                 }
 
-                scope.LLVMBlock = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("");
-                compiler.Builder.BuildBr(scope.LLVMBlock);
-                compiler.Builder.PositionAtEnd(scope.LLVMBlock);
+                scope.LLVMBlock = CurrentFunction.LLVMFunc.AppendBasicBlock("");
+                Builder.BuildBr(scope.LLVMBlock);
+                Builder.PositionAtEnd(scope.LLVMBlock);
             }
             else if (statement is WhileNode @while)
             {
-                var loop = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("loop");
-                var then = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("then");
-                var @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
-                compiler.Builder.BuildBr(loop);
-                compiler.Builder.PositionAtEnd(loop);
+                var loop = CurrentFunction.LLVMFunc.AppendBasicBlock("loop");
+                var then = CurrentFunction.LLVMFunc.AppendBasicBlock("then");
+                var @continue = CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
+                Builder.BuildBr(loop);
+                Builder.PositionAtEnd(loop);
 
-                var condition = CompileExpression(compiler, scope, @while.Condition);
-                compiler.Builder.BuildCondBr(SafeLoad(compiler, condition).LLVMValue, then, @continue);
-                compiler.Builder.PositionAtEnd(then);
+                var condition = CompileExpression(scope, @while.Condition);
+                Builder.BuildCondBr(SafeLoad(condition).LLVMValue, then, @continue);
+                Builder.PositionAtEnd(then);
 
                 var newScope = new Scope(then);
                 newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
-                
-                if (!CompileScope(compiler, newScope, @while.Then))
+
+                if (!CompileScope(newScope, @while.Then))
                 {
-                    compiler.Builder.BuildBr(@loop);
+                    Builder.BuildBr(@loop);
                 }
-                
-                compiler.Builder.PositionAtEnd(@continue);
+
+                Builder.PositionAtEnd(@continue);
                 scope.LLVMBlock = @continue;
             }
             else if (statement is IfNode @if)
             {
-                var condition = CompileExpression(compiler, scope, @if.Condition);
-                var then = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("then");
-                var @else = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("else");
+                var condition = CompileExpression(scope, @if.Condition);
+                var then = CurrentFunction.LLVMFunc.AppendBasicBlock("then");
+                var @else = CurrentFunction.LLVMFunc.AppendBasicBlock("else");
                 LLVMBasicBlockRef @continue = null;
                 bool thenReturned = false;
                 bool elseReturned = false;
 
-                compiler.Builder.BuildCondBr(SafeLoad(compiler, condition).LLVMValue, then, @else);
+                Builder.BuildCondBr(SafeLoad(condition).LLVMValue, then, @else);
 
                 //then
                 {
-                    compiler.Builder.PositionAtEnd(then);
+                    Builder.PositionAtEnd(then);
 
                     {
                         var newScope = new Scope(then);
                         newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
-                        
-                        if (CompileScope(compiler, newScope, @if.Then))
+
+                        if (CompileScope(newScope, @if.Then))
                         {
                             thenReturned = true;
                         }
@@ -395,22 +472,22 @@ public static class LLVMCompiler
                         {
                             if (@continue == null)
                             {
-                                @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
+                                @continue = CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
                             }
 
-                            compiler.Builder.BuildBr(@continue);
+                            Builder.BuildBr(@continue);
                         }
                     }
                 }
 
                 //else
                 {
-                    compiler.Builder.PositionAtEnd(@else);
+                    Builder.PositionAtEnd(@else);
 
                     var newScope = new Scope(@else);
                     newScope.Variables = new Dictionary<string, Variable>(scope.Variables);
 
-                    if (@if.Else != null && CompileScope(compiler, newScope, @if.Else))
+                    if (@if.Else != null && CompileScope(newScope, @if.Else))
                     {
                         elseReturned = true;
                     }
@@ -418,10 +495,10 @@ public static class LLVMCompiler
                     {
                         if (@continue == null)
                         {
-                            @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
+                            @continue = CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
                         }
 
-                        compiler.Builder.BuildBr(@continue);
+                        Builder.BuildBr(@continue);
                     }
                 }
 
@@ -431,13 +508,13 @@ public static class LLVMCompiler
                 }
                 else
                 {
-                    compiler.Builder.PositionAtEnd(@continue);
+                    Builder.PositionAtEnd(@continue);
                     scope.LLVMBlock = @continue;
                 }
             }
             else if (statement is ExpressionNode exprNode)
             {
-                CompileExpression(compiler, scope, exprNode);
+                CompileExpression(scope, exprNode);
             }
             else
             {
@@ -448,7 +525,7 @@ public static class LLVMCompiler
         return false;
     }
 
-    public static Type ResolveTypeRef(CompilerContext compiler, TypeRefNode typeRef)
+    public Type ResolveTypeRef(TypeRefNode typeRef)
     {
         Type type; //TODO: is silly and borked???
 
@@ -458,7 +535,7 @@ public static class LLVMCompiler
         }
         else
         {
-            var @class = compiler.GetClass(UnVoid(typeRef));
+            var @class = GetClass(UnVoid(typeRef));
             type = new Type(@class.Type.LLVMType, @class, TypeKind.Class);
         }
 
@@ -473,59 +550,59 @@ public static class LLVMCompiler
         return type;
     }
 
-    public static ValueContext CompileExpression(CompilerContext compiler, Scope scope, ExpressionNode expr)
+    public ValueContext CompileExpression(Scope scope, ExpressionNode expr)
     {
         if (expr is BinaryOperationNode binaryOp)
         {
             if (binaryOp.Type == OperationType.Assignment)
             {
-                return CompileAssignment(compiler, scope, binaryOp);
+                return CompileAssignment(scope, binaryOp);
             }
             else if (binaryOp.Type == OperationType.Cast)
             {
-                return CompileCast(compiler, scope, binaryOp);
+                return CompileCast(scope, binaryOp);
             }
             else
             {
-                return CompileOperation(compiler, scope, binaryOp);
+                return CompileOperation(scope, binaryOp);
             }
         }
         else if (expr is LocalDefNode localDef)
         {
-            return CompileLocal(compiler, scope, localDef);
+            return CompileLocal(scope, localDef);
         }
         else if (expr is InlineIfNode @if)
         {
-            var condition = CompileExpression(compiler, scope, @if.Condition);
-            var then = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("then");
-            var @else = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("else");
-            var @continue = compiler.CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
+            var condition = CompileExpression(scope, @if.Condition);
+            var then = CurrentFunction.LLVMFunc.AppendBasicBlock("then");
+            var @else = CurrentFunction.LLVMFunc.AppendBasicBlock("else");
+            var @continue = CurrentFunction.LLVMFunc.AppendBasicBlock("continue");
 
             //then
-            compiler.Builder.PositionAtEnd(then);
-            var thenVal = CompileExpression(compiler, scope, @if.Then);
+            Builder.PositionAtEnd(then);
+            var thenVal = CompileExpression(scope, @if.Then);
 
             //else
-            compiler.Builder.PositionAtEnd(@else);
-            var elseVal = CompileExpression(compiler, scope, @if.Else);
+            Builder.PositionAtEnd(@else);
+            var elseVal = CompileExpression(scope, @if.Else);
 
             //prior
-            compiler.Builder.PositionAtEnd(scope.LLVMBlock);
-            var result = compiler.Builder.BuildAlloca(thenVal.Type.LLVMType, "result");
-            compiler.Builder.BuildCondBr(SafeLoad(compiler, condition).LLVMValue, then, @else);
+            Builder.PositionAtEnd(scope.LLVMBlock);
+            var result = Builder.BuildAlloca(thenVal.Type.LLVMType, "result");
+            Builder.BuildCondBr(SafeLoad(condition).LLVMValue, then, @else);
 
             //then
-            compiler.Builder.PositionAtEnd(then);
-            compiler.Builder.BuildStore(SafeLoad(compiler, thenVal).LLVMValue, result);
-            compiler.Builder.BuildBr(@continue);
+            Builder.PositionAtEnd(then);
+            Builder.BuildStore(SafeLoad(thenVal).LLVMValue, result);
+            Builder.BuildBr(@continue);
 
             //else
-            compiler.Builder.PositionAtEnd(@else);
-            compiler.Builder.BuildStore(SafeLoad(compiler, elseVal).LLVMValue, result);
-            compiler.Builder.BuildBr(@continue);
+            Builder.PositionAtEnd(@else);
+            Builder.BuildStore(SafeLoad(elseVal).LLVMValue, result);
+            Builder.BuildBr(@continue);
 
             //continue
-            compiler.Builder.PositionAtEnd(@continue);
+            Builder.PositionAtEnd(@continue);
             scope.LLVMBlock = @continue;
 
             if (thenVal.Type.Class.Name != elseVal.Type.Class.Name)
@@ -537,46 +614,46 @@ public static class LLVMCompiler
         }
         else if (expr is ConstantNode constNode)
         {
-            return CompileLiteral(compiler, scope, constNode);
+            return CompileLiteral(scope, constNode);
         }
         else if (expr is InverseNode inverse)
         {
-            var @ref = CompileRef(compiler, scope, inverse.Value);
+            var @ref = CompileRef(scope, inverse.Value);
             return new ValueContext(@ref.Type,
-                compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
-                    SafeLoad(compiler, @ref).LLVMValue,
+                Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
+                    SafeLoad(@ref).LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)));
         }
         else if (expr is IncrementVarNode incrementVar)
         {
-            var @ref = CompileRef(compiler, scope, incrementVar.RefNode);
+            var @ref = CompileRef(scope, incrementVar.RefNode);
             var valToAdd = LLVMValueRef.CreateConstInt(@ref.Type.Class.Type.LLVMType, 1); //TODO: float compat?
-            compiler.Builder.BuildStore(compiler.Builder.BuildAdd(SafeLoad(compiler, @ref).LLVMValue, valToAdd), @ref.LLVMValue);
+            Builder.BuildStore(Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd), @ref.LLVMValue);
             return new ValueContext(WrapAsRef(@ref.Type),
                 @ref.LLVMValue);
         }
         else if (expr is DecrementVarNode decrementVar)
         {
-            var @ref = CompileRef(compiler, scope, decrementVar.RefNode);
+            var @ref = CompileRef(scope, decrementVar.RefNode);
             var valToSub = LLVMValueRef.CreateConstInt(@ref.Type.Class.Type.LLVMType, 1); //TODO: float compat?
-            compiler.Builder.BuildStore(compiler.Builder.BuildSub(SafeLoad(compiler, @ref).LLVMValue, valToSub), @ref.LLVMValue);
+            Builder.BuildStore(Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToSub), @ref.LLVMValue);
             return new ValueContext(WrapAsRef(@ref.Type),
                 @ref.LLVMValue);
         }
         else if (expr is AsReferenceNode asReference)
         {
-            var value = CompileExpression(compiler, scope, asReference.Value);
-            var newVal = compiler.Builder.BuildAlloca(value.Type.LLVMType);
-            compiler.Builder.BuildStore(value.LLVMValue, newVal);
+            var value = CompileExpression(scope, asReference.Value);
+            var newVal = Builder.BuildAlloca(value.Type.LLVMType);
+            Builder.BuildStore(value.LLVMValue, newVal);
             return new ValueContext(new PtrType(value.Type, LLVMTypeRef.CreatePointer(value.Type.LLVMType, 0), value.Type.Class), newVal);
         }
         else if (expr is DeReferenceNode deReference)
         {
-            var value = SafeLoad(compiler, CompileExpression(compiler, scope, deReference.Value));
+            var value = SafeLoad(CompileExpression(scope, deReference.Value));
 
             if (value.Type is PtrType ptrType)
             {
-                return new ValueContext(ptrType.BaseType, compiler.Builder.BuildLoad2(value.Type.LLVMType, value.LLVMValue));
+                return new ValueContext(ptrType.BaseType, Builder.BuildLoad2(value.Type.LLVMType, value.LLVMValue));
             }
             else
             {
@@ -585,11 +662,11 @@ public static class LLVMCompiler
         }
         else if (expr is RefNode @ref)
         {
-            return CompileRef(compiler, scope, @ref);
+            return CompileRef(scope, @ref);
         }
         else if (expr is SubExprNode subExpr)
         {
-            return CompileExpression(compiler, scope, subExpr.Expression);
+            return CompileExpression(scope, subExpr.Expression);
         }
         else
         {
@@ -597,39 +674,39 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileLiteral(CompilerContext compiler, Scope scope, ConstantNode constNode)
+    public ValueContext CompileLiteral(Scope scope, ConstantNode constNode)
     {
         if (constNode.Value is string str)
         {
-            var @class = compiler.GetClass(Reserved.Char);
-            var constStr = compiler.Context.GetConstString(str, false);
-            var global = compiler.Module.AddGlobal(constStr.TypeOf, "");
+            var @class = GetClass(Reserved.Char);
+            var constStr = Context.GetConstString(str, false);
+            var global = Module.AddGlobal(constStr.TypeOf, "");
             global.Initializer = constStr;
             return new ValueContext(new PtrType(@class.Type, LLVMTypeRef.CreatePointer(@class.Type.LLVMType, 0), @class), global);
         }
         else if (constNode.Value is bool @bool)
         {
-            var @class = compiler.GetClass(Reserved.Bool);
+            var @class = GetClass(Reserved.Bool);
             return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0))); //TODO: why -1
         }
         else if (constNode.Value is int i32)
         {
-            var @class = compiler.GetClass(Reserved.SignedInt32);
+            var @class = GetClass(Reserved.SignedInt32);
             return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
         }
         else if (constNode.Value is float f32)
         {
-            var @class = compiler.GetClass(Reserved.Float32);
+            var @class = GetClass(Reserved.Float32);
             return new ValueContext(@class.Type, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
         }
         else if (constNode.Value is char ch)
         {
-            var @class = compiler.GetClass(Reserved.Char);
+            var @class = GetClass(Reserved.Char);
             return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, (ulong)ch));
         }
         else if (constNode.Value == null)
         {
-            var @class = compiler.GetClass(Reserved.Char);
+            var @class = GetClass(Reserved.Char);
             return new ValueContext(@class.Type, LLVMValueRef.CreateConstNull(@class.Type.LLVMType));
         }
         else
@@ -638,16 +715,16 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileOperation(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
+    public ValueContext CompileOperation(Scope scope, BinaryOperationNode binaryOp)
     {
-        var left = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Left));
-        var right = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Right));
+        var left = SafeLoad(CompileExpression(scope, binaryOp.Left));
+        var right = SafeLoad(CompileExpression(scope, binaryOp.Right));
 
         if (binaryOp.Type == OperationType.Exponential
             && right.Type.Class is Float or Int
             && left.Type.Class is Float or Int)
         {
-            return CompilePow(compiler, left, right);
+            return CompilePow(left, right);
         }
         else if (left.Type.Class.Name == right.Type.Class.Name
             || binaryOp.Type == OperationType.Equal
@@ -667,48 +744,48 @@ public static class LLVMCompiler
                 case OperationType.Addition:
                     if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFAdd(leftVal, rightVal);
+                        builtVal = Builder.BuildFAdd(leftVal, rightVal);
                     }
                     else
                     {
-                        builtVal = compiler.Builder.BuildAdd(leftVal, rightVal);
+                        builtVal = Builder.BuildAdd(leftVal, rightVal);
                     }
 
                     break;
                 case OperationType.Subtraction:
                     if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFSub(leftVal, rightVal);
+                        builtVal = Builder.BuildFSub(leftVal, rightVal);
                     }
                     else
                     {
-                        builtVal = compiler.Builder.BuildSub(leftVal, rightVal);
+                        builtVal = Builder.BuildSub(leftVal, rightVal);
                     }
 
                     break;
                 case OperationType.Multiplication:
                     if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFMul(leftVal, rightVal);
+                        builtVal = Builder.BuildFMul(leftVal, rightVal);
                     }
                     else
                     {
-                        builtVal = compiler.Builder.BuildMul(leftVal, rightVal);
+                        builtVal = Builder.BuildMul(leftVal, rightVal);
                     }
 
                     break;
                 case OperationType.Division:
                     if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFDiv(leftVal, rightVal);
+                        builtVal = Builder.BuildFDiv(leftVal, rightVal);
                     }
                     else if (left.Type.Class is UnsignedInt)
                     {
-                        builtVal = compiler.Builder.BuildUDiv(leftVal, rightVal);
+                        builtVal = Builder.BuildUDiv(leftVal, rightVal);
                     }
                     else if (left.Type.Class is SignedInt)
                     {
-                        builtVal = compiler.Builder.BuildSDiv(leftVal, rightVal);
+                        builtVal = Builder.BuildSDiv(leftVal, rightVal);
                     }
                     else
                     {
@@ -719,15 +796,15 @@ public static class LLVMCompiler
                 case OperationType.Modulo:
                     if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFRem(leftVal, rightVal);
+                        builtVal = Builder.BuildFRem(leftVal, rightVal);
                     }
                     else if (left.Type.Class is UnsignedInt)
                     {
-                        builtVal = compiler.Builder.BuildURem(leftVal, rightVal);
+                        builtVal = Builder.BuildURem(leftVal, rightVal);
                     }
                     else if (left.Type.Class is SignedInt)
                     {
-                        builtVal = compiler.Builder.BuildSRem(leftVal, rightVal);
+                        builtVal = Builder.BuildSRem(leftVal, rightVal);
                     }
                     else
                     {
@@ -736,35 +813,37 @@ public static class LLVMCompiler
 
                     break;
                 case OperationType.And:
-                    builtVal = compiler.Builder.BuildAnd(leftVal, rightVal);
+                    builtVal = Builder.BuildAnd(leftVal, rightVal);
+                    builtType = UnsignedInt.Bool.Type;
                     break;
                 case OperationType.Or:
-                    builtVal = compiler.Builder.BuildOr(leftVal, rightVal);
+                    builtVal = Builder.BuildOr(leftVal, rightVal);
+                    builtType = UnsignedInt.Bool.Type;
                     break;
                 case OperationType.Equal:
                 case OperationType.NotEqual:
                     if (right.LLVMValue.IsNull)
                     {
                         builtVal = binaryOp.Type == OperationType.Equal
-                            ? compiler.Builder.BuildIsNull(leftVal)
-                            : compiler.Builder.BuildIsNotNull(leftVal);
+                            ? Builder.BuildIsNull(leftVal)
+                            : Builder.BuildIsNotNull(leftVal);
                     }
                     else if (left.LLVMValue.IsNull)
                     {
                         builtVal = binaryOp.Type == OperationType.Equal
-                            ? compiler.Builder.BuildIsNull(rightVal)
-                            : compiler.Builder.BuildIsNotNull(rightVal);
+                            ? Builder.BuildIsNull(rightVal)
+                            : Builder.BuildIsNotNull(rightVal);
                     }
                     else if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFCmp(binaryOp.Type == OperationType.Equal
+                        builtVal = Builder.BuildFCmp(binaryOp.Type == OperationType.Equal
                             ? LLVMRealPredicate.LLVMRealOEQ
                             : LLVMRealPredicate.LLVMRealUNE,
                             leftVal, rightVal);
                     }
                     else if (left.Type.Class is Int)
                     {
-                        builtVal = compiler.Builder.BuildICmp(binaryOp.Type == OperationType.Equal
+                        builtVal = Builder.BuildICmp(binaryOp.Type == OperationType.Equal
                             ? LLVMIntPredicate.LLVMIntEQ
                             : LLVMIntPredicate.LLVMIntNE,
                             leftVal, rightVal);
@@ -775,7 +854,6 @@ public static class LLVMCompiler
                     }
 
                     builtType = UnsignedInt.Bool.Type;
-
                     break;
                 case OperationType.GreaterThan:
                 case OperationType.GreaterThanOrEqual:
@@ -783,7 +861,7 @@ public static class LLVMCompiler
                 case OperationType.LesserThanOrEqual:
                     if (left.Type.Class is Float)
                     {
-                        builtVal = compiler.Builder.BuildFCmp(binaryOp.Type switch
+                        builtVal = Builder.BuildFCmp(binaryOp.Type switch
                         {
                             OperationType.GreaterThan => LLVMRealPredicate.LLVMRealOGT,
                             OperationType.GreaterThanOrEqual => LLVMRealPredicate.LLVMRealOGE,
@@ -794,7 +872,7 @@ public static class LLVMCompiler
                     }
                     else if (left.Type.Class is UnsignedInt)
                     {
-                        builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
+                        builtVal = Builder.BuildICmp(binaryOp.Type switch
                         {
                             OperationType.GreaterThan => LLVMIntPredicate.LLVMIntUGT,
                             OperationType.GreaterThanOrEqual => LLVMIntPredicate.LLVMIntUGE,
@@ -805,7 +883,7 @@ public static class LLVMCompiler
                     }
                     else if (left.Type.Class is SignedInt)
                     {
-                        builtVal = compiler.Builder.BuildICmp(binaryOp.Type switch
+                        builtVal = Builder.BuildICmp(binaryOp.Type switch
                         {
                             OperationType.GreaterThan => LLVMIntPredicate.LLVMIntSGT,
                             OperationType.GreaterThanOrEqual => LLVMIntPredicate.LLVMIntSGE,
@@ -819,6 +897,7 @@ public static class LLVMCompiler
                         throw new NotImplementedException($"Unimplemented comparison between {left.Type.Class.Name} and {right.Type.Class.Name}.");
                     }
 
+                    builtType = UnsignedInt.Bool.Type;
                     break;
                 default:
                     throw new NotImplementedException();
@@ -833,15 +912,15 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileCast(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
+    public ValueContext CompileCast(Scope scope, BinaryOperationNode binaryOp)
     {
         if (binaryOp.Left is not TypeRefNode left)
         {
             throw new Exception($"Cast destination (\"{binaryOp.Left}\") is invalid.");
         }
 
-        var right = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Right));
-        Type destType = ResolveTypeRef(compiler, left);
+        var right = SafeLoad(CompileExpression(scope, binaryOp.Right));
+        Type destType = ResolveTypeRef(left);
         LLVMValueRef builtVal;
 
         if (destType.Class is Int) //TODO: doesn't work for pointer casts
@@ -850,27 +929,27 @@ public static class LLVMCompiler
             {
                 if (destType.Class.Name == Reserved.Bool)
                 {
-                    builtVal = compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
+                    builtVal = Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
                         LLVMValueRef.CreateConstInt(right.Type.LLVMType, 0), right.LLVMValue);
                 }
                 else if (right.Type.Class.Name == Reserved.Bool)
                 {
-                    builtVal = compiler.Builder.BuildZExt(right.LLVMValue, destType.LLVMType);
+                    builtVal = Builder.BuildZExt(right.LLVMValue, destType.LLVMType);
                 }
                 else
                 {
-                    builtVal = compiler.Builder.BuildIntCast(right.LLVMValue, destType.LLVMType);
+                    builtVal = Builder.BuildIntCast(right.LLVMValue, destType.LLVMType);
                 }
             }
             else if (right.Type.Class is Float)
             {
                 if (destType.Class is UnsignedInt)
                 {
-                    builtVal = compiler.Builder.BuildFPToUI(right.LLVMValue, destType.LLVMType);
+                    builtVal = Builder.BuildFPToUI(right.LLVMValue, destType.LLVMType);
                 }
                 else if (destType.Class is SignedInt)
                 {
-                    builtVal = compiler.Builder.BuildFPToSI(right.LLVMValue, destType.LLVMType);
+                    builtVal = Builder.BuildFPToSI(right.LLVMValue, destType.LLVMType);
                 }
                 else
                 {
@@ -886,17 +965,17 @@ public static class LLVMCompiler
         {
             if (right.Type.Class is Float)
             {
-                builtVal = compiler.Builder.BuildFPCast(right.LLVMValue, destType.LLVMType);
+                builtVal = Builder.BuildFPCast(right.LLVMValue, destType.LLVMType);
             }
             else if (right.Type.Class is Int)
             {
                 if (right.Type.Class is UnsignedInt)
                 {
-                    builtVal = compiler.Builder.BuildUIToFP(right.LLVMValue, destType.LLVMType);
+                    builtVal = Builder.BuildUIToFP(right.LLVMValue, destType.LLVMType);
                 }
                 else if (right.Type.Class is SignedInt)
                 {
-                    builtVal = compiler.Builder.BuildSIToFP(right.LLVMValue, destType.LLVMType);
+                    builtVal = Builder.BuildSIToFP(right.LLVMValue, destType.LLVMType);
                 }
                 else
                 {
@@ -910,7 +989,7 @@ public static class LLVMCompiler
         }
         else
         {
-            builtVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast,
+            builtVal = Builder.BuildCast(LLVMOpcode.LLVMBitCast,
                 right.LLVMValue,
                 destType.LLVMType);
         }
@@ -918,14 +997,14 @@ public static class LLVMCompiler
         return new ValueContext(destType, builtVal);
     }
 
-    public static ValueContext CompilePow(CompilerContext compiler, ValueContext left, ValueContext right)
+    public ValueContext CompilePow(ValueContext left, ValueContext right)
     {
-        Class i16 = compiler.GetClass(Reserved.SignedInt16);
-        Class i32 = compiler.GetClass(Reserved.SignedInt32);
-        Class i64 = compiler.GetClass(Reserved.SignedInt64);
-        Class f32 = compiler.GetClass(Reserved.Float32);
-        Class f64 = compiler.GetClass(Reserved.Float64);
-        
+        Class i16 = GetClass(Reserved.SignedInt16);
+        Class i32 = GetClass(Reserved.SignedInt32);
+        Class i64 = GetClass(Reserved.SignedInt64);
+        Class f32 = GetClass(Reserved.Float32);
+        Class f64 = GetClass(Reserved.Float64);
+
         LLVMValueRef val;
         string intrinsic;
         var destType = LLVMTypeRef.Float;
@@ -941,11 +1020,11 @@ public static class LLVMCompiler
 
             if (left.Type.Class is SignedInt)
             {
-                val = compiler.Builder.BuildSIToFP(SafeLoad(compiler, left).LLVMValue, destType);
+                val = Builder.BuildSIToFP(SafeLoad(left).LLVMValue, destType);
             }
             else if (left.Type.Class is UnsignedInt)
             {
-                val = compiler.Builder.BuildUIToFP(SafeLoad(compiler, left).LLVMValue, destType);
+                val = Builder.BuildUIToFP(SafeLoad(left).LLVMValue, destType);
             }
             else
             {
@@ -957,7 +1036,7 @@ public static class LLVMCompiler
         else if (left.Type.Class is Float
             && left.Type.Class.Name != Reserved.Float64)
         {
-            val = compiler.Builder.BuildFPCast(SafeLoad(compiler, left).LLVMValue, destType);
+            val = Builder.BuildFPCast(SafeLoad(left).LLVMValue, destType);
             left = new ValueContext(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind ? f64.Type : f32.Type, val);
         }
         else
@@ -971,7 +1050,7 @@ public static class LLVMCompiler
             {
                 if (right.Type.Class.Name != Reserved.Float64)
                 {
-                    val = compiler.Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
+                    val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
                     right = new ValueContext(f64.Type, val);
                 }
 
@@ -981,7 +1060,7 @@ public static class LLVMCompiler
             {
                 if (right.Type.Class.Name != Reserved.Float32)
                 {
-                    val = compiler.Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
+                    val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
                     right = new ValueContext(f32.Type, val);
                 }
 
@@ -995,7 +1074,7 @@ public static class LLVMCompiler
                 if (right.Type.Class.Name != Reserved.SignedInt16
                     && right.Type.Class.Name != Reserved.UnsignedInt16)
                 {
-                    val = compiler.Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
+                    val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
                     right = new ValueContext(i16.Type, val);
                 }
 
@@ -1006,7 +1085,7 @@ public static class LLVMCompiler
                 if (right.Type.Class.Name != Reserved.SignedInt32
                     && right.Type.Class.Name != Reserved.UnsignedInt32)
                 {
-                    val = compiler.Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
+                    val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
                     right = new ValueContext(i32.Type, val);
                 }
 
@@ -1018,26 +1097,26 @@ public static class LLVMCompiler
             throw new NotImplementedException();
         }
 
-        var func = compiler.GetIntrinsic(intrinsic);
+        var func = GetIntrinsic(intrinsic);
         ReadOnlySpan<LLVMValueRef> parameters = stackalloc LLVMValueRef[]
         {
-            SafeLoad(compiler, left).LLVMValue,
-            SafeLoad(compiler, right).LLVMValue,
+            SafeLoad(left).LLVMValue,
+            SafeLoad(right).LLVMValue,
         };
-        var result = new ValueContext(left.Type, func.Call(compiler.Builder, parameters));
+        var result = new ValueContext(left.Type, func.Call(Builder, parameters));
 
         if (returnInt)
         {
             if (result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind)
             {
                 result = new ValueContext(i64.Type,
-                    compiler.Builder.BuildFPToSI(result.LLVMValue,
+                    Builder.BuildFPToSI(result.LLVMValue,
                         LLVMTypeRef.Int64));
             }
             else
             {
                 result = new ValueContext(i32.Type,
-                    compiler.Builder.BuildFPToSI(result.LLVMValue,
+                    Builder.BuildFPToSI(result.LLVMValue,
                         LLVMTypeRef.Int32));
             }
         }
@@ -1045,16 +1124,16 @@ public static class LLVMCompiler
         return result;
     }
 
-    public static ValueContext CompileAssignment(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
+    public ValueContext CompileAssignment(Scope scope, BinaryOperationNode binaryOp)
     {
-        ValueContext variableAssigned = CompileExpression(compiler, scope, binaryOp.Left); //TODO: does not work with arrays
+        ValueContext variableAssigned = CompileExpression(scope, binaryOp.Left); //TODO: does not work with arrays
 
         if (variableAssigned.Type is not BasedType varType)
         {
             throw new Exception($"Cannot assign to \"{variableAssigned.LLVMValue.PrintToString()}\" as it is not a pointer.");
         }
 
-        var value = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Right));
+        var value = SafeLoad(CompileExpression(scope, binaryOp.Right));
 
         if (!varType.BaseType.Equals(value.Type))
         {
@@ -1062,37 +1141,37 @@ public static class LLVMCompiler
                 + $"Left: \"{binaryOp.Left.GetDebugString()}\". Right: \"{binaryOp.Right.GetDebugString()}\".");
         }
 
-        compiler.Builder.BuildStore(value.LLVMValue, variableAssigned.LLVMValue);
+        Builder.BuildStore(value.LLVMValue, variableAssigned.LLVMValue);
         return new ValueContext(WrapAsRef(variableAssigned.Type), variableAssigned.LLVMValue);
     }
 
-    public static ValueContext CompileLocal(CompilerContext compiler, Scope scope, LocalDefNode localDef)
+    public ValueContext CompileLocal(Scope scope, LocalDefNode localDef)
     {
         ValueContext value = null;
         Type type;
 
         if (localDef is InferredLocalDefNode inferredLocalDef)
         {
-            value = CompileExpression(compiler, scope, inferredLocalDef.Value);
+            value = CompileExpression(scope, inferredLocalDef.Value);
             type = value.Type;
         }
         else
         {
-            type = ResolveTypeRef(compiler, localDef.TypeRef);
+            type = ResolveTypeRef(localDef.TypeRef);
         }
 
-        var @var = compiler.Builder.BuildAlloca(type.LLVMType, localDef.Name);
+        var @var = Builder.BuildAlloca(type.LLVMType, localDef.Name);
         scope.Variables.Add(localDef.Name, new Variable(localDef.Name, @var, type));
 
         if (value != null)
         {
-            compiler.Builder.BuildStore(SafeLoad(compiler, value).LLVMValue, @var);
+            Builder.BuildStore(SafeLoad(value).LLVMValue, @var);
         }
 
         return new ValueContext(WrapAsRef(type), @var);
     }
 
-    public static ValueContext CompileRef(CompilerContext compiler, Scope scope, RefNode refNode)
+    public ValueContext CompileRef(Scope scope, RefNode refNode)
     {
         ValueContext context = null;
 
@@ -1100,12 +1179,12 @@ public static class LLVMCompiler
         {
             if (refNode is ThisNode)
             {
-                if (compiler.CurrentFunction.OwnerClass == null)
+                if (CurrentFunction.OwnerClass == null)
                 {
                     throw new Exception("Attempted self-instance reference in a global function.");
                 }
 
-                if (compiler.CurrentFunction.Name == Reserved.Init)
+                if (CurrentFunction.Name == Reserved.Init)
                 {
                     var self = scope.GetVariable(Reserved.Self);
                     context = new ValueContext(WrapAsRef(self.Type),
@@ -1113,20 +1192,20 @@ public static class LLVMCompiler
                 }
                 else
                 {
-                    context = new ValueContext(WrapAsRef(compiler.CurrentFunction.OwnerClass.Type),
-                        compiler.CurrentFunction.LLVMFunc.FirstParam);
+                    context = new ValueContext(WrapAsRef(CurrentFunction.OwnerClass.Type),
+                        CurrentFunction.LLVMFunc.FirstParam);
                 }
 
                 refNode = refNode.Child;
             }
             else if (refNode is TypeRefNode typeRef)
             {
-                var @class = compiler.GetClass(UnVoid(typeRef));
+                var @class = GetClass(UnVoid(typeRef));
                 refNode = refNode.Child;
 
                 if (refNode is FuncCallNode funcCall)
                 {
-                    context = CompileFuncCall(compiler, context, scope, funcCall, @class);
+                    context = CompileFuncCall(context, scope, funcCall, @class);
                     refNode = refNode.Child;
                 }
                 else
@@ -1137,12 +1216,12 @@ public static class LLVMCompiler
             }
             else if (refNode is FuncCallNode funcCall)
             {
-                context = CompileFuncCall(compiler, context, scope, funcCall);
+                context = CompileFuncCall(context, scope, funcCall);
                 refNode = refNode.Child;
             }
             else if (refNode is IndexAccessNode indexAccess)
             {
-                context = SafeLoad(compiler, CompileVarRef(compiler, context, scope, refNode));
+                context = SafeLoad(CompileVarRef(context, scope, refNode));
 
                 var resultType = context.Type is PtrType ptrType
                     ? ptrType.BaseType
@@ -1151,19 +1230,18 @@ public static class LLVMCompiler
                 context = new ValueContext(new RefType(resultType,
                         LLVMTypeRef.CreatePointer(resultType.LLVMType, 0),
                         resultType.Class),
-                    compiler.Builder.BuildInBoundsGEP2(resultType.LLVMType,
+                    Builder.BuildInBoundsGEP2(resultType.LLVMType,
                         context.LLVMValue,
                         new LLVMValueRef[1]
                         {
-                            compiler.Builder.BuildIntCast(SafeLoad(compiler,
-                                CompileExpression(compiler, scope, indexAccess.Index)).LLVMValue,
+                            Builder.BuildIntCast(SafeLoad(CompileExpression(scope, indexAccess.Index)).LLVMValue,
                                 LLVMTypeRef.Int64)
                         }));
                 refNode = refNode.Child;
             }
             else
             {
-                context = CompileVarRef(compiler, context, scope, refNode);
+                context = CompileVarRef(context, scope, refNode);
                 refNode = refNode.Child;
             }
         }
@@ -1171,14 +1249,14 @@ public static class LLVMCompiler
         return context;
     }
 
-    public static ValueContext CompileVarRef(CompilerContext compiler, ValueContext context, Scope scope, RefNode refNode)
+    public ValueContext CompileVarRef(ValueContext context, Scope scope, RefNode refNode)
     {
         if (context != null)
         {
             var field = context.Type.Class.GetField(refNode.Name);
-            var type = SafeLoad(compiler, context).Type;
+            var type = SafeLoad(context).Type;
             return new ValueContext(WrapAsRef(field.Type),
-                compiler.Builder.BuildStructGEP2(type.LLVMType,
+                Builder.BuildStructGEP2(type.LLVMType,
                     context.LLVMValue,
                     field.FieldIndex,
                     field.Name));
@@ -1190,7 +1268,7 @@ public static class LLVMCompiler
                 return new ValueContext(WrapAsRef(@var.Type),
                     @var.LLVMVariable);
             }
-            else if (compiler.GlobalConstants.TryGetValue(refNode.Name, out Constant @const))
+            else if (GlobalConstants.TryGetValue(refNode.Name, out Constant @const))
             {
                 return new ValueContext(WrapAsRef(@const.Type),
                     @const.LLVMValue);
@@ -1202,7 +1280,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, FuncCallNode funcCall,
+    public ValueContext CompileFuncCall(ValueContext context, Scope scope, FuncCallNode funcCall,
         Class staticClass = null)
     {
         List<Type> argTypes = new List<Type>();
@@ -1212,18 +1290,18 @@ public static class LLVMCompiler
 
         if (context == null)
         {
-            if (compiler.CurrentFunction.OwnerClass != null)
+            if (CurrentFunction.OwnerClass != null)
             {
-                context = new ValueContext(compiler.CurrentFunction.OwnerClass.Type,
-                    compiler.CurrentFunction.LLVMFunc.FirstParam);
+                context = new ValueContext(CurrentFunction.OwnerClass.Type,
+                    CurrentFunction.LLVMFunc.FirstParam);
             }
         }
 
         foreach (ExpressionNode arg in funcCall.Arguments)
         {
-            var val = CompileExpression(compiler, scope, arg);
+            var val = CompileExpression(scope, arg);
             argTypes.Add(val.Type is RefType @ref ? @ref.BaseType : val.Type);
-            args.Add(SafeLoad(compiler, val).LLVMValue);
+            args.Add(SafeLoad(val).LLVMValue);
         }
 
         Signature sig = new Signature(funcCall.Name, argTypes);
@@ -1241,7 +1319,7 @@ public static class LLVMCompiler
                 throw new Exception("Attempted to call a method on a different class. !!THIS IS NOT A USER ERROR. REPORT ASAP!!");
             }
         }
-        else if (contextWasNull && compiler.GlobalFunctions.TryGetValue(sig, out func))
+        else if (contextWasNull && GlobalFunctions.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -1255,10 +1333,10 @@ public static class LLVMCompiler
         }
 
         return new ValueContext(func.ReturnType,
-            func.Call(compiler.Builder, args.AsReadonlySpan()));
+            func.Call(Builder, args.AsReadonlySpan()));
     }
 
-    public static void ResolveAttribute(CompilerContext compiler, Function func, AttributeNode attribute)
+    public void ResolveAttribute(Function func, AttributeNode attribute)
     {
         if (attribute.Name == "CallingConvention")
         {
@@ -1294,11 +1372,11 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext SafeLoad(CompilerContext compiler, ValueContext value)
+    public ValueContext SafeLoad(ValueContext value)
     {
         if (value.Type is RefType @ref && value.Type.Class.Name != Reserved.Void)
         {
-            return new ValueContext(@ref.BaseType, compiler.Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue));
+            return new ValueContext(@ref.BaseType, Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue));
         }
         else
         {
@@ -1306,7 +1384,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static RefType WrapAsRef(Type type)
+    public RefType WrapAsRef(Type type)
     {
         if (type is RefType @ref)
         {
@@ -1314,5 +1392,43 @@ public static class LLVMCompiler
         }
 
         return new RefType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
+    }
+    
+    private void InsertDefaultTypes()
+    {
+        Classes.Add(Reserved.Void, new Class(Reserved.Void, LLVMTypeRef.Void, PrivacyType.Public));
+        Classes.Add(Reserved.Float16, Float.Float16);
+        Classes.Add(Reserved.Float32, Float.Float32);
+        Classes.Add(Reserved.Float64, Float.Float64);
+        Classes.Add(Reserved.Bool, UnsignedInt.Bool);
+        Classes.Add(Reserved.Char, UnsignedInt.Char);
+        Classes.Add(Reserved.UnsignedInt8, UnsignedInt.UInt8);
+        Classes.Add(Reserved.UnsignedInt16, UnsignedInt.UInt16);
+        Classes.Add(Reserved.UnsignedInt32, UnsignedInt.UInt32);
+        Classes.Add(Reserved.UnsignedInt64, UnsignedInt.UInt64);
+        Classes.Add(Reserved.SignedInt8, SignedInt.Int8);
+        Classes.Add(Reserved.SignedInt16, SignedInt.Int16);
+        Classes.Add(Reserved.SignedInt32, SignedInt.Int32);
+        Classes.Add(Reserved.SignedInt64, SignedInt.Int64);
+
+        foreach (Class @class in Classes.Values)
+        {
+            @class.AddBuiltins(this);
+        }
+    }
+
+    private IntrinsicFunction CreateIntrinsic(string name)
+    {
+        var func = name switch
+        {
+            "llvm.powi.f32.i32" => new Pow(name, Module, Float.Float32.Type, LLVMTypeRef.Float, LLVMTypeRef.Int32),
+            "llvm.powi.f64.i16" => new Pow(name, Module, Float.Float64.Type, LLVMTypeRef.Double, LLVMTypeRef.Int16),
+            "llvm.pow.f32" => new Pow(name, Module, Float.Float32.Type, LLVMTypeRef.Float, LLVMTypeRef.Float),
+            "llvm.pow.f64" => new Pow(name, Module, Float.Float64.Type, LLVMTypeRef.Double, LLVMTypeRef.Double),
+            _ => throw new NotImplementedException($"Intrinsic \"{name}\" is not implemented."),
+        };
+
+        _intrinsics.Add(name, func);
+        return func;
     }
 }

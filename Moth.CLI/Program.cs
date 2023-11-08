@@ -21,7 +21,7 @@ internal class Program
 
             Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(options =>
             {
-                var compiler = new CompilerContext(options.OutputFile);
+                var compiler = new LLVMCompiler(options.OutputFile);
                 var scripts = new List<ScriptAST>();
 
                 logger.WriteLine($"Building {options.OutputFile}...");
@@ -61,7 +61,7 @@ internal class Program
                                     logger.WriteLine($"Generating AST of \"{filePath}\"");
                                 }
 
-                                var scriptAST = TokenParser.ProcessScript(new ParseContext(tokens));
+                                var scriptAST = ASTGenerator.ProcessScript(new ParseContext(tokens));
                                 scripts.Add(scriptAST);
 
                                 if (options.Verbose)
@@ -94,7 +94,7 @@ internal class Program
                 try
                 {
                     logger.WriteLine("Compiling to LLVM IR...");
-                    LLVMCompiler.Compile(compiler, scripts);
+                    compiler.Compile(scripts);
 
                     if (options.Verbose)
                     {

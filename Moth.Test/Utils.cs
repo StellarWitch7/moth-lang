@@ -11,9 +11,8 @@ internal class Utils
     {
         var tokens = Tokenizer.Tokenize(code);
         var context = new ParseContext(tokens);
-        var ast = TokenParser.ProcessScript(context);
-        var compiler = new CompilerContext("fullcomp");
-        LLVMCompiler.Compile(compiler, new ScriptAST[] { ast });
+        var ast = ASTGenerator.ProcessScript(context);
+        var compiler = new LLVMCompiler("fullcomp", new ScriptAST[] { ast });
         compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
         return compiler.Module;
     }

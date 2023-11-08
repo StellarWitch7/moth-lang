@@ -4,9 +4,11 @@ namespace Moth.AST;
 
 public class ParseContext
 {
-    public readonly int Length;
-    private readonly List<Token> _tokens;
     public int Position { get; private set; }
+
+    public readonly int Length;
+
+    private readonly List<Token> _tokens;
 
     public ParseContext(List<Token> tokens)
     {
@@ -27,32 +29,9 @@ public class ParseContext
         }
     }
 
-    public void MoveNext()
+    public Token? MoveNext()
     {
         Position++;
-    }
-
-    public void MoveAmount(int amount)
-    {
-        Position += amount;
-    }
-
-    public Token GetByIndex(int index)
-    {
-        return _tokens[index];
-    }
-
-    public Token[] Peek(int count)
-    {
-        if (Position + count <= Length)
-        {
-            var copied = new Token[count];
-            _tokens.CopyTo(Position, copied, 0, count);
-            return copied;
-        }
-        else
-        {
-            return Array.Empty<Token>();
-        }
+        return Current;
     }
 }

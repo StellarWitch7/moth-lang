@@ -3,7 +3,7 @@ using Moth.Tokens;
 
 namespace Moth.AST; //TODO: allow calling functions on expressions
 
-public static class TokenParser
+public static class ASTGenerator
 {
     public static ScriptAST ProcessScript(ParseContext context)
     {
@@ -61,13 +61,9 @@ public static class TokenParser
                         privacyType = PrivacyType.Private;
                     }
 
-                    context.MoveNext();
-
-                    if (context.Current?.Type == TokenType.Class)
+                    if (context.MoveNext()?.Type == TokenType.Class)
                     {
-                        context.MoveNext();
-
-                        if (context.Current?.Type == TokenType.Name)
+                        if (context.MoveNext()?.Type == TokenType.Name)
                         {
                             string className = context.Current.Value.Text.ToString();
                             context.MoveNext();
@@ -132,11 +128,8 @@ public static class TokenParser
                 }
                 else if (context.Current?.Type == TokenType.ClosingGenericBracket)
                 {
-                    context.MoveNext();
-
-                    if (context.Current?.Type == TokenType.OpeningCurlyBraces)
+                    if (context.MoveNext()?.Type == TokenType.OpeningCurlyBraces)
                     {
-                        context.MoveNext();
                         return new GenericClassNode(name, privacy, @params, ProcessScope(context, true));
                     }
                     else
@@ -156,7 +149,6 @@ public static class TokenParser
         {
             if (context.Current?.Type == TokenType.OpeningCurlyBraces)
             {
-                context.MoveNext();
                 return new ClassNode(name, privacy, ProcessScope(context, true));
             }
             else
@@ -174,9 +166,8 @@ public static class TokenParser
         }
 
         string name = context.Current.Value.Text.ToString();
-        context.MoveNext();
 
-        if (context.Current?.Type != TokenType.TypeRef)
+        if (context.MoveNext()?.Type != TokenType.TypeRef)
         {
             return new GenericParameterNode(name);
         }
@@ -188,6 +179,13 @@ public static class TokenParser
     public static ScopeNode ProcessScope(ParseContext context, bool isClassRoot = false)
     {
         List<StatementNode> statements = new List<StatementNode>();
+
+        if (context.Current?.Type != TokenType.OpeningCurlyBraces)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+        }
+
+        context.MoveNext();
 
         if (isClassRoot)
         {
@@ -225,7 +223,6 @@ public static class TokenParser
                         context.MoveNext();
                         return new ScopeNode(statements);
                     case TokenType.OpeningCurlyBraces:
-                        context.MoveNext();
                         statements.Add(ProcessScope(context));
                         break;
                     case TokenType.If:
@@ -272,9 +269,8 @@ public static class TokenParser
     {
         TokenType type = (TokenType)(context.Current?.Type);
         RefNode refNode;
-        context.MoveNext();
 
-        if (context.Current?.Type == TokenType.This || context.Current?.Type == TokenType.Name)
+        if (context.MoveNext()?.Type == TokenType.This || context.Current?.Type == TokenType.Name)
         {
             refNode = ProcessAccess(context);
         }
@@ -302,7 +298,6 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
         }
 
-        context.MoveNext();
         var then = ProcessScope(context);
         return new WhileNode(condition, then);
     }
@@ -311,19 +306,14 @@ public static class TokenParser
     {
         if (context.Current?.Type == TokenType.AttributeMarker)
         {
-            context.MoveNext();
-
-            if (context.Current?.Type == TokenType.Name)
+            if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string name = context.Current.Value.Text.ToString();
-                context.MoveNext();
-
-                if (context.Current?.Type == TokenType.OpeningParentheses)
+                
+                if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                 {
                     context.MoveNext();
-                    var args = ProcessArgs(context);
-
-                    return new AttributeNode(name, args);
+                    return new AttributeNode(name, ProcessArgs(context));
                 }
                 else
                 {
@@ -372,14 +362,11 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value);
         }
 
-        context.MoveNext();
-
-        if (context.Current?.Type == TokenType.Name)
+        if (context.MoveNext()?.Type == TokenType.Name)
         {
             string name = context.Current.Value.Text.ToString();
-            context.MoveNext();
 
-            if (context.Current?.Type == TokenType.OpeningParentheses)
+            if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
             {
                 context.MoveNext();
                 var @params = ProcessParameterList(context, out bool isVariadic);
@@ -387,7 +374,6 @@ public static class TokenParser
 
                 if (privacy != PrivacyType.Foreign && context.Current?.Type == TokenType.OpeningCurlyBraces)
                 {
-                    context.MoveNext();
                     return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessScope(context), isVariadic, attributes);
                 }
                 else if (privacy == PrivacyType.Foreign && context.Current?.Type == TokenType.Semicolon)
@@ -479,8 +465,8 @@ public static class TokenParser
         }
         else if (context.Current?.Type == TokenType.Variadic)
         {
-            context.MoveNext();
             isVariadic = true;
+            context.MoveNext();
             return null;
         }
         else
@@ -500,7 +486,6 @@ public static class TokenParser
             throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
         }
 
-        context.MoveNext();
         var then = ProcessScope(context);
         var @else = ProcessElse(context);
         return new IfNode(condition, then, @else);
@@ -510,19 +495,16 @@ public static class TokenParser
     {
         if (context.Current?.Type == TokenType.Else)
         {
-            context.MoveNext();
-
-            if (context.Current?.Type == TokenType.If)
+            if (context.MoveNext()?.Type == TokenType.If)
             {
-                context.MoveNext(); //TODO: this does not work in compilation
+                context.MoveNext();
                 return new ScopeNode(new List<StatementNode>
                 {
-                    ProcessIf(context)
+                    ProcessIf(context) //TODO: this does not work in compilation
                 });
             }
             else
             {
-                context.MoveNext();
                 return ProcessScope(context);
             }
         }
@@ -567,17 +549,15 @@ public static class TokenParser
             || context.Current?.Type == TokenType.GenericTypeRef) //TODO: handle this patheticness
         {
             var startToken = context.Current?.Type;
-            context.MoveNext();
 
-            if (context.Current?.Type == TokenType.Name)
+            if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
                 var genericParams = new List<ExpressionNode>();
                 uint pointerDepth = 0;
-                context.MoveNext();
 
-                if (startToken != TokenType.GenericTypeRef
-                    && context.Current?.Type == TokenType.OpeningGenericBracket)
+                if (context.MoveNext()?.Type == TokenType.OpeningGenericBracket
+                    && startToken != TokenType.GenericTypeRef)
                 {
                     context.MoveNext();
 
@@ -602,8 +582,6 @@ public static class TokenParser
                             throw new UnexpectedTokenException(context.Current.Value);
                         }
                     }
-
-                    context.MoveNext();
                 }
 
                 while (context.Current?.Type == TokenType.Asterix)
@@ -694,14 +672,11 @@ public static class TokenParser
                 case TokenType.Period:
                     throw new NotImplementedException("Access operations on expressions are not currently supported."); //TODO
                 case TokenType.Local:
-                    context.MoveNext();
-
-                    if (context.Current?.Type == TokenType.Name)
+                    if (context.MoveNext()?.Type == TokenType.Name)
                     {
                         string name = context.Current.Value.Text.ToString();
-                        context.MoveNext();
 
-                        if (context.Current?.Type == TokenType.InferAssign)
+                        if (context.MoveNext()?.Type == TokenType.InferAssign)
                         {
                             context.MoveNext();
                             lastCreatedNode = new InferredLocalDefNode(name, ProcessExpression(context, null));
@@ -876,9 +851,8 @@ public static class TokenParser
         if (context.Current?.Type == TokenType.This)
         {
             newRefNode = new ThisNode();
-            context.MoveNext();
 
-            if (context.Current?.Type == TokenType.Period)
+            if (context.MoveNext()?.Type == TokenType.Period)
             {
                 context.MoveNext();
             }
@@ -908,9 +882,8 @@ public static class TokenParser
             {
                 string name = context.Current.Value.Text.ToString();
                 RefNode currentNode = newRefNode;
-                context.MoveNext();
 
-                switch (context.Current?.Type)
+                switch (context.MoveNext()?.Type)
                 {
                     case TokenType.OpeningParentheses:
                         {

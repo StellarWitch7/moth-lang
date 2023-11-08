@@ -249,7 +249,21 @@ public static class Tokenizer
 
                 case >= '0' and <= '9':
                     {
-                        var number = stream.Peek(c => char.IsDigit(c) || c == '.');
+                        var builder = new StringBuilder();
+
+                        while (char.IsDigit((char)stream.Current)
+                            || (char)stream.Current == '.'
+                            || (char)stream.Current == '_')
+                        {
+                            if ((char)stream.Current != '_')
+                            {
+                                builder.Append((char)stream.Current);
+                            }
+
+                            stream.Position++;
+                        }
+                        
+                        var number = builder.ToString().AsMemory();
                         var dots = 0;
                         var numberSpan = number.Span;
                         for (var i = 0; i < numberSpan.Length; i++)
@@ -271,7 +285,7 @@ public static class Tokenizer
                             Type = number.Span.Contains('.') ? TokenType.LiteralFloat : TokenType.LiteralInt,
                         });
 
-                        stream.Position += number.Length - 1;
+                        stream.Position--;
                         break;
                     }
 

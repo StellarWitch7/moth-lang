@@ -69,7 +69,7 @@ public class Class : CompilerData
         }
     }
 
-    public void AddBuiltins(CompilerContext compiler)
+    public void AddBuiltins(LLVMCompiler compiler)
     {
         // sizeof()
         {
