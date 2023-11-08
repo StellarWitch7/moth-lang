@@ -4,6 +4,15 @@
 public class Definitions
 {
     [TestMethod]
+    public void Class()
+    {
+        var expected = "%Thing = type { i32, i1, float }";
+        var code = Utils.PrependNamespace("public class Thing { public int #i32; public bool #bool; private float #f32; }");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetTypeByName("Thing").ToString());
+    }
+
+    [TestMethod]
     public void ObjectAccess()
     {
         var expectedType = "%Item = type { i32, ptr }";

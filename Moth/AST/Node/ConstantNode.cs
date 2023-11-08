@@ -4,7 +4,7 @@ namespace Moth.AST.Node;
 
 public class ConstantNode : ExpressionNode
 {
-    public object Value { get; set; }
+    public object? Value { get; set; }
 
     public ConstantNode(object? value)
     {

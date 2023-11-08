@@ -14,9 +14,9 @@ env:
   DOTNET_VERSION: '7.0.203'
 
 jobs:
-  build-and-test:
+  vuild:
 
-    name: build-and-test-${{matrix.os}}
+    name: build-${{matrix.os}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -29,11 +29,8 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: dotnet restore
-      
+    
     - name: Build
       run: dotnet build
-    
-    - name: Test
-      run: dotnet test

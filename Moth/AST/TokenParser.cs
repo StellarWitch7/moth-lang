@@ -514,7 +514,7 @@ public static class TokenParser
 
             if (context.Current?.Type == TokenType.If)
             {
-                context.MoveNext();
+                context.MoveNext(); //TODO: this does not work in compilation
                 return new ScopeNode(new List<StatementNode>
                 {
                     ProcessIf(context)
@@ -836,6 +836,12 @@ public static class TokenParser
 
                         break;
                     }
+                case TokenType.ScientificNotation:
+                    context.MoveNext();
+                    lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
+                        ProcessBinaryOp(context, OperationType.Exponential, new ConstantNode(10)),
+                        OperationType.Multiplication);
+                    break;
                 case TokenType.Not:
                     context.MoveNext();
                     lastCreatedNode = new InverseNode(ProcessAccess(context));

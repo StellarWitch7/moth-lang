@@ -640,8 +640,8 @@ public static class LLVMCompiler
 
     public static ValueContext CompileOperation(CompilerContext compiler, Scope scope, BinaryOperationNode binaryOp)
     {
-        var left = CompileExpression(compiler, scope, binaryOp.Left);
-        var right = CompileExpression(compiler, scope, binaryOp.Right);
+        var left = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Left));
+        var right = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Right));
 
         if (binaryOp.Type == OperationType.Exponential
             && right.Type.Class is Float or Int
@@ -656,9 +656,11 @@ public static class LLVMCompiler
             LLVMValueRef leftVal;
             LLVMValueRef rightVal;
             LLVMValueRef builtVal;
+            Type builtType;
 
-            leftVal = SafeLoad(compiler, left).LLVMValue;
-            rightVal = SafeLoad(compiler, right).LLVMValue;
+            leftVal = left.LLVMValue;
+            rightVal = right.LLVMValue;
+            builtType = left.Type;
 
             switch (binaryOp.Type)
             {
@@ -772,6 +774,8 @@ public static class LLVMCompiler
                         throw new NotImplementedException();
                     }
 
+                    builtType = UnsignedInt.Bool.Type;
+
                     break;
                 case OperationType.GreaterThan:
                 case OperationType.GreaterThanOrEqual:
@@ -820,7 +824,7 @@ public static class LLVMCompiler
                     throw new NotImplementedException();
             }
 
-            return new ValueContext(left.Type is RefType @ref ? @ref.BaseType : left.Type, builtVal);
+            return new ValueContext(builtType, builtVal);
         }
         else
         {
@@ -836,7 +840,7 @@ public static class LLVMCompiler
             throw new Exception($"Cast destination (\"{binaryOp.Left}\") is invalid.");
         }
 
-        var right = CompileExpression(compiler, scope, binaryOp.Right);
+        var right = SafeLoad(compiler, CompileExpression(compiler, scope, binaryOp.Right));
         Type destType = ResolveTypeRef(compiler, left);
         LLVMValueRef builtVal;
 
@@ -844,24 +848,29 @@ public static class LLVMCompiler
         {
             if (right.Type.Class is Int)
             {
-                if (destType.Class.GetType() != right.Type.Class.GetType())
+                if (destType.Class.Name == Reserved.Bool)
                 {
-                    throw new NotImplementedException("Casting between signed and unsigned int not supported yet.");
+                    builtVal = compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
+                        LLVMValueRef.CreateConstInt(right.Type.LLVMType, 0), right.LLVMValue);
+                }
+                else if (right.Type.Class.Name == Reserved.Bool)
+                {
+                    builtVal = compiler.Builder.BuildZExt(right.LLVMValue, destType.LLVMType);
                 }
                 else
                 {
-                    builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                    builtVal = compiler.Builder.BuildIntCast(right.LLVMValue, destType.LLVMType);
                 }
             }
             else if (right.Type.Class is Float)
             {
                 if (destType.Class is UnsignedInt)
                 {
-                    builtVal = compiler.Builder.BuildFPToUI(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                    builtVal = compiler.Builder.BuildFPToUI(right.LLVMValue, destType.LLVMType);
                 }
                 else if (destType.Class is SignedInt)
                 {
-                    builtVal = compiler.Builder.BuildFPToSI(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                    builtVal = compiler.Builder.BuildFPToSI(right.LLVMValue, destType.LLVMType);
                 }
                 else
                 {
@@ -877,17 +886,17 @@ public static class LLVMCompiler
         {
             if (right.Type.Class is Float)
             {
-                builtVal = compiler.Builder.BuildFPCast(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                builtVal = compiler.Builder.BuildFPCast(right.LLVMValue, destType.LLVMType);
             }
             else if (right.Type.Class is Int)
             {
                 if (right.Type.Class is UnsignedInt)
                 {
-                    builtVal = compiler.Builder.BuildUIToFP(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                    builtVal = compiler.Builder.BuildUIToFP(right.LLVMValue, destType.LLVMType);
                 }
                 else if (right.Type.Class is SignedInt)
                 {
-                    builtVal = compiler.Builder.BuildSIToFP(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                    builtVal = compiler.Builder.BuildSIToFP(right.LLVMValue, destType.LLVMType);
                 }
                 else
                 {
@@ -902,7 +911,7 @@ public static class LLVMCompiler
         else
         {
             builtVal = compiler.Builder.BuildCast(LLVMOpcode.LLVMBitCast,
-                SafeLoad(compiler, right).LLVMValue,
+                right.LLVMValue,
                 destType.LLVMType);
         }
 
@@ -1115,9 +1124,9 @@ public static class LLVMCompiler
                 var @class = compiler.GetClass(UnVoid(typeRef));
                 refNode = refNode.Child;
 
-                if (refNode is FuncCallNode methodCall)
+                if (refNode is FuncCallNode funcCall)
                 {
-                    context = CompileFuncCall(compiler, context, scope, methodCall, @class);
+                    context = CompileFuncCall(compiler, context, scope, funcCall, @class);
                     refNode = refNode.Child;
                 }
                 else
@@ -1126,9 +1135,9 @@ public static class LLVMCompiler
                     throw new NotImplementedException();
                 }
             }
-            else if (refNode is FuncCallNode methodCall)
+            else if (refNode is FuncCallNode funcCall)
             {
-                context = CompileFuncCall(compiler, context, scope, methodCall);
+                context = CompileFuncCall(compiler, context, scope, funcCall);
                 refNode = refNode.Child;
             }
             else if (refNode is IndexAccessNode indexAccess)
@@ -1193,7 +1202,7 @@ public static class LLVMCompiler
         }
     }
 
-    public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, FuncCallNode methodCall,
+    public static ValueContext CompileFuncCall(CompilerContext compiler, ValueContext context, Scope scope, FuncCallNode funcCall,
         Class staticClass = null)
     {
         List<Type> argTypes = new List<Type>();
@@ -1210,14 +1219,14 @@ public static class LLVMCompiler
             }
         }
 
-        foreach (ExpressionNode arg in methodCall.Arguments)
+        foreach (ExpressionNode arg in funcCall.Arguments)
         {
             var val = CompileExpression(compiler, scope, arg);
             argTypes.Add(val.Type is RefType @ref ? @ref.BaseType : val.Type);
             args.Add(SafeLoad(compiler, val).LLVMValue);
         }
 
-        Signature sig = new Signature(methodCall.Name, argTypes);
+        Signature sig = new Signature(funcCall.Name, argTypes);
 
         if (context != null && context.Type.Class.Methods.TryGetValue(sig, out func))
         {
@@ -1242,7 +1251,7 @@ public static class LLVMCompiler
         }
         else
         {
-            throw new Exception($"Function \"{methodCall.Name}\" does not exist.");
+            throw new Exception($"Function \"{funcCall.Name}\" does not exist.");
         }
 
         return new ValueContext(func.ReturnType,

@@ -17,4 +17,19 @@ public class Intrinsics
         var module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
+
+    [TestMethod]
+    public void AlignOf()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i64, align 8" +
+            "\n  store i64 ptrtoint (ptr getelementptr ({ i1, i32 }, ptr null, i64 0, i32 1) to i64), ptr %val, align 4" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= #i32.alignof(); return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
 }

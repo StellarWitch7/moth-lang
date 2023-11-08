@@ -49,4 +49,22 @@ public class Constants
         Assert.AreEqual(expectedGlobal, module.FirstGlobal.ToString());
         Assert.AreEqual(expectedMain, module.GetNamedFunction("main").ToString());
     }
+
+    [TestMethod]
+    public void ScientificNotation()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %pow = call float @llvm.powi.f32.i32(float 1.000000e+01, i32 5)" +
+            "\n  %0 = fptosi float %pow to i32" +
+            "\n  %1 = mul i32 2, %0" +
+            "\n  %val = alloca i32, align 4" +
+            "\n  store i32 %1, ptr %val, align 4" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= 2e+5; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
 }

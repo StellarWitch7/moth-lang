@@ -104,5 +104,6 @@ public enum TokenType
     DivAssign,
     ModAssign,
     ExpAssign,
-    DeRef
+    DeRef,
+    ScientificNotation
 }
