@@ -303,10 +303,24 @@ public static class LLVMCompiler
         {
             if (statement is ReturnNode @return)
             {
+                if (compiler.CurrentFunction == null)
+                {
+                    throw new Exception("Return is not within a function!");
+                }
+
                 if (@return.ReturnValue != null)
                 {
-                    var expr = CompileExpression(compiler, scope, @return.ReturnValue);
-                    compiler.Builder.BuildRet(SafeLoad(compiler, expr).LLVMValue);
+                    var expr = SafeLoad(compiler, CompileExpression(compiler, scope, @return.ReturnValue));
+
+                    if (expr.Type.Equals(compiler.CurrentFunction.ReturnType))
+                    {
+                        compiler.Builder.BuildRet(expr.LLVMValue);
+                    }
+                    else
+                    {
+                        throw new Exception($"Return value \"{expr.LLVMValue}\" does not match return type of function "
+                            + $"\"{compiler.CurrentFunction.ReturnType}\".");
+                    }
                 }
                 else
                 {
@@ -830,7 +844,14 @@ public static class LLVMCompiler
         {
             if (right.Type.Class is Int)
             {
-                builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                if (destType.Class.GetType() != right.Type.Class.GetType())
+                {
+                    throw new NotImplementedException("Casting between signed and unsigned int not supported yet.");
+                }
+                else
+                {
+                    builtVal = compiler.Builder.BuildIntCast(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
+                }
             }
             else if (right.Type.Class is Float)
             {

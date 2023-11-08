@@ -216,10 +216,12 @@ public class Operators
     {
         var expected = "define i32 @main() {" +
             "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 false, ptr %val, align 1" +
             "\n  ret i32 0" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("return #i32 <- false and false;");
+        var code = Utils.BasicWrap("local val ?= false and false; return 0;");
         var module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
@@ -229,36 +231,42 @@ public class Operators
     {
         var expected = "define i32 @main() {" +
             "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 false, ptr %val, align 1" +
             "\n  ret i32 0" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("return #i32 <- true and false;");
+        var code = Utils.BasicWrap("local val ?= true and false; return 0;");
         var module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
 
-    //[TestMethod]
-    //public void AndTrueTrue()
-    //{
-    //    var expected = "define i32 @main() {" +
-    //        "\nentry:" +
-    //        "\n  ret i32 1" +
-    //        "\n}" +
-    //        "\n";
-    //    var code = Utils.BasicWrap("return #i32 <- true and true;");
-    //    var module = Utils.FullCompile(code);
-    //    Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
-    //}
+    [TestMethod]
+    public void AndTrueTrue()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 true, ptr %val, align 1" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= true and true; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
 
     [TestMethod]
     public void AndFalseTrue()
     {
         var expected = "define i32 @main() {" +
             "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 false, ptr %val, align 1" +
             "\n  ret i32 0" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("return #i32 <- false and true;");
+        var code = Utils.BasicWrap("local val ?= false and true; return 0;");
         var module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
@@ -268,50 +276,88 @@ public class Operators
     {
         var expected = "define i32 @main() {" +
             "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 false, ptr %val, align 1" +
             "\n  ret i32 0" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("return #i32 <- false or false;");
+        var code = Utils.BasicWrap("local val ?= false or false; return 0;");
         var module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
 
-    //[TestMethod]
-    //public void OrTrueFalse()
-    //{
-    //    var expected = "define i32 @main() {" +
-    //        "\nentry:" +
-    //        "\n  ret i32 1" +
-    //        "\n}" +
-    //        "\n";
-    //    var code = Utils.BasicWrap("return #i32 <- true or false;");
-    //    var module = Utils.FullCompile(code);
-    //    Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
-    //}
+    [TestMethod]
+    public void OrTrueFalse()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 true, ptr %val, align 1" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= true or false; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
 
-    //[TestMethod]
-    //public void OrTrueTrue()
-    //{
-    //    var expected = "define i32 @main() {" +
-    //        "\nentry:" +
-    //        "\n  ret i32 1" +
-    //        "\n}" +
-    //        "\n";
-    //    var code = Utils.BasicWrap("return #i32 <- true or true;");
-    //    var module = Utils.FullCompile(code);
-    //    Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
-    //}
+    [TestMethod]
+    public void OrTrueTrue()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 true, ptr %val, align 1" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= true or true; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
 
-    //[TestMethod]
-    //public void OrFalseTrue()
-    //{
-    //    var expected = "define i32 @main() {" +
-    //        "\nentry:" +
-    //        "\n  ret i32 1" +
-    //        "\n}" +
-    //        "\n";
-    //    var code = Utils.BasicWrap("return #i32 <- false or true;");
-    //    var module = Utils.FullCompile(code);
-    //    Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
-    //}
+    [TestMethod]
+    public void OrFalseTrue()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i1, align 1" +
+            "\n  store i1 true, ptr %val, align 1" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= false or true; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
+
+    [TestMethod]
+    public void Casti32u32()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i32, align 8" +
+            "\n  store i32 -6, ptr %val, align 4" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= #u32 <- -6; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
+
+    [TestMethod]
+    public void Casti32i64()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i64, align 8" +
+            "\n  store i64 7, ptr %val, align 4" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= #i64 <- 7; return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
 }

@@ -1,0 +1,20 @@
+﻿namespace Moth.Unit;
+
+[TestClass]
+public class Intrinsics
+{
+    [TestMethod]
+    public void SizeOf()
+    {
+        var expected = "define i32 @main() {" +
+            "\nentry:" +
+            "\n  %val = alloca i64, align 8" +
+            "\n  store i64 ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64), ptr %val, align 4" +
+            "\n  ret i32 0" +
+            "\n}" +
+            "\n";
+        var code = Utils.BasicWrap("local val ?= #i32.sizeof(); return 0;");
+        var module = Utils.FullCompile(code);
+        Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
+    }
+}
