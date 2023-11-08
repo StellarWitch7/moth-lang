@@ -48,17 +48,20 @@ public static class LLVMCompiler
 
         foreach (var script in scripts)
         {
-            foreach (var funcDefNode in script.GlobalFunctions)
-            {
-                CompileFunction(compiler, funcDefNode);
-            }
-
             foreach (var @class in script.ClassNodes)
             {
                 if (@class is not GenericClassNode)
                 {
                     CompileClass(compiler, @class);
                 }
+            }
+        }
+
+        foreach (var script in scripts)
+        {
+            foreach (var funcDefNode in script.GlobalFunctions)
+            {
+                CompileFunction(compiler, funcDefNode);
             }
 
             foreach (var classNode in script.ClassNodes)
@@ -593,7 +596,7 @@ public static class LLVMCompiler
         else if (constNode.Value is bool @bool)
         {
             var @class = compiler.GetClass(Reserved.Bool);
-            return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
+            return new ValueContext(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0))); //TODO: why -1
         }
         else if (constNode.Value is int i32)
         {
@@ -819,12 +822,11 @@ public static class LLVMCompiler
             throw new Exception($"Cast destination (\"{binaryOp.Left}\") is invalid.");
         }
 
-        var destClass = compiler.GetClass(UnVoid(left));
         var right = CompileExpression(compiler, scope, binaryOp.Right);
         Type destType = ResolveTypeRef(compiler, left);
         LLVMValueRef builtVal;
 
-        if (destClass is Int)
+        if (destType.Class is Int) //TODO: doesn't work for pointer casts
         {
             if (right.Type.Class is Int)
             {
@@ -832,11 +834,11 @@ public static class LLVMCompiler
             }
             else if (right.Type.Class is Float)
             {
-                if (destClass is UnsignedInt)
+                if (destType.Class is UnsignedInt)
                 {
                     builtVal = compiler.Builder.BuildFPToUI(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
                 }
-                else if (destClass is SignedInt)
+                else if (destType.Class is SignedInt)
                 {
                     builtVal = compiler.Builder.BuildFPToSI(SafeLoad(compiler, right).LLVMValue, destType.LLVMType);
                 }
@@ -850,7 +852,7 @@ public static class LLVMCompiler
                 throw new NotImplementedException();
             }
         }
-        else if (destClass is Float)
+        else if (destType.Class is Float)
         {
             if (right.Type.Class is Float)
             {

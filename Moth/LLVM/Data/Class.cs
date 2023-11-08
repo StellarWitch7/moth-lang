@@ -23,7 +23,7 @@ public class Class : CompilerData
 
     public Field GetField(string name)
     {
-        if (Fields.TryGetValue(name, out Field field))
+        if (Fields.TryGetValue(name, out var field))
         {
             return field;
         }
@@ -35,7 +35,7 @@ public class Class : CompilerData
 
     public Field GetStaticField(string name)
     {
-        if (StaticFields.TryGetValue(name, out Field field))
+        if (StaticFields.TryGetValue(name, out var field))
         {
             return field;
         }
