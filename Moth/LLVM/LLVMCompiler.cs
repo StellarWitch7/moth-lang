@@ -303,7 +303,7 @@ public class LLVMCompiler
             func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
                     paramAsVar,
-                    param.Type));
+                    new RefType(param.Type)));
         }
 
         if (!CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
@@ -316,15 +316,9 @@ public class LLVMCompiler
     {
         Type type = ResolveTypeRef(param.TypeRef);
 
-        if (param.RequireRefType)
-        {
-            var newType = new RefType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
-            return new PtrType(newType, LLVMTypeRef.CreatePointer(newType.LLVMType, 0), newType.Class);
-        }
-        else
-        {
-            return type;
-        }
+        return param.RequireRefType
+            ? new PtrType(new RefType(type))
+            : type;
     }
 
     public void DefineConstant(FieldDefNode constDef, Class? @class = null)
@@ -520,7 +514,7 @@ public class LLVMCompiler
 
         while (index < typeRef.PointerDepth)
         {
-            type = new PtrType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
+            type = new PtrType(type);
             index++;
         }
 
@@ -612,14 +606,14 @@ public class LLVMCompiler
             ValueContext value = CompileExpression(scope, asReference.Value);
             LLVMValueRef newVal = Builder.BuildAlloca(value.Type.LLVMType);
             Builder.BuildStore(value.LLVMValue, newVal);
-            return new ValueContext(new PtrType(value.Type, LLVMTypeRef.CreatePointer(value.Type.LLVMType, 0), value.Type.Class), newVal);
+            return new ValueContext(new PtrType(value.Type), newVal);
         }
         else if (expr is DeReferenceNode deReference)
         {
             ValueContext value = SafeLoad(CompileExpression(scope, deReference.Value));
 
             return value.Type is PtrType ptrType
-                ? new ValueContext(ptrType.BaseType, Builder.BuildLoad2(value.Type.LLVMType, value.LLVMValue))
+                ? new ValueContext(ptrType.BaseType, Builder.BuildLoad2(ptrType.BaseType.LLVMType, value.LLVMValue))
                 : throw new Exception("Attempted to load a non-pointer.");
         }
         else
@@ -638,7 +632,7 @@ public class LLVMCompiler
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
             global.Initializer = constStr;
-            return new ValueContext(new PtrType(@class.Type, LLVMTypeRef.CreatePointer(@class.Type.LLVMType, 0), @class), global);
+            return new ValueContext(new PtrType(@class.Type), global);
         }
         else if (constNode.Value is bool @bool)
         {
@@ -1076,9 +1070,7 @@ public class LLVMCompiler
                     ? ptrType.BaseType
                     : throw new Exception($"Tried to use an index access on non-pointer \"{context.Type.LLVMType}\".");
 
-                context = new ValueContext(new RefType(resultType,
-                        LLVMTypeRef.CreatePointer(resultType.LLVMType, 0),
-                        resultType.Class),
+                context = new ValueContext(new RefType(resultType),
                     Builder.BuildInBoundsGEP2(resultType.LLVMType,
                         context.LLVMValue,
                         new LLVMValueRef[1]
@@ -1223,7 +1215,7 @@ public class LLVMCompiler
     public RefType WrapAsRef(Type type)
         => type is RefType @ref
             ? @ref
-            : new RefType(type, LLVMTypeRef.CreatePointer(type.LLVMType, 0), type.Class);
+            : new RefType(type);
 
     private void InsertDefaultTypes()
     {

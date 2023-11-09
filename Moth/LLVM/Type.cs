@@ -33,8 +33,8 @@ public abstract class BasedType : Type
 {
     public readonly Type BaseType;
 
-    public BasedType(Type baseType, LLVMTypeRef llvmType, Class classOfType, TypeKind kind)
-        : base(llvmType, classOfType, kind) => BaseType = baseType;
+    public BasedType(Type baseType, TypeKind kind)
+        : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), baseType.Class, kind) => BaseType = baseType;
 
     public uint GetDepth()
     {
@@ -71,12 +71,12 @@ public abstract class BasedType : Type
 
 public sealed class RefType : BasedType
 {
-    public RefType(Type baseType, LLVMTypeRef llvmType, Class classOfType)
-        : base(baseType, llvmType, classOfType, TypeKind.Reference) { }
+    public RefType(Type baseType)
+        : base(baseType, TypeKind.Reference) { }
 }
 
 public sealed class PtrType : BasedType
 {
-    public PtrType(Type baseType, LLVMTypeRef llvmType, Class classOfType)
-        : base(baseType, llvmType, classOfType, TypeKind.Pointer) { }
+    public PtrType(Type baseType)
+        : base(baseType, TypeKind.Pointer) { }
 }

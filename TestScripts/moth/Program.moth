@@ -4,8 +4,8 @@ func main() #i32 {
     #Sys.WriteLine("Welcome!");
     #Sys.WriteLine(#Sys.Input("Enter something to be repeated: "));
     local array #TestArray = #TestArray.init(#u64 <- 10);
-    array.SetIndex(#u64 <- 1, 1);
-    local val ?= -2;
+    array.SetIndex(#u64 <- 1, 2);
+    local val ?= 6;
     local test #i32* = ref -1;
     local result ?= if array.GetIndex(#u64 <- 0, ref val) then val else load test;
     return result;
