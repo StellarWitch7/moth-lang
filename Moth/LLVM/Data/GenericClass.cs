@@ -1,5 +1,4 @@
-﻿using LLVMSharp.Interop;
-using Moth.AST.Node;
+﻿using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 

@@ -13,8 +13,12 @@ public sealed class UnexpectedTokenException : Exception
     {
         get
         {
-            var err = $"Unexpected token '{Token.Text}' at position {Token.Begin} | {Line}:{Column}.";
-            if (Expected is not null) err = $"{err}\nExpected token of type {Expected}, got {Token.Type}.";
+            string err = $"Unexpected token '{Token.Text}' at position {Token.Begin} | {Line}:{Column}.";
+            if (Expected is not null)
+            {
+                err = $"{err}\nExpected token of type {Expected}, got {Token.Type}.";
+            }
+
             return err;
         }
     }
@@ -23,19 +27,22 @@ public sealed class UnexpectedTokenException : Exception
     {
         Token = token;
         Expected = expected;
-        if (MemoryMarshal.TryGetString(token.Text, out var text, out var start, out _))
+        if (MemoryMarshal.TryGetString(token.Text, out string? text, out int start, out _))
         {
             Line = 1;
             Column = 1;
-            for (var i = 0; i < start; i++)
+            for (int i = 0; i < start; i++)
             {
-                var ch = text[i];
+                char ch = text[i];
                 if (ch == '\n')
                 {
                     Line++;
                     Column = 1;
                 }
-                else Column++;
+                else
+                {
+                    Column++;
+                }
             }
         }
     }

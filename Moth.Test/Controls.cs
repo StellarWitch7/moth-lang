@@ -6,7 +6,7 @@ public class Controls
     [TestMethod]
     public void If()
     {
-        var expected = "define i32 @main() {" +
+        string expected = "define i32 @main() {" +
             "\nentry:" +
             "\n  br i1 true, label %then, label %else" +
             "\n" +
@@ -17,15 +17,15 @@ public class Controls
             "\n  ret i32 2" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("if 4 > 2 { return 4; } else { return 2; }");
-        var module = Utils.FullCompile(code);
+        string code = Utils.BasicWrap("if 4 > 2 { return 4; } else { return 2; }");
+        LLVMSharp.Interop.LLVMModuleRef module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
 
     [TestMethod]
     public void InlineIf()
     {
-        var expected = "define i32 @main() {" +
+        string expected = "define i32 @main() {" +
             "\nentry:" +
             "\n  %result = alloca i32, align 4" +
             "\n  br i1 true, label %then, label %else" +
@@ -43,15 +43,15 @@ public class Controls
             "\n  ret i32 %0" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("return if 4 > 2 then 4 else 2;");
-        var module = Utils.FullCompile(code);
+        string code = Utils.BasicWrap("return if 4 > 2 then 4 else 2;");
+        LLVMSharp.Interop.LLVMModuleRef module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
 
     [TestMethod]
     public void While()
     {
-        var expected = "define i32 @main() {" +
+        string expected = "define i32 @main() {" +
             "\nentry:" +
             "\n  br label %loop" +
             "\n" +
@@ -65,21 +65,21 @@ public class Controls
             "\n  ret i32 2" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("while 4 > 2 { return 4; } return 2;");
-        var module = Utils.FullCompile(code);
+        string code = Utils.BasicWrap("while 4 > 2 { return 4; } return 2;");
+        LLVMSharp.Interop.LLVMModuleRef module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
 
     [TestMethod]
     public void Return()
     {
-        var expected = "define i32 @main() {" +
+        string expected = "define i32 @main() {" +
             "\nentry:" +
             "\n  ret i32 0" +
             "\n}" +
             "\n";
-        var code = Utils.BasicWrap("return 0;");
-        var module = Utils.FullCompile(code);
+        string code = Utils.BasicWrap("return 0;");
+        LLVMSharp.Interop.LLVMModuleRef module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetNamedFunction("main").ToString());
     }
 }

@@ -1,23 +1,23 @@
-﻿using System.Text;
+﻿using CommandLine;
+using LLVMSharp.Interop;
 using Moth;
-using Moth.Tokens;
 using Moth.AST;
 using Moth.LLVM;
-using LLVMSharp.Interop;
-using CommandLine;
+using Moth.Tokens;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CLI;
 
 internal class Program
 {
-    unsafe static void Main(string[] args)
+    private static unsafe void Main(string[] args)
     {
         try
         {
-            var dir = Environment.CurrentDirectory;
-            Logger logger = new Logger("moth");
+            string dir = Environment.CurrentDirectory;
+            var logger = new Logger("moth");
 
             Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(options =>
             {
@@ -32,7 +32,7 @@ internal class Program
                 LLVM.InitializeAllAsmParsers();
                 LLVM.InitializeAllAsmPrinters();
 
-                foreach (var filePath in options.InputFiles)
+                foreach (string filePath in options.InputFiles)
                 {
                     try
                     {
@@ -41,7 +41,7 @@ internal class Program
                             logger.WriteLine($"Reading \"{filePath}\"");
                         }
 
-                        var fileContents = File.ReadAllText(filePath);
+                        string fileContents = File.ReadAllText(filePath);
 
                         //Tokenize the contents of the file
                         try
@@ -51,7 +51,7 @@ internal class Program
                                 logger.WriteLine($"Tokenizing \"{filePath}\"");
                             }
 
-                            var tokens = Tokenizer.Tokenize(fileContents);
+                            List<Token> tokens = Tokenizer.Tokenize(fileContents);
 
                             //Convert to AST
                             try
@@ -61,7 +61,7 @@ internal class Program
                                     logger.WriteLine($"Generating AST of \"{filePath}\"");
                                 }
 
-                                var scriptAST = ASTGenerator.ProcessScript(new ParseContext(tokens));
+                                ScriptAST scriptAST = ASTGenerator.ProcessScript(new ParseContext(tokens));
                                 scripts.Add(scriptAST);
 
                                 if (options.Verbose)
@@ -105,21 +105,21 @@ internal class Program
 
                     logger.WriteLine("Verifying IR validity...");
                     compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
-                    string linkerName = null;
+                    string? linkerName = null;
 
                     //Send to linker
                     try
                     {
-                        var @out = $"{options.OutputFile}.obj";
-                        var path = Path.Join(dir, @out);
+                        string @out = $"{options.OutputFile}.obj";
+                        string path = Path.Join(dir, @out);
                         var arguments = new StringBuilder($"{path}");
 
-                        var cpu = new string(LLVM.GetHostCPUName());
-                        var features = new string(LLVM.GetHostCPUFeatures());
+                        string cpu = new string(LLVM.GetHostCPUName());
+                        string features = new string(LLVM.GetHostCPUFeatures());
 
-                        var optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault; //TODO: add argument to configure this level
+                        LLVMCodeGenOptLevel optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault; //TODO: add argument to configure this level
                         var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
-                        var machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple, cpu, features, optLevel,
+                        LLVMTargetMachineRef machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple, cpu, features, optLevel,
                             LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
 
                         logger.WriteLine($"Writing to object file \"{path}\"");
@@ -135,13 +135,13 @@ internal class Program
                                 linkerName = "MSVC";
                                 string msvc = null;
                                 var directories = new List<string>();
-                                var startPath = @"C:\Program Files\Microsoft Visual Studio\";
-                                var startPathx86 = @"C:\Program Files (x86)\Microsoft Visual Studio\";
+                                string startPath = @"C:\Program Files\Microsoft Visual Studio\";
+                                string startPathx86 = @"C:\Program Files (x86)\Microsoft Visual Studio\";
                                 arguments.Append($" /OUT:{options.OutputFile}.exe /RELEASE msvcrt.lib");
 
                                 if (Directory.Exists(startPath))
                                 {
-                                    foreach (var d in Directory.GetDirectories(startPath))
+                                    foreach (string d in Directory.GetDirectories(startPath))
                                     {
                                         directories.Add(d);
                                     }
@@ -149,26 +149,26 @@ internal class Program
 
                                 if (Directory.Exists(startPathx86))
                                 {
-                                    foreach (var d in Directory.GetDirectories(startPathx86))
+                                    foreach (string d in Directory.GetDirectories(startPathx86))
                                     {
                                         directories.Add(d);
                                     }
                                 }
 
-                                foreach (var d in directories)
+                                foreach (string d in directories)
                                 {
-                                    var combinedPath = Path.Join(d, @"BuildTools\VC\Tools\MSVC\");
+                                    string combinedPath = Path.Join(d, @"BuildTools\VC\Tools\MSVC\");
 
                                     if (Directory.Exists(combinedPath))
                                     {
-                                        foreach (var d2 in Directory.GetDirectories(combinedPath))
+                                        foreach (string d2 in Directory.GetDirectories(combinedPath))
                                         {
-                                            var combinedPath2 = Path.Join(d2, @"bin\Hostx64\x64");
-                                            var libPath = Path.Join(d2, @"lib\x64");
+                                            string combinedPath2 = Path.Join(d2, @"bin\Hostx64\x64");
+                                            string libPath = Path.Join(d2, @"lib\x64");
 
                                             if (Directory.Exists(combinedPath2))
                                             {
-                                                foreach (var f in Directory.GetFiles(combinedPath2))
+                                                foreach (string f in Directory.GetFiles(combinedPath2))
                                                 {
                                                     if (f.EndsWith("link.exe"))
                                                     {
@@ -191,14 +191,7 @@ internal class Program
                                     arguments.Append(" /VERBOSE");
                                 }
 
-                                if (msvc != null)
-                                {
-                                    linkerName = msvc;
-                                }
-                                else
-                                {
-                                    throw new Exception("Could not locate MSVC. Please ensure it is installed.");
-                                }
+                                linkerName = msvc ?? throw new Exception("Could not locate MSVC. Please ensure it is installed.");
                             }
                             else
                             {
@@ -231,7 +224,7 @@ internal class Program
                             RedirectStandardError = true,
                         });
 
-                        Logger linkerLogger = new Logger(linkerName);
+                        var linkerLogger = new Logger(linkerName);
 
                         while (!linker.HasExited)
                         {
@@ -244,7 +237,7 @@ internal class Program
 
                         if (options.RunTest && linker.ExitCode == 0)
                         {
-                            string testName = null;
+                            string? testName = null;
 
                             try
                             {
@@ -260,7 +253,7 @@ internal class Program
                                     WorkingDirectory = dir,
                                 });
 
-                                Logger testLogger = new Logger(testName);
+                                var testLogger = new Logger(testName);
                                 testProgram.WaitForExit();
                                 testLogger.WriteEmptyLine();
                                 testLogger.WriteSeparator();
@@ -268,10 +261,7 @@ internal class Program
                             }
                             catch (Exception e)
                             {
-                                if (testName == null)
-                                {
-                                    testName = "UNKNOWN";
-                                }
+                                testName ??= "UNKNOWN";
 
                                 logger.WriteEmptyLine();
                                 logger.WriteLine($"Failed to interact with {testName} due to: {e}");
@@ -281,10 +271,7 @@ internal class Program
                     }
                     catch (Exception e)
                     {
-                        if (linkerName == null)
-                        {
-                            linkerName = "UNKNOWN";
-                        }
+                        linkerName ??= "UNKNOWN";
 
                         logger.WriteEmptyLine();
                         logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");

@@ -6,10 +6,7 @@ public class ConstantNode : ExpressionNode
 {
     public object? Value { get; set; }
 
-    public ConstantNode(object? value)
-    {
-        Value = value;
-    }
+    public ConstantNode(object? value) => Value = value;
 
     public override void WriteDebugString(IndentedTextWriter writer, bool indent = false)
     {

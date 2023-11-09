@@ -18,7 +18,7 @@ public class Signature
         var builder = new StringBuilder();
         builder.Append($"{Name}:");
 
-        foreach (var param in Params)
+        foreach (Type param in Params)
         {
             builder.Append($"{param.ToString()}.");
         }
@@ -55,7 +55,7 @@ public class Signature
         bool isEqual = true;
         int index = 0;
 
-        foreach (var @param in Params.Count < sig.Params.Count ? Params : sig.Params)
+        foreach (Type @param in Params.Count < sig.Params.Count ? Params : sig.Params)
         {
             if (!@param.Equals(sig.Params[index]))
             {

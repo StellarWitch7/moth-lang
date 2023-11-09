@@ -1,5 +1,4 @@
-﻿using LLVMSharp.Interop;
-using Moth.AST.Node;
+﻿using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
@@ -38,7 +37,7 @@ public sealed class LLVMFunction : Function
         Params = @params;
         IsVariadic = isVariadic;
     }
-    
+
     public override LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters)
     {
         return builder.BuildCall2(LLVMFuncType,
@@ -54,9 +53,9 @@ public abstract class IntrinsicFunction : Function
 {
     protected LLVMValueRef InternalLLVMFunc;
     protected LLVMTypeRef InternalLLVMFuncType;
-    
-    protected IntrinsicFunction(string name, Type returnType) : base(name, returnType) {}
-    
+
+    protected IntrinsicFunction(string name, Type returnType) : base(name, returnType) { }
+
     public override LLVMValueRef LLVMFunc
     {
         get
@@ -69,7 +68,8 @@ public abstract class IntrinsicFunction : Function
             return InternalLLVMFunc;
         }
     }
-    public override LLVMTypeRef LLVMFuncType{
+    public override LLVMTypeRef LLVMFuncType
+    {
         get
         {
             if (InternalLLVMFuncType == default)
@@ -81,8 +81,5 @@ public abstract class IntrinsicFunction : Function
         }
     }
 
-    protected virtual (LLVMValueRef, LLVMTypeRef) GenerateLLVMData()
-    {
-        throw new NotImplementedException("This function does not support LLVM data generation.");
-    }
+    protected virtual (LLVMValueRef, LLVMTypeRef) GenerateLLVMData() => throw new NotImplementedException("This function does not support LLVM data generation.");
 }

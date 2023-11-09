@@ -1,5 +1,4 @@
-﻿using LLVMSharp.Interop;
-using Moth.AST.Node;
+﻿using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
@@ -23,57 +22,37 @@ public class Class : CompilerData
 
     public Field GetField(string name)
     {
-        if (Fields.TryGetValue(name, out var field))
-        {
-            return field;
-        }
-        else
-        {
-            throw new Exception($"Field \"{name}\" does not exist on class \"{Name}\"!");
-        }
+        return Fields.TryGetValue(name, out Field? field)
+            ? field
+            : throw new Exception($"Field \"{name}\" does not exist on class \"{Name}\"!");
     }
 
     public Field GetStaticField(string name)
     {
-        if (StaticFields.TryGetValue(name, out var field))
-        {
-            return field;
-        }
-        else
-        {
-            throw new Exception($"Static field \"{name}\" does not exist on class \"{Name}\"!");
-        }
+        return StaticFields.TryGetValue(name, out Field? field)
+            ? field
+            : throw new Exception($"Static field \"{name}\" does not exist on class \"{Name}\"!");
     }
 
     public Function GetMethod(Signature sig)
     {
-        if (Methods.TryGetValue(sig, out var func))
-        {
-            return func;
-        }
-        else
-        {
-            throw new Exception($"Method \"{sig}\" does not exist on class \"{Name}\"!");
-        }
+        return Methods.TryGetValue(sig, out Function? func)
+            ? func
+            : throw new Exception($"Method \"{sig}\" does not exist on class \"{Name}\"!");
     }
 
     public Function GetStaticMethod(Signature sig)
     {
-        if (StaticMethods.TryGetValue(sig, out var func))
-        {
-            return func;
-        }
-        else
-        {
-            throw new Exception($"Static method \"{sig}\" does not exist on class \"{Name}\"!");
-        }
+        return StaticMethods.TryGetValue(sig, out Function? func)
+            ? func
+            : throw new Exception($"Static method \"{sig}\" does not exist on class \"{Name}\"!");
     }
 
     public void AddBuiltins(LLVMCompiler compiler)
     {
         // sizeof()
         {
-            var retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
+            LLVMValueRef retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
                 : Type.LLVMType.SizeOf;
 
@@ -84,7 +63,7 @@ public class Class : CompilerData
 
         // alignof()
         {
-            var retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
+            LLVMValueRef retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
                 : Type.LLVMType.AlignOf;
 

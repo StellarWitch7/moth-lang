@@ -2,10 +2,7 @@
 
 public class GenericTypeRefNode : TypeRefNode
 {
-    List<ExpressionNode> Arguments { get; set; }
+    private List<ExpressionNode> Arguments { get; set; }
 
-    public GenericTypeRefNode(string name, List<ExpressionNode> args, uint pointerDepth = 0) : base(name, pointerDepth)
-    {
-        Arguments = args;
-    }
+    public GenericTypeRefNode(string name, List<ExpressionNode> args, uint pointerDepth = 0) : base(name, pointerDepth) => Arguments = args;
 }

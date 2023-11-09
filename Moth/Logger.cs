@@ -2,10 +2,10 @@
 
 public class Logger
 {
-    static string LogDirectory { get; } = Path.Join(Environment.CurrentDirectory, "logs");
-    static string LogFile { get; } = Path.Join(LogDirectory, "latest.log");
-    static string BackupLogFile { get; } = Path.Join(LogDirectory, "backup.log");
-    static bool BeganLogging { get; set; } = false;
+    private static string LogDirectory { get; } = Path.Join(Environment.CurrentDirectory, "logs");
+    private static string LogFile { get; } = Path.Join(LogDirectory, "latest.log");
+    private static string BackupLogFile { get; } = Path.Join(LogDirectory, "backup.log");
+    private static bool BeganLogging { get; set; } = false;
     public string Name { get; set; }
 
     public Logger(string name)
@@ -26,15 +26,9 @@ public class Logger
         BeganLogging = true;
     }
 
-    public void WriteEmptyLine()
-    {
-        WriteUnsignedLine("\n");
-    }
+    public void WriteEmptyLine() => WriteUnsignedLine("\n");
 
-    public void WriteSeparator()
-    {
-        WriteUnsignedLine("///////////////////////////////////////////////////////////");
-    }
+    public void WriteSeparator() => WriteUnsignedLine("///////////////////////////////////////////////////////////");
 
     public void WriteLine(string message)
     {
@@ -42,10 +36,7 @@ public class Logger
         WriteUnsignedLine(signedMessage);
     }
 
-    public void WriteUnsignedLine(string message)
-    {
-        WriteUnsigned(message + '\n');
-    }
+    public void WriteUnsignedLine(string message) => WriteUnsigned(message + '\n');
 
     public void WriteUnsigned(string message)
     {
@@ -56,20 +47,16 @@ public class Logger
     public void WriteToLog(string message)
     {
         FileStream fs = File.Open(LogFile, FileMode.Append);
-        StreamWriter writer = new StreamWriter(fs);
-        writer.AutoFlush = true;
+        var writer = new StreamWriter(fs)
+        {
+            AutoFlush = true
+        };
 
         writer.Write(message);
         writer.Close();
     }
 
-    public void WriteToLog(char ch)
-    {
-        WriteToLog(ch.ToString());
-    }
+    public void WriteToLog(char ch) => WriteToLog(ch.ToString());
 
-    public void WriteUnsigned(char ch)
-    {
-        WriteUnsigned(ch.ToString());
-    }
+    public void WriteUnsigned(char ch) => WriteUnsigned(ch.ToString());
 }

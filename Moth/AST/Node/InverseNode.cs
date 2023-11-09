@@ -4,8 +4,5 @@ public class InverseNode : ExpressionNode
 {
     public RefNode Value { get; set; }
 
-    public InverseNode(RefNode value)
-    {
-        Value = value;
-    }
+    public InverseNode(RefNode value) => Value = value;
 }

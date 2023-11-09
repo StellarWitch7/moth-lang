@@ -1,6 +1,4 @@
-﻿using LLVMSharp.Interop;
-
-namespace Moth.LLVM;
+﻿namespace Moth.LLVM;
 
 public class ValueContext
 {

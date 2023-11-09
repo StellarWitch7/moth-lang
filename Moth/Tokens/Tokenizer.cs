@@ -4,13 +4,13 @@ namespace Moth.Tokens;
 
 public static class Tokenizer
 {
-	public static List<Token> Tokenize(string text)
-	{
-		var tokens = new List<Token>(78);
-		var stream = new PeekStream(text);
+    public static List<Token> Tokenize(string text)
+    {
+        var tokens = new List<Token>(78);
+        var stream = new PeekStream(text);
 
-		while (stream.Current is {} ch)
-		{
+        while (stream.Current is { } ch)
+        {
             switch (ch)
             {
                 case '\n' or '\r' or '\t' or ' ':
@@ -21,7 +21,11 @@ public static class Tokenizer
                     {
                         while (stream.MoveNext(out ch))
                         {
-                            if (ch != '\n') continue;
+                            if (ch != '\n')
+                            {
+                                continue;
+                            }
+
                             break;
                         }
 
@@ -86,7 +90,7 @@ public static class Tokenizer
                 case >= 'A' and <= 'Z':
                 case '_':
                     {
-                        var keyword = stream.Peek(c => char.IsLetterOrDigit(c) || c == '_');
+                        ReadOnlyMemory<char> keyword = stream.Peek(c => char.IsLetterOrDigit(c) || c == '_');
                         tokens.Add(new Token
                         {
                             Text = keyword,
@@ -171,7 +175,7 @@ public static class Tokenizer
                 // Parse symbols
                 case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
                     {
-                        var next = stream.Next;
+                        char? next = stream.Next;
                         TokenType? type = ch switch
                         {
                             '.' when next is '.' => TokenType.Range,
@@ -262,14 +266,19 @@ public static class Tokenizer
 
                             stream.Position++;
                         }
-                        
-                        var number = builder.ToString().AsMemory();
-                        var dots = 0;
-                        var numberSpan = number.Span;
-                        for (var i = 0; i < numberSpan.Length; i++)
+
+                        ReadOnlyMemory<char> number = builder.ToString().AsMemory();
+                        int dots = 0;
+                        ReadOnlySpan<char> numberSpan = number.Span;
+                        for (int i = 0; i < numberSpan.Length; i++)
                         {
-                            if (numberSpan[i] == '.') dots++;
+                            if (numberSpan[i] == '.')
+                            {
+                                dots++;
+                            }
+
                             if (dots >= 2)
+                            {
                                 throw new TokenizerException
                                 {
                                     Character = numberSpan[i],
@@ -277,6 +286,7 @@ public static class Tokenizer
                                     Column = stream.CurrentColumn + i + 1,
                                     Line = stream.CurrentLine,
                                 };
+                            }
                         }
 
                         tokens.Add(new Token
@@ -300,16 +310,16 @@ public static class Tokenizer
             }
 
             stream.MoveNext();
-		}
+        }
 
-		return tokens;
-	}
+        return tokens;
+    }
 
     public static char? ProcessCharacter(ref PeekStream stream)
     {
-		if (stream.Current == '\\')
-		{
-			stream.Position++;
+        if (stream.Current == '\\')
+        {
+            stream.Position++;
             return stream.Current switch
             {
                 '0' => '\0',
@@ -318,8 +328,8 @@ public static class Tokenizer
                 't' => '\t',
                 'b' => '\b',
                 '\\' => '\\',
-				'"' => '"',
-				'\'' => '\'',
+                '"' => '"',
+                '\'' => '\'',
                 _ => throw new TokenizerException()
                 {
                     Character = (char)stream.Next,
@@ -329,29 +339,38 @@ public static class Tokenizer
                 },
             };
         }
-		else
-		{
-			return stream.Current;
-		}
-        
+        else
+        {
+            return stream.Current;
+        }
     }
 }
 
 public sealed class TokenizerException : Exception
 {
-	public required char Character { get; init; }
-	public required int Position { get; init; }
-	public required int Column { get; init; }
-	public required int Line { get; init; }
-	public string? CustomMessage { get; init; }
+    public required char Character { get; init; }
+    public required int Position { get; init; }
+    public required int Column { get; init; }
+    public required int Line { get; init; }
+    public string? CustomMessage { get; init; }
 
-	public override string Message => ToString();
+    public override string Message
+    {
+        get
+        {
+            return ToString();
+        }
+    }
 
-	public override string ToString()
-	{
-		var ch = char.IsControl(Character) ? Regex.Escape(Character.ToString()) : Character.ToString();
-		var err = $"Unexpected char '{ch}' at position {Position} | {Line}:{Column}.";
-		if (CustomMessage is not null) err = $"{err}\n{CustomMessage}";
-		return err;
-	}
+    public override string ToString()
+    {
+        string ch = char.IsControl(Character) ? Regex.Escape(Character.ToString()) : Character.ToString();
+        string err = $"Unexpected char '{ch}' at position {Position} | {Line}:{Column}.";
+        if (CustomMessage is not null)
+        {
+            err = $"{err}\n{CustomMessage}";
+        }
+
+        return err;
+    }
 }

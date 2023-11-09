@@ -4,8 +4,5 @@ public class DeReferenceNode : ExpressionNode
 {
     public ExpressionNode Value { get; set; }
 
-    public DeReferenceNode(ExpressionNode value)
-    {
-        Value = value;
-    }
+    public DeReferenceNode(ExpressionNode value) => Value = value;
 }

@@ -4,8 +4,5 @@ public class DecrementVarNode : ExpressionNode
 {
     public RefNode RefNode { get; set; }
 
-    public DecrementVarNode(RefNode refNode)
-    {
-        RefNode = refNode;
-    }
+    public DecrementVarNode(RefNode refNode) => RefNode = refNode;
 }

@@ -1,6 +1,4 @@
-﻿using LLVMSharp.Interop;
-
-namespace Moth.LLVM.Data;
+﻿namespace Moth.LLVM.Data;
 
 public class Constant
 {

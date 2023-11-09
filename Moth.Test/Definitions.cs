@@ -6,17 +6,17 @@ public class Definitions
     [TestMethod]
     public void Class()
     {
-        var expected = "%Thing = type { i32, i1, float }";
-        var code = Utils.PrependNamespace("public class Thing { public int #i32; public bool #bool; private float #f32; }");
-        var module = Utils.FullCompile(code);
+        string expected = "%Thing = type { i32, i1, float }";
+        string code = Utils.PrependNamespace("public class Thing { public int #i32; public bool #bool; private float #f32; }");
+        LLVMSharp.Interop.LLVMModuleRef module = Utils.FullCompile(code);
         Assert.AreEqual(expected, module.GetTypeByName("Thing").ToString());
     }
 
     [TestMethod]
     public void ObjectAccess()
     {
-        var expectedType = "%Item = type { i32, ptr }";
-        var expectedMain = "define i32 @main() {" +
+        string expectedType = "%Item = type { i32, ptr }";
+        string expectedMain = "define i32 @main() {" +
             "\nentry:" +
             "\n  %init = call %Item @Item.init()" +
             "\n  %item = alloca %Item, align 8" +
@@ -30,12 +30,12 @@ public class Definitions
             "\n  ret i32 %2" +
             "\n}" +
             "\n";
-        var code = Utils.PrependNamespace("public class Item " +
+        string code = Utils.PrependNamespace("public class Item " +
             $"{{ public Cost #i32; public Name #char*; {Utils.WrapInInit("return self;", "Item")} }} " +
             Utils.WrapInMainFunc("local item ?= #Item.init(); " +
                 "item.Cost = 5; " +
                 "return item.Cost;"));
-        var module = Utils.FullCompile(code);
+        LLVMSharp.Interop.LLVMModuleRef module = Utils.FullCompile(code);
         Assert.AreEqual(expectedType, module.GetTypeByName("Item").ToString());
         Assert.AreEqual(expectedMain, module.GetNamedFunction("main").ToString());
     }

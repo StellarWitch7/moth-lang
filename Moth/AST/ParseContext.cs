@@ -20,12 +20,7 @@ public class ParseContext
     {
         get
         {
-            if (Position >= _tokens.Count)
-            {
-                return null;
-            }
-
-            return _tokens[Position];
+            return Position >= _tokens.Count ? null : _tokens[Position];
         }
     }
 
