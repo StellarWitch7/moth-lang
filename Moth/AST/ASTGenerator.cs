@@ -554,6 +554,41 @@ public static class ASTGenerator
                     ? new GenericTypeRefNode(retTypeName, genericParams, pointerDepth)
                     : new TypeRefNode(retTypeName, pointerDepth);
             }
+            else if (startToken != TokenType.GenericTypeRef && context.Current?.Type == TokenType.OpeningParentheses)
+            {
+                var @params = new List<TypeRefNode>();
+                uint pointerDepth = 0;
+                TypeRefNode retType;
+                
+                while (context.MoveNext()?.Type is TokenType.TypeRef or TokenType.GenericTypeRef)
+                {
+                    @params.Add(ProcessTypeRef(context));
+
+                    if (context.Current?.Type == TokenType.ClosingParentheses)
+                    {
+                        break;
+                    }
+                    else if (context.Current?.Type != TokenType.Comma)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+                    }
+                }
+
+                while (context.MoveNext()?.Type == TokenType.Asterix)
+                {
+                    pointerDepth++;
+                }
+
+                if (context.Current?.Type == TokenType.TypeRef)
+                {
+                    retType = ProcessTypeRef(context);
+                    return new FuncTypeRefNode(retType, @params, pointerDepth);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
+                }
+            }
             else
             {
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
@@ -623,6 +658,35 @@ public static class ASTGenerator
                 case TokenType.DeRef:
                     context.MoveNext();
                     lastCreatedNode = new DeReferenceNode(ProcessExpression(context, null));
+                    break;
+                case TokenType.Function:
+                    if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
+                    {
+                        context.MoveNext();
+                        List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
+                        TypeRefNode retType = ProcessTypeRef(context);
+
+                        if (isVariadic)
+                        {
+                            throw new Exception($"{new UnexpectedTokenException(context.Previous().Value).Message}" +
+                                $"\nCannot have a variadic locally-defined function.");
+                        }
+
+                        if (context.Current?.Type == TokenType.OpeningCurlyBraces)
+                        {
+                            ScopeNode scope = ProcessScope(context);
+                            lastCreatedNode = new LocalFuncDefNode(retType, @params, scope);
+                        }
+                        else
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                        }
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
+                    }
+
                     break;
                 case TokenType.Period:
                     throw new NotImplementedException("Access operations on expressions are not currently supported."); //TODO

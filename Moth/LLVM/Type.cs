@@ -5,6 +5,7 @@ namespace Moth.LLVM;
 public enum TypeKind
 {
     Class,
+    Func,
     Pointer,
     Reference,
 }
@@ -67,6 +68,19 @@ public abstract class BasedType : Type
     public override bool Equals(object? obj) => base.Equals(obj) && obj is BasedType bType && BaseType.Equals(bType.BaseType);
 
     public override int GetHashCode() => base.GetHashCode() * BaseType.GetHashCode();
+}
+
+public sealed class FuncType : Type
+{
+    public readonly Type ReturnType;
+    public readonly Type[] ParameterTypes;
+
+    public FuncType(Type retType, Type[] paramTypes, LLVMTypeRef llvmType)
+        : base(llvmType, null, TypeKind.Func)
+    {
+        ReturnType = retType;
+        ParameterTypes = paramTypes;
+    }
 }
 
 public sealed class RefType : BasedType

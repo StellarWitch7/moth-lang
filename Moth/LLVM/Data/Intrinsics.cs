@@ -5,7 +5,7 @@ public sealed class ConstRetFn : IntrinsicFunction
     private LLVMModuleRef _module;
     public readonly LLVMValueRef Value;
 
-    public ConstRetFn(string name, LLVMModuleRef module, ValueContext value) : base(name, value.Type)
+    public ConstRetFn(string name, LLVMModuleRef module, Value value) : base(name, value.Type)
     {
         if (!value.LLVMValue.IsConstant)
         {

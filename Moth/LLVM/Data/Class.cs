@@ -56,7 +56,7 @@ public class Class : CompilerData
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
                 : Type.LLVMType.SizeOf;
 
-            var value = new ValueContext(UnsignedInt.UInt64.Type, retValue);
+            var value = new Value(UnsignedInt.UInt64.Type, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", compiler.Module, value);
             StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
@@ -67,7 +67,7 @@ public class Class : CompilerData
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
                 : Type.LLVMType.AlignOf;
 
-            var value = new ValueContext(UnsignedInt.UInt64.Type, retValue);
+            var value = new Value(UnsignedInt.UInt64.Type, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", compiler.Module, value);
             StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }

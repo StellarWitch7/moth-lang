@@ -29,4 +29,12 @@ public class ParseContext
         Position++;
         return Current;
     }
+
+    public Token? Previous()
+    {
+        Position--;
+        Token? val = Current;
+        Position++;
+        return val;
+    }
 }

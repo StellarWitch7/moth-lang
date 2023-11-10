@@ -97,6 +97,7 @@ public static class Tokenizer
                             Type = keyword.Span switch
                             {
                                 "if" => TokenType.If,
+                                "invoke" => TokenType.Invoke,
                                 "ref" => TokenType.Ref,
                                 "load" => TokenType.DeRef,
                                 "null" => TokenType.Null,
@@ -159,7 +160,8 @@ public static class Tokenizer
                         break;
                     }
 
-                case '#' when char.IsLetter((char)stream.Next):
+                case '#' when char.IsLetter((char)stream.Next)
+                    || (char)stream.Next == '(':
                 case '?' when char.IsLetter((char)stream.Next):
                     {
                         char character = (char)stream.Current;
