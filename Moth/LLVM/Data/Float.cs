@@ -8,7 +8,7 @@ public class Float : Class
     public static readonly Float Float32 = new Float(Reserved.Float32, LLVMTypeRef.Float, PrivacyType.Public);
     public static readonly Float Float64 = new Float(Reserved.Float64, LLVMTypeRef.Double, PrivacyType.Public);
 
-    public Float(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(name, llvmType, privacy)
+    public Float(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(null, name, llvmType, privacy)
     {
     }
 }

@@ -2,50 +2,24 @@
 
 namespace Moth.LLVM.Data;
 
-public class Class : CompilerData
+public class Class : CompilerData, IFunctionContainer
 {
-    public string Name { get; set; }
-    public Type Type { get; set; }
-    public PrivacyType Privacy { get; set; }
-    public Dictionary<string, Field> Fields { get; set; } = new Dictionary<string, Field>();
-    public FuncDictionary Methods { get; set; } = new FuncDictionary();
-    public Dictionary<string, Field> StaticFields { get; set; } = new Dictionary<string, Field>();
-    public FuncDictionary StaticMethods { get; set; } = new FuncDictionary();
-    public Dictionary<string, Constant> Constants { get; set; } = new Dictionary<string, Constant>();
+    public IContainer? Parent { get; }
+    public string Name { get; }
+    public Type Type { get; }
+    public PrivacyType Privacy { get; }
+    public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
+    public Dictionary<Signature, Function> Methods { get; } = new Dictionary<Signature, Function>();
+    public Dictionary<string, Field> StaticFields { get; } = new Dictionary<string, Field>();
+    public Dictionary<Signature, Function> StaticMethods { get; } = new Dictionary<Signature, Function>();
+    public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
 
-    public Class(string name, LLVMTypeRef llvmType, PrivacyType privacy)
+    public Class(IContainer? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
     {
+        Parent = parent;
         Name = name;
         Type = new Type(llvmType, this, TypeKind.Class);
         Privacy = privacy;
-    }
-
-    public Field GetField(string name)
-    {
-        return Fields.TryGetValue(name, out Field? field)
-            ? field
-            : throw new Exception($"Field \"{name}\" does not exist on class \"{Name}\"!");
-    }
-
-    public Field GetStaticField(string name)
-    {
-        return StaticFields.TryGetValue(name, out Field? field)
-            ? field
-            : throw new Exception($"Static field \"{name}\" does not exist on class \"{Name}\"!");
-    }
-
-    public Function GetMethod(Signature sig)
-    {
-        return Methods.TryGetValue(sig, out Function? func)
-            ? func
-            : throw new Exception($"Method \"{sig}\" does not exist on class \"{Name}\"!");
-    }
-
-    public Function GetStaticMethod(Signature sig)
-    {
-        return StaticMethods.TryGetValue(sig, out Function? func)
-            ? func
-            : throw new Exception($"Static method \"{sig}\" does not exist on class \"{Name}\"!");
     }
 
     public void AddBuiltins(LLVMCompiler compiler)
@@ -72,4 +46,12 @@ public class Class : CompilerData
             StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }
     }
+
+    public Function GetFunction(Signature sig) => throw new NotImplementedException();
+
+    public bool TryGetFunction(Signature sig, out Function func) => throw new NotImplementedException();
+
+    public CompilerData GetData(string name) => throw new NotImplementedException();
+
+    public bool TryGetData(string name, out CompilerData data) => throw new NotImplementedException();
 }

@@ -5,7 +5,7 @@ namespace Moth.LLVM;
 public enum TypeKind
 {
     Class,
-    Func,
+    Function,
     Pointer,
     Reference,
 }
@@ -76,13 +76,13 @@ public abstract class BasedType : Type
     public override int GetHashCode() => base.GetHashCode() * BaseType.GetHashCode();
 }
 
-public sealed class FuncType : Type
+public sealed class FuncType : Type, ICallable
 {
-    public readonly Type ReturnType;
-    public readonly Type[] ParameterTypes;
+    public Type ReturnType { get; }
+    public Type[] ParameterTypes { get; }
 
     public FuncType(Type retType, Type[] paramTypes, LLVMTypeRef llvmType)
-        : base(llvmType, null, TypeKind.Func)
+        : base(llvmType, null, TypeKind.Function)
     {
         ReturnType = retType;
         ParameterTypes = paramTypes;
@@ -121,6 +121,17 @@ public sealed class FuncType : Type
     }
 
     public override int GetHashCode() => base.GetHashCode() * ReturnType.GetHashCode();
+
+    public Value Call(LLVMCompiler compiler, Function func, Value[] args)
+    {
+        return Equals(func.Type)
+            ? new Value(ReturnType,
+                compiler.Builder.BuildCall2(LLVMType,
+                    func.LLVMValue,
+                    args.AsLLVMValues(),
+                    func.Name))
+            : throw new Exception("Attempted to call a function with mismatched types. Critical failure, report ASAP.");
+    }
 }
 
 public sealed class RefType : BasedType

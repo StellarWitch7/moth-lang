@@ -4,7 +4,7 @@ namespace Moth.LLVM.Data;
 
 public abstract class Int : Class
 {
-    protected Int(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(name, llvmType, privacy) { }
+    protected Int(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(null, name, llvmType, privacy) { }
 }
 
 public sealed class SignedInt : Int

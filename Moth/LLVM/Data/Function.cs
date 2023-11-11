@@ -2,39 +2,54 @@
 
 namespace Moth.LLVM.Data;
 
-public abstract class Function : CompilerData
+public abstract class Function : Value
 {
     public readonly string Name;
-    public readonly Type ReturnType;
 
-    public abstract LLVMValueRef LLVMFunc { get; }
-    public abstract LLVMTypeRef LLVMFuncType { get; }
+    protected Function(string name, FuncType type) : base(type, null) => Name = name;
 
-    protected Function(string name, Type returnType)
+    public new FuncType Type
     {
-        Name = name;
-        ReturnType = returnType;
+        get
+        {
+            return base.Type is FuncType fnType ? fnType : throw new Exception("Function has invalid type.");
+        }
+
+        set
+        {
+            base.Type = value;
+        }
     }
 
-    public abstract LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters);
+    public new LLVMValueRef LLVMValue
+    {
+        get
+        {
+            return base.LLVMValue != null
+                ? base.LLVMValue
+                : throw new Exception("Tried to get null function.");
+        }
+
+        set
+        {
+            base.LLVMValue = value;
+        }
+    }
+
+    public abstract Value Call(LLVMCompiler compiler, Value[] args);
 }
 
 public class LLVMFunction : Function
 {
-    public override LLVMValueRef LLVMFunc { get; }
-    public override LLVMTypeRef LLVMFuncType { get; }
     public Scope? OpeningScope { get; set; }
 
     public readonly IReadOnlyList<Parameter> Params;
     public readonly bool IsVariadic;
 
-    public LLVMFunction(string name, LLVMValueRef llvmFunc,
-        LLVMTypeRef llvmFuncType, Type returnType,
-        IReadOnlyList<Parameter> @params, bool isVariadic)
-        : base(name, returnType)
+    public LLVMFunction(string name, FuncType type, LLVMValueRef func, IReadOnlyList<Parameter> @params, bool isVariadic)
+        : base(name, type)
     {
-        LLVMFunc = llvmFunc;
-        LLVMFuncType = llvmFuncType;
+        LLVMValue = func;
         Params = @params;
         IsVariadic = isVariadic;
     }
@@ -49,15 +64,7 @@ public class LLVMFunction : Function
         }
     }
 
-    public override LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters)
-    {
-        return builder.BuildCall2(LLVMFuncType,
-            LLVMFunc,
-            parameters,
-            ReturnType.LLVMType.Kind != LLVMTypeKind.LLVMVoidTypeKind
-                ? Name
-                : "");
-    }
+    public override Value Call(LLVMCompiler compiler, Value[] args) => Type.Call(compiler, this, args);
 }
 
 public sealed class DefinedFunction : LLVMFunction
@@ -66,11 +73,10 @@ public sealed class DefinedFunction : LLVMFunction
 
     public readonly PrivacyType Privacy;
 
-    public DefinedFunction(string name, LLVMValueRef llvmFunc,
-        LLVMTypeRef llvmFuncType, Type returnType,
-        PrivacyType privacy, Class? ownerClass,
+    public DefinedFunction(string name, FuncType type,
+        LLVMValueRef func, PrivacyType privacy, Class? ownerClass,
         IReadOnlyList<Parameter> @params, bool isVariadic)
-        : base(name, llvmFunc, llvmFuncType, returnType, @params, isVariadic)
+        : base(name, type, func, @params, isVariadic)
     {
         Privacy = privacy;
         OwnerClass = ownerClass;
@@ -79,42 +85,29 @@ public sealed class DefinedFunction : LLVMFunction
 
 public sealed class LocalFunction : LLVMFunction
 {
-    public LocalFunction(LLVMValueRef llvmFunc, LLVMTypeRef llvmFuncType, Type returnType, IReadOnlyList<Parameter> @params)
-        : base("localfunc", llvmFunc, llvmFuncType, returnType, @params, false) { }
+    public LocalFunction(FuncType type, LLVMValueRef func, IReadOnlyList<Parameter> @params)
+        : base("localfunc", type, func, @params, false) { }
 }
 
 public abstract class IntrinsicFunction : Function
 {
-    protected LLVMValueRef InternalLLVMFunc;
-    protected LLVMTypeRef InternalLLVMFuncType;
+    protected LLVMValueRef InternalLLVMValue;
 
-    protected IntrinsicFunction(string name, Type returnType) : base(name, returnType) { }
+    protected IntrinsicFunction(string name, FuncType type) : base(name, type) { }
 
-    public override LLVMValueRef LLVMFunc
+    public new LLVMValueRef LLVMValue
     {
         get
         {
-            if (InternalLLVMFunc == default)
+            if (InternalLLVMValue == default)
             {
-                (InternalLLVMFunc, InternalLLVMFuncType) = GenerateLLVMData();
+                InternalLLVMValue = GenerateLLVMData();
             }
 
-            return InternalLLVMFunc;
-        }
-    }
-    public override LLVMTypeRef LLVMFuncType
-    {
-        get
-        {
-            if (InternalLLVMFuncType == default)
-            {
-                (InternalLLVMFunc, InternalLLVMFuncType) = GenerateLLVMData();
-            }
-
-            return InternalLLVMFuncType;
+            return InternalLLVMValue;
         }
     }
 
-    protected virtual (LLVMValueRef, LLVMTypeRef) GenerateLLVMData()
+    protected virtual LLVMValueRef GenerateLLVMData()
         => throw new NotImplementedException("This function does not support LLVM data generation.");
 }
