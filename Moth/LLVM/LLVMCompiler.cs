@@ -15,10 +15,10 @@ public class LLVMCompiler
     public Dictionary<string, Class> Classes { get; } = new Dictionary<string, Class>();
     public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
     public GenericDictionary GenericClasses { get; } = new GenericDictionary();
-    public LLVMFunction? CurrentFunction { get; set; }
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
+    private LLVMFunction _currentFunction = null;
 
     public LLVMCompiler(string moduleName)
     {
@@ -31,6 +31,19 @@ public class LLVMCompiler
     }
 
     public LLVMCompiler(string moduleName, IReadOnlyCollection<ScriptAST> scripts) : this(moduleName) => Compile(scripts);
+
+    private LLVMFunction CurrentFunction
+    {
+        get
+        {
+            return _currentFunction ?? throw new Exception("Current function is null.");
+        }
+        
+        set
+        {
+            _currentFunction = value;
+        }
+    }
 
     public IntrinsicFunction GetIntrinsic(string name)
         => _intrinsics.TryGetValue(name, out IntrinsicFunction? func)
@@ -187,7 +200,7 @@ public class LLVMCompiler
         Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         var llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType, paramLLVMTypes.AsReadonlySpan(), funcDefNode.IsVariadic);
         LLVMValueRef llvmFunc = Module.AddFunction(funcName, llvmFuncType);
-        var func = new LLVMFunction(funcDefNode.Name,
+        var func = new DefinedFunction(funcDefNode.Name,
             llvmFunc,
             llvmFuncType,
             returnType,
@@ -232,7 +245,7 @@ public class LLVMCompiler
 
     public void CompileFunction(FuncDefNode funcDefNode, Class? @class = null)
     {
-        Function fn;
+        Function? fn;
         var paramTypes = new List<Type>();
 
         foreach (ParameterNode param in funcDefNode.Params)
@@ -265,7 +278,7 @@ public class LLVMCompiler
             throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
         }
 
-        if (fn is not LLVMFunction func)
+        if (fn is not DefinedFunction func)
         {
             throw new Exception($"{fn.Name} cannot be compiled.");
         }
@@ -572,8 +585,17 @@ public class LLVMCompiler
 
             var funcType = LLVMTypeRef.CreateFunction(retType.LLVMType, llvmParamTypes.ToArray());
             LLVMValueRef func = Module.AddFunction("localfunc", funcType);
-            CompileScope(new Scope(func.AppendBasicBlock("entry")), localFuncDef.ExecutionBlock);
-            return new Value(new FuncType(retType, paramTypes.ToArray(), funcType), func);
+
+            LLVMFunction? parentFunction = CurrentFunction;
+            var newFunc = new LocalFunction(func, funcType, retType, @params) { OpeningScope = new Scope(func.AppendBasicBlock("entry")) };
+
+            CurrentFunction = newFunc;
+            Value ret = !CompileScope(newFunc.OpeningScope, localFuncDef.ExecutionBlock)
+                ? throw new Exception("Local function is not guaranteed to return.")
+                : new Value(new FuncType(retType, paramTypes.ToArray(), funcType), func);
+            CurrentFunction = parentFunction;
+
+            return ret;
         }
         else if (expr is InlineIfNode @if)
         {
@@ -1030,7 +1052,7 @@ public class LLVMCompiler
 
     public Value CompileLocal(Scope scope, LocalDefNode localDef)
     {
-        Value value = null;
+        Value? value = null;
         Type type;
 
         if (localDef is InferredLocalDefNode inferredLocalDef)
@@ -1043,7 +1065,7 @@ public class LLVMCompiler
             type = ResolveType(localDef.TypeRef);
         }
 
-        LLVMValueRef @var = Builder.BuildAlloca(type.LLVMType, localDef.Name);
+        LLVMValueRef @var = Builder.BuildAlloca(type.LLVMType, localDef.Name); //TODO: crashes with a func type, if on stack
         scope.Variables.Add(localDef.Name, new Variable(localDef.Name, @var, type));
 
         if (value != null)
@@ -1054,9 +1076,9 @@ public class LLVMCompiler
         return new Value(WrapAsRef(type), @var);
     }
 
-    public Value CompileRef(Scope scope, RefNode refNode)
+    public Value CompileRef(Scope scope, RefNode? refNode)
     {
-        Value context = null;
+        Value? context = null;
 
         while (refNode != null)
         {
@@ -1091,10 +1113,14 @@ public class LLVMCompiler
                     context = CompileFuncCall(context, scope, funcCall, @class);
                     refNode = refNode.Child;
                 }
-                else
+                else if (refNode != null)
                 {
                     @class.GetStaticField(refNode.Name);
                     throw new NotImplementedException();
+                }
+                else
+                {
+                    throw new Exception($"#{@class.Type} cannot be treated like an expression value.");
                 }
             }
             else if (refNode is FuncCallNode funcCall)
@@ -1127,10 +1153,10 @@ public class LLVMCompiler
             }
         }
 
-        return context;
+        return context ?? throw new Exception($"Failed to compile \"{refNode}\".");
     }
 
-    public Value CompileVarRef(Value context, Scope scope, RefNode refNode)
+    public Value CompileVarRef(Value? context, Scope scope, RefNode refNode)
     {
         if (context != null)
         {
@@ -1144,19 +1170,19 @@ public class LLVMCompiler
         }
         else
         {
-            return scope.Variables.TryGetValue(refNode.Name, out Variable @var)
+            return scope.Variables.TryGetValue(refNode.Name, out Variable? @var)
                 ? new Value(WrapAsRef(@var.Type),
                     @var.LLVMVariable)
-                : GlobalConstants.TryGetValue(refNode.Name, out Constant @const)
+                : GlobalConstants.TryGetValue(refNode.Name, out Constant? @const)
                     ? new Value(WrapAsRef(@const.Type),
                                     @const.LLVMValue)
                     : throw new Exception($"Variable \"{refNode.Name}\" does not exist.");
         }
     }
 
-    public Value CompileFuncCall(Value context, Scope scope, FuncCallNode funcCall,
-        Class? staticClass = null)
+    public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Class? staticClass = null)
     {
+        Function? func;
         var argTypes = new List<Type>();
         var args = new List<LLVMValueRef>();
         bool contextWasNull = context == null;
@@ -1179,7 +1205,7 @@ public class LLVMCompiler
 
         var sig = new Signature(funcCall.Name, argTypes);
 
-        if (context != null && context.Type.Class.Methods.TryGetValue(sig, out Function func))
+        if (context != null && context.Type.Class.Methods.TryGetValue(sig, out func))
         {
             if (context.Type.LLVMType == func.LLVMFuncType.ParamTypes[0])
             {
@@ -1189,7 +1215,8 @@ public class LLVMCompiler
             }
             else
             {
-                throw new Exception("Attempted to call a method on a different class. !!THIS IS NOT A USER ERROR. REPORT ASAP!!");
+                throw new Exception("Attempted to call a method on a different class. " +
+                    "!!THIS IS NOT A USER ERROR. REPORT ASAP!!");
             }
         }
         else if (contextWasNull && GlobalFunctions.TryGetValue(sig, out func))

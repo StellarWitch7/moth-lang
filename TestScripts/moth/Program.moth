@@ -10,10 +10,9 @@ func main() #i32 {
     // local result ?= if array.GetIndex(#u64 <- 0, ref val) then val else load test;
     // return result;
 
-    local fn #(#i32, #char*) #bool
-        = func (num #i32, str #char*) #bool {
-            return true;
-        };
+    local fn #(#i32, #char*) #bool = func (num #i32, str #char*) #bool {
+        return true;
+    };
     
     return #i32 <- fn(5, "");
 }

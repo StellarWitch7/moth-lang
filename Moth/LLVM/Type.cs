@@ -25,7 +25,13 @@ public class Type
 
     public override string ToString() => Class.Name;
 
-    public override bool Equals(object? obj) => obj is Type type && LLVMType.Kind == type.LLVMType.Kind && Class.Name == type.Class.Name && Kind == type.Kind;
+    public override bool Equals(object? obj)
+        => obj is Type type
+            && Class != null
+            && type.Class != null
+            && LLVMType.Kind == type.LLVMType.Kind
+            && Kind == type.Kind
+            && Class.Name == type.Class.Name;
 
     public override int GetHashCode() => Kind.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
 }
@@ -81,6 +87,40 @@ public sealed class FuncType : Type
         ReturnType = retType;
         ParameterTypes = paramTypes;
     }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not FuncType fnType)
+        {
+            return false;
+        }
+
+        if (!ReturnType.Equals(fnType.ReturnType))
+        {
+            return false;
+        }
+
+        if (ParameterTypes.Length != fnType.ParameterTypes.Length)
+        {
+            return false;
+        }
+
+        uint index = 0;
+
+        foreach (Type param in ParameterTypes)
+        {
+            if (!param.Equals(fnType.ParameterTypes[index]))
+            {
+                return false;
+            }
+
+            index++;
+        }
+
+        return true;
+    }
+
+    public override int GetHashCode() => base.GetHashCode() * ReturnType.GetHashCode();
 }
 
 public sealed class RefType : BasedType
