@@ -162,7 +162,7 @@ public class LLVMCompiler
 
         foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
         {
-            Type fieldType = ResolveType(field.TypeRef);
+            ClassType fieldType = ResolveType(field.TypeRef);
             llvmTypes.Add(fieldType.LLVMType);
             @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
             index++;
@@ -175,17 +175,17 @@ public class LLVMCompiler
     {
         uint index = 0;
         var @params = new List<Parameter>();
-        var paramTypes = new List<Type>();
+        var paramTypes = new List<ClassType>();
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
-            paramTypes.Add(new PtrType(new Type(@class.Type.LLVMType, @class, TypeKind.Class)));
+            paramTypes.Add(new PtrType(new ClassType(@class.Type.LLVMType, @class, TypeKind.Class)));
             index++;
         }
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
-            Type paramType = ResolveParameter(paramNode);
+            ClassType paramType = ResolveParameter(paramNode);
             paramNode.TypeRef.Name = UnVoid(paramNode.TypeRef);
             @params.Add(new Parameter(index, paramNode.Name, paramType));
             paramTypes.Add(paramType);
@@ -202,7 +202,7 @@ public class LLVMCompiler
             funcName = $"{@class.Name}.{funcName}";
         }
 
-        Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
+        ClassType returnType = ResolveType(funcDefNode.ReturnTypeRef);
         var llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
@@ -252,8 +252,8 @@ public class LLVMCompiler
 
     public void CompileFunction(FuncDefNode funcDefNode, Class? @class = null)
     {
-        Function? fn;
-        var paramTypes = new List<Type>();
+        FuncType? fn;
+        var paramTypes = new List<ClassType>();
 
         foreach (ParameterNode param in funcDefNode.Params)
         {
@@ -333,9 +333,9 @@ public class LLVMCompiler
         }
     }
 
-    public Type ResolveParameter(ParameterNode param)
+    public ClassType ResolveParameter(ParameterNode param)
     {
-        Type type = ResolveType(param.TypeRef);
+        ClassType type = ResolveType(param.TypeRef);
 
         return param.RequireRefType
             ? new PtrType(new RefType(type))
@@ -344,7 +344,7 @@ public class LLVMCompiler
 
     public void DefineConstant(FieldDefNode constDef, Class? @class = null)
     {
-        Type constType = ResolveType(constDef.TypeRef);
+        ClassType constType = ResolveType(constDef.TypeRef);
         LLVMValueRef constVal = Module.AddGlobal(constType.LLVMType, constDef.Name);
 
         if (@class != null)
@@ -505,9 +505,9 @@ public class LLVMCompiler
         return false;
     }
 
-    public Type ResolveType(TypeRefNode typeRef)
+    public ClassType ResolveType(TypeRefNode typeRef)
     {
-        Type type;
+        ClassType type;
 
         if (typeRef is GenericTypeRefNode)
         {
@@ -515,13 +515,13 @@ public class LLVMCompiler
         }
         else if (typeRef is FuncTypeRefNode fnTypeRef)
         {
-            Type retType = ResolveType(fnTypeRef.ReturnType);
-            var paramTypes = new List<Type>();
+            ClassType retType = ResolveType(fnTypeRef.ReturnType);
+            var paramTypes = new List<ClassType>();
             var llvmParamTypes = new List<LLVMTypeRef>();
 
             foreach (TypeRefNode param in fnTypeRef.ParamterTypes)
             {
-                Type paramType = ResolveType(param);
+                ClassType paramType = ResolveType(param);
                 paramTypes.Add(paramType);
                 llvmParamTypes.Add(paramType.LLVMType);
             }
@@ -534,7 +534,7 @@ public class LLVMCompiler
         else
         {
             Class @class = CurrentNamespace.GetClass(UnVoid(typeRef));
-            type = new Type(@class.Type.LLVMType, @class, TypeKind.Class);
+            type = new ClassType(@class.Type.LLVMType, @class, TypeKind.Class);
         }
 
         int index = 0;
@@ -564,14 +564,14 @@ public class LLVMCompiler
         }
         else if (expr is LocalFuncDefNode localFuncDef)
         {
-            Type retType = ResolveType(localFuncDef.ReturnTypeRef);
+            ClassType retType = ResolveType(localFuncDef.ReturnTypeRef);
             var @params = new List<Parameter>();
-            var paramTypes = new List<Type>();
+            var paramTypes = new List<ClassType>();
             uint index = 0;
 
             foreach (ParameterNode param in localFuncDef.Params)
             {
-                Type paramType = ResolveParameter(param);
+                ClassType paramType = ResolveParameter(param);
                 paramTypes.Add(paramType);
                 @params.Add(new Parameter(index, param.Name, paramType));
                 index++;
@@ -747,7 +747,7 @@ public class LLVMCompiler
             LLVMValueRef leftVal;
             LLVMValueRef rightVal;
             LLVMValueRef builtVal;
-            Type builtType;
+            ClassType builtType;
 
             leftVal = left.LLVMValue;
             rightVal = right.LLVMValue;
@@ -879,7 +879,7 @@ public class LLVMCompiler
         }
 
         Value right = SafeLoad(CompileExpression(scope, binaryOp.Right));
-        Type destType = ResolveType(left);
+        ClassType destType = ResolveType(left);
         LLVMValueRef builtVal = destType.Class is Int
             ? right.Type.Class is Int
                 ? destType.Class.Name == Reserved.Bool
@@ -1055,7 +1055,7 @@ public class LLVMCompiler
     public Value CompileLocal(Scope scope, LocalDefNode localDef)
     {
         Value? value = null;
-        Type type;
+        ClassType type;
 
         if (localDef is InferredLocalDefNode inferredLocalDef)
         {
@@ -1134,7 +1134,7 @@ public class LLVMCompiler
             {
                 context = SafeLoad(CompileVarRef(context, scope, refNode));
 
-                Type resultType = context.Type is PtrType ptrType
+                ClassType resultType = context.Type is PtrType ptrType
                     ? ptrType.BaseType
                     : throw new Exception($"Tried to use an index access on non-pointer \"{context.Type.LLVMType}\".");
 
@@ -1163,7 +1163,7 @@ public class LLVMCompiler
         if (context != null)
         {
             Field field = context.Type.Class.Fields[refNode.Name];
-            Type type = SafeLoad(context).Type;
+            ClassType type = SafeLoad(context).Type;
             return new Value(WrapAsRef(field.Type),
                 Builder.BuildStructGEP2(type.LLVMType,
                     context.LLVMValue,
@@ -1184,8 +1184,8 @@ public class LLVMCompiler
 
     public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Class? staticClass = null)
     { //TODO: needs to be reworked
-        Function? func;
-        var argTypes = new List<Type>();
+        FuncType? func;
+        var argTypes = new List<ClassType>();
         var args = new List<Value>();
         bool contextWasNull = context == null;
 
@@ -1237,7 +1237,7 @@ public class LLVMCompiler
         return func.Call(this, args.ToArray());
     }
 
-    public void ResolveAttribute(Function func, AttributeNode attribute)
+    public void ResolveAttribute(FuncType func, AttributeNode attribute)
     {
         if (attribute.Name == "CallingConvention")
         {
@@ -1280,7 +1280,7 @@ public class LLVMCompiler
             : value;
     }
 
-    public RefType WrapAsRef(Type type)
+    public RefType WrapAsRef(ClassType type)
         => type is RefType @ref
             ? @ref
             : new RefType(type);

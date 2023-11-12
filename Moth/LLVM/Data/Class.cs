@@ -6,19 +6,19 @@ public class Class : CompilerData, IFunctionContainer
 {
     public IContainer? Parent { get; }
     public string Name { get; }
-    public Type Type { get; }
+    public ClassType Type { get; }
     public PrivacyType Privacy { get; }
     public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, Function> Methods { get; } = new Dictionary<Signature, Function>();
+    public Dictionary<Signature, FuncType> Methods { get; } = new Dictionary<Signature, FuncType>();
     public Dictionary<string, Field> StaticFields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, Function> StaticMethods { get; } = new Dictionary<Signature, Function>();
+    public Dictionary<Signature, FuncType> StaticMethods { get; } = new Dictionary<Signature, FuncType>();
     public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
 
     public Class(IContainer? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
     {
         Parent = parent;
         Name = name;
-        Type = new Type(llvmType, this, TypeKind.Class);
+        Type = new ClassType(llvmType, this, TypeKind.Class);
         Privacy = privacy;
     }
 
@@ -32,7 +32,7 @@ public class Class : CompilerData, IFunctionContainer
 
             var value = new Value(UnsignedInt.UInt64.Type, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", compiler.Module, value);
-            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<ClassType>()), func);
         }
 
         // alignof()
@@ -43,13 +43,13 @@ public class Class : CompilerData, IFunctionContainer
 
             var value = new Value(UnsignedInt.UInt64.Type, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", compiler.Module, value);
-            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<ClassType>()), func);
         }
     }
 
-    public Function GetFunction(Signature sig) => throw new NotImplementedException();
+    public FuncType GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public bool TryGetFunction(Signature sig, out Function func) => throw new NotImplementedException();
+    public bool TryGetFunction(Signature sig, out FuncType func) => throw new NotImplementedException();
 
     public CompilerData GetData(string name) => throw new NotImplementedException();
 

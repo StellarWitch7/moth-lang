@@ -4,9 +4,9 @@ public class Signature
 {
     public string Name { get; set; }
     public bool IsVariadic { get; set; }
-    public IReadOnlyList<Type> Params { get; set; }
+    public IReadOnlyList<ClassType> Params { get; set; }
 
-    public Signature(string name, IReadOnlyList<Type> @params, bool isVariadic = false)
+    public Signature(string name, IReadOnlyList<ClassType> @params, bool isVariadic = false)
     {
         Name = name;
         Params = @params;
@@ -18,7 +18,7 @@ public class Signature
         var builder = new StringBuilder();
         builder.Append($"{Name}:");
 
-        foreach (Type param in Params)
+        foreach (ClassType param in Params)
         {
             builder.Append($"{param.ToString()}.");
         }
@@ -55,7 +55,7 @@ public class Signature
         bool isEqual = true;
         int index = 0;
 
-        foreach (Type @param in Params.Count < sig.Params.Count ? Params : sig.Params)
+        foreach (ClassType @param in Params.Count < sig.Params.Count ? Params : sig.Params)
         {
             if (!@param.Equals(sig.Params[index]))
             {

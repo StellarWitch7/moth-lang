@@ -4,9 +4,9 @@ public class Variable : CompilerData
 {
     public string Name { get; set; }
     public LLVMValueRef LLVMVariable { get; set; }
-    public Type Type { get; set; }
+    public ClassType Type { get; set; }
 
-    public Variable(string name, LLVMValueRef llvmVariable, Type type)
+    public Variable(string name, LLVMValueRef llvmVariable, ClassType type)
     {
         Name = name;
         LLVMVariable = llvmVariable;

@@ -40,4 +40,30 @@ public static class ArrayExtensions
 
         return result;
     }
+
+    public static LLVMTypeRef[] AsLLVMTypes(this Type[] types)
+    {
+        var result = new LLVMTypeRef[types.Length];
+        uint index = 0;
+
+        foreach (Type type in types)
+        {
+            result[index] = type.LLVMType;
+            index++;
+        }
+
+        return result;
+    }
+
+    public static int GetHashes(this Type[] types)
+    {
+        int hash = 3;
+
+        foreach (Type type in types)
+        {
+            hash *= 31 + type.GetHashCode();
+        }
+
+        return hash;
+    }
 }
