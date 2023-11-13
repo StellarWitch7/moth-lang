@@ -175,7 +175,7 @@ public class LLVMCompiler
     {
         uint index = 0;
         var @params = new List<Parameter>();
-        var paramTypes = new List<ClassType>();
+        var paramTypes = new List<Type>();
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
@@ -202,23 +202,21 @@ public class LLVMCompiler
             funcName = $"{@class.Name}.{funcName}";
         }
 
-        ClassType returnType = ResolveType(funcDefNode.ReturnTypeRef);
+        Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         var llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
-        var funcType = new FuncType(returnType, paramTypes.ToArray(), llvmFuncType);
-        LLVMValueRef llvmFunc = Module.AddFunction(funcName, llvmFuncType);
-        var func = new DefinedFunction(funcDefNode.Name,
-            funcType,
-            llvmFunc,
+        var funcType = new DefinedFunction(funcName,
+            returnType,
+            paramTypes.ToArray(),
             funcDefNode.Privacy,
-            @class,
-            @params,
+            @class, @params,
             funcDefNode.IsVariadic);
+        Value func = new Value(funcType, Module.AddFunction(funcName, llvmFuncType));
 
         if (@class != null)
         {
-            if (func.Privacy == PrivacyType.Static)
+            if (funcType.Privacy == PrivacyType.Static)
             {
                 @class.StaticMethods.Add(sig, func);
             }

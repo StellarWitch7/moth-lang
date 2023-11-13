@@ -1,28 +1,23 @@
-﻿namespace Moth.LLVM.Data;
+﻿using Moth.LLVM.Data;
 
-public sealed class ConstRetFn : IntrinsicFunction
+namespace Moth.LLVM;
+
+public sealed class ConstRetFn : Intrinsic
 {
-    public readonly Value Value;
-
-    private LLVMModuleRef _module;
-
-    public ConstRetFn(string name, LLVMModuleRef module, Value value)
-        : base(name,
-            new FuncType(value.Type,
-                Array.Empty<ClassType>(),
-                LLVMTypeRef.CreateFunction(value.Type.LLVMType,
-                    Array.Empty<LLVMTypeRef>())))
+    private Value _value { get; }
+    
+    public ConstRetFn(string name, Value value)
+        : base(new LocalFunction(value.Type, new Type[]{}, new Parameter[]{}))
     {
         if (!value.LLVMValue.IsConstant)
         {
             throw new ArgumentException("Value needs to be constant.");
         }
 
-        Value = value;
-        _module = module;
+        _value = value;
     }
 
-    public override Value Call(LLVMCompiler compiler, Value[] args) => Value;
+    public override Value Call(LLVMCompiler compiler, Value[] args) => _value;
 
     protected override LLVMValueRef GenerateLLVMData()
     {

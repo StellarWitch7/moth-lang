@@ -9,9 +9,9 @@ public class Class : CompilerData, IFunctionContainer
     public ClassType Type { get; }
     public PrivacyType Privacy { get; }
     public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, FuncType> Methods { get; } = new Dictionary<Signature, FuncType>();
+    public Dictionary<Signature, FuncVal> Methods { get; } = new Dictionary<Signature, FuncVal>();
     public Dictionary<string, Field> StaticFields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, FuncType> StaticMethods { get; } = new Dictionary<Signature, FuncType>();
+    public Dictionary<Signature, FuncVal> StaticMethods { get; } = new Dictionary<Signature, FuncVal>();
     public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
 
     public Class(IContainer? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
@@ -31,7 +31,7 @@ public class Class : CompilerData, IFunctionContainer
                 : Type.LLVMType.SizeOf;
 
             var value = new Value(UnsignedInt.UInt64.Type, retValue);
-            var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", compiler.Module, value);
+            var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value);
             StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<ClassType>()), func);
         }
 

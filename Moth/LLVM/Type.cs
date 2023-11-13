@@ -40,8 +40,6 @@ public class ClassType : Type
 
     public override bool Equals(object? obj)
         => obj is ClassType type
-            && Class != null
-            && type.Class != null
             && LLVMType.Kind == type.LLVMType.Kind
             && Kind == type.Kind
             && Class.Name == type.Class.Name;
@@ -70,7 +68,7 @@ public class BasedType : Type
         return depth;
     }
 
-    public override string ToString() => BaseType.ToString() + "*";
+    public override string ToString() => BaseType + "*";
 
     public override bool Equals(object? obj) => obj is BasedType bType && BaseType.Equals(bType.BaseType);
 
@@ -155,6 +153,13 @@ public class LLVMFunction : FuncType
         IsVariadic = isVariadic;
     }
 
+    public LLVMFunction(string name, Type retType, Type[] paramTypes,
+        IReadOnlyList<Parameter> @params, bool isVariadic, Scope openingScope)
+        : this(name, retType, paramTypes, @params, isVariadic)
+    {
+        OpeningScope = openingScope;
+    }
+
     public Class? OwnerClass
     {
         get
@@ -196,13 +201,4 @@ public sealed class LocalFunction : LLVMFunction
 {
     public LocalFunction(Type retType, Type[] paramTypes, IReadOnlyList<Parameter> @params)
         : base("localfunc", retType, paramTypes, @params, false) { }
-}
-
-public abstract class IntrinsicFunction : FuncType
-{
-    protected IntrinsicFunction(string name, Type retType, Type[] paramTypes)
-        : base(name, retType, paramTypes) { }
-
-    protected virtual LLVMValueRef GenerateLLVMData()
-        => throw new NotImplementedException("This function does not support LLVM data generation.");
 }
