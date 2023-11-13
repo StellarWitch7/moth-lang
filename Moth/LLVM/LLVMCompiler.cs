@@ -14,8 +14,8 @@ public class LLVMCompiler
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
-    private Namespace? _currentNamespace = null;
-    private LLVMFunction? _currentFunction = null;
+    private Namespace? _currentNamespace;
+    private LLVMFunction? _currentFunction;
 
     public LLVMCompiler(string moduleName)
     {

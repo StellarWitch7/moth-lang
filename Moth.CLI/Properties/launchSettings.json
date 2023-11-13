@@ -2,9 +2,9 @@
   "profiles": {
     "MothCLI": {
       "commandName": "Project",
-      "commandLineArgs": "-v --debug-test -o test -i D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\moth\\Program.moth D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\moth\\Foreign.moth D:\\lavam\\Main\\Projects\\C#\\moth-lang\\TestScripts\\moth\\System.moth",
-      "workingDirectory": "D:\\lavam\\Main\\Projects\\C#\\moth-lang\\run",
-      "executablePath": "D:\\lavam\\Main\\Projects\\C#\\moth-lang\\Moth.CLI\\bin\\Debug\\net7.0\\MothCLI.exe",
+      "commandLineArgs": "-v --debug-test -o test -i D:/home/aurora/RiderProjects/moth-lang/TestScripts/moth/Program.moth D:/home/aurora/RiderProjects/moth-lang/TestScripts/moth/Foreign.moth D:/home/aurora/RiderProjects/moth-lang/TestScripts/moth/System.moth",
+      "workingDirectory": "/home/aurora/RiderProjects/moth-lang/run",
+      "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.CLI/bin/Debug/net7.0/MothCLI.exe",
       "externalTerminal": true,
       "leaveRunningOnClose": true
     }
