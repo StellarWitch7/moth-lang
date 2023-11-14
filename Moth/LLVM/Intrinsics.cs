@@ -2,12 +2,13 @@
 
 namespace Moth.LLVM;
 
-public sealed class ConstRetFn : Intrinsic
+public sealed class ConstRetFn : IntrinsicFunction
 {
     private Value _value { get; }
+    private LLVMModuleRef _module { get; }
     
-    public ConstRetFn(string name, Value value)
-        : base(new LocalFunction(value.Type, new Type[]{}, new Parameter[]{}))
+    public ConstRetFn(string name, Value value, LLVMModuleRef module)
+        : base(new LLVMFunction(name, value.Type, new Type[]{}, new Parameter[]{}, false))
     {
         if (!value.LLVMValue.IsConstant)
         {
@@ -15,17 +16,18 @@ public sealed class ConstRetFn : Intrinsic
         }
 
         _value = value;
+        _module = module;
     }
 
     public override Value Call(LLVMCompiler compiler, Value[] args) => _value;
 
     protected override LLVMValueRef GenerateLLVMData()
     {
-        LLVMValueRef func = _module.AddFunction(Name, ClassType.LLVMType);
+        LLVMValueRef func = _module.AddFunction(Type.Name, _value.Type.LLVMType);
 
         using LLVMBuilderRef builder = _module.Context.CreateBuilder();
         builder.PositionAtEnd(func.AppendBasicBlock(""));
-        builder.BuildRet(Value.LLVMValue);
+        builder.BuildRet(_value.LLVMValue);
 
         return func;
     }
@@ -33,14 +35,30 @@ public sealed class ConstRetFn : Intrinsic
 
 public sealed class Pow : IntrinsicFunction
 {
-    public Pow(string name, LLVMModuleRef module, ClassType retType, ClassType left, ClassType right)
-        : base(name,
-            new FuncType(retType,
-                new ClassType[2] { left, right },
-                LLVMTypeRef.CreateFunction(retType.LLVMType,
-                    new LLVMTypeRef[2] { left.LLVMType, right.LLVMType })))
-        => InternalLLVMValue = module.AddFunction(name, ClassType.LLVMType);
+    private LLVMModuleRef _module { get; }
+
+    public Pow(string name, LLVMModuleRef module, Type retType, Type left, Type right)
+        : base(new LLVMFunction(name,
+            retType,
+            new Type[] { left, right },
+            new Parameter[]{},
+            false))
+    {
+        _module = module;
+    }
 
     public override Value Call(LLVMCompiler compiler, Value[] args)
-        => new Value(ClassType.ReturnType, compiler.Builder.BuildCall2(ClassType.LLVMType, LLVMValue, args.AsLLVMValues(), "pow"));
+        => Type.Call(compiler, LLVMValue, args, "pow");
+    
+    protected override LLVMValueRef GenerateLLVMData()
+    {
+        try
+        {
+            return _module.GetNamedFunction(Type.Name);
+        }
+        catch
+        {
+            return _module.AddFunction(Type.Name, Type.LLVMType);
+        }
+    }
 }

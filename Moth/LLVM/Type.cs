@@ -11,7 +11,7 @@ public enum TypeKind
     Reference,
 }
 
-public abstract class Type
+public abstract class Type : CompilerData
 {
     public readonly LLVMTypeRef LLVMType;
     public readonly TypeKind Kind;
@@ -26,25 +26,6 @@ public abstract class Type
     public abstract override string ToString();
     public abstract override bool Equals(object? obj);
     public abstract override int GetHashCode();
-}
-
-public class ClassType : Type
-{
-    public readonly Class Class;
-
-    public ClassType(LLVMTypeRef llvmType, Class @class) : this(llvmType, @class, TypeKind.Class) { }
-
-    public ClassType(LLVMTypeRef llvmType, Class @class, TypeKind kind) : base(llvmType, kind) => Class = @class;
-
-    public override string ToString() => Class.Name;
-
-    public override bool Equals(object? obj)
-        => obj is ClassType type
-            && LLVMType.Kind == type.LLVMType.Kind
-            && Kind == type.Kind
-            && Class.Name == type.Class.Name;
-
-    public override int GetHashCode() => Kind.GetHashCode() * Class.Name.GetHashCode() * (int)LLVMType.Kind;
 }
 
 public class BasedType : Type
@@ -135,12 +116,19 @@ public abstract class FuncType : Type
 
     public override int GetHashCode() => Name.GetHashCode() * ParameterTypes.GetHashes();
 
-    public abstract Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args);
+    public Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args)
+    {
+        return Call(compiler, func, args, ReturnType.LLVMType.Kind != LLVMTypeKind.LLVMVoidTypeKind
+            ? Name
+            : "");
+    }
+
+    public abstract Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args, string name);
 }
 
 public class LLVMFunction : FuncType
 {
-    public Scope? OpeningScope { get; }
+    public Scope? OpeningScope { get; set; }
 
     public readonly IReadOnlyList<Parameter> Params;
     public readonly bool IsVariadic;
@@ -170,13 +158,11 @@ public class LLVMFunction : FuncType
         }
     }
 
-    public override Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args)
+    public override Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args, string name)
         => new Value(ReturnType, compiler.Builder.BuildCall2(LLVMType,
             func,
             args.AsLLVMValues(),
-            ReturnType.LLVMType.Kind != LLVMTypeKind.LLVMVoidTypeKind
-                ? Name
-                : ""));
+            name));
 
     public override string ToString() => throw new NotImplementedException();
 }

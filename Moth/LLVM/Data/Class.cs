@@ -2,11 +2,10 @@
 
 namespace Moth.LLVM.Data;
 
-public class Class : CompilerData, IFunctionContainer
+public class Class : Type, IFunctionContainer
 {
     public IContainer? Parent { get; }
     public string Name { get; }
-    public ClassType Type { get; }
     public PrivacyType Privacy { get; }
     public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
     public Dictionary<Signature, FuncVal> Methods { get; } = new Dictionary<Signature, FuncVal>();
@@ -15,10 +14,10 @@ public class Class : CompilerData, IFunctionContainer
     public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
 
     public Class(IContainer? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
+        : base(llvmType, TypeKind.Class)
     {
         Parent = parent;
         Name = name;
-        Type = new ClassType(llvmType, this, TypeKind.Class);
         Privacy = privacy;
     }
 
@@ -26,32 +25,42 @@ public class Class : CompilerData, IFunctionContainer
     {
         // sizeof()
         {
-            LLVMValueRef retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
+            LLVMValueRef retValue = LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
-                : Type.LLVMType.SizeOf;
+                : LLVMType.SizeOf;
 
-            var value = new Value(UnsignedInt.UInt64.Type, retValue);
-            var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value);
+            var value = new Value(UnsignedInt.UInt64, retValue);
+            var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<ClassType>()), func);
         }
 
         // alignof()
         {
-            LLVMValueRef retValue = Type.LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
+            LLVMValueRef retValue = LLVMType.Kind == LLVMTypeKind.LLVMVoidTypeKind
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
-                : Type.LLVMType.AlignOf;
+                : LLVMType.AlignOf;
 
-            var value = new Value(UnsignedInt.UInt64.Type, retValue);
-            var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", compiler.Module, value);
+            var value = new Value(UnsignedInt.UInt64, retValue);
+            var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<ClassType>()), func);
         }
     }
 
-    public FuncType GetFunction(Signature sig) => throw new NotImplementedException();
+    public FuncVal GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public bool TryGetFunction(Signature sig, out FuncType func) => throw new NotImplementedException();
+    public bool TryGetFunction(Signature sig, out FuncVal func) => throw new NotImplementedException();
 
     public CompilerData GetData(string name) => throw new NotImplementedException();
 
     public bool TryGetData(string name, out CompilerData data) => throw new NotImplementedException();
+    
+    public override string ToString() => Name;
+
+    public override bool Equals(object? obj)
+        => obj is Class type
+            && LLVMType.Kind == type.LLVMType.Kind
+            && Kind == type.Kind
+            && Name == type.Name;
+
+    public override int GetHashCode() => Kind.GetHashCode() * Name.GetHashCode() * (int)LLVMType.Kind;
 }

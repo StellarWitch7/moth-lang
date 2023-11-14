@@ -15,7 +15,7 @@ public class LLVMCompiler
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private Namespace? _currentNamespace;
-    private LLVMFunction? _currentFunction;
+    private FuncVal? _currentFunction;
 
     public LLVMCompiler(string moduleName)
     {
@@ -41,7 +41,7 @@ public class LLVMCompiler
         }
     }
 
-    private LLVMFunction CurrentFunction
+    private FuncVal CurrentFunction
     {
         get
         {
@@ -50,7 +50,10 @@ public class LLVMCompiler
         
         set
         {
-            _currentFunction = value;
+            _currentFunction = value.Type is LLVMFunction
+                ? _currentFunction
+                : throw new Exception("Cannot assign function value as it is not of a valid type. " +
+                    "This is a CRITICAL ERROR. Report ASAP.");
         }
     }
 
@@ -212,7 +215,7 @@ public class LLVMCompiler
             funcDefNode.Privacy,
             @class, @params,
             funcDefNode.IsVariadic);
-        Value func = new Value(funcType, Module.AddFunction(funcName, llvmFuncType));
+        FuncVal func = new FuncVal(funcType, Module.AddFunction(funcName, llvmFuncType));
 
         if (@class != null)
         {
@@ -250,7 +253,7 @@ public class LLVMCompiler
 
     public void CompileFunction(FuncDefNode funcDefNode, Class? @class = null)
     {
-        FuncType? fn;
+        FuncVal? func;
         var paramTypes = new List<ClassType>();
 
         foreach (ParameterNode param in funcDefNode.Params)
@@ -265,16 +268,16 @@ public class LLVMCompiler
             return;
         }
         else if (@class != null && funcDefNode.Privacy != PrivacyType.Static
-            && @class.Methods.TryGetValue(sig, out fn))
+            && @class.Methods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
         else if (@class != null && funcDefNode.Privacy == PrivacyType.Static
-            && @class.StaticMethods.TryGetValue(sig, out fn))
+            && @class.StaticMethods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
-        else if (CurrentNamespace.Functions.TryGetValue(sig, out fn))
+        else if (CurrentNamespace.Functions.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -283,30 +286,44 @@ public class LLVMCompiler
             throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
         }
 
-        if (fn is not DefinedFunction func)
+        if (func.Type is not DefinedFunction funcType)
         {
-            throw new Exception($"{fn.Name} cannot be compiled.");
+            throw new Exception($"{func.Type.Name} cannot be compiled.");
         }
 
-        func.OpeningScope = new Scope(@class != null ? @class : CurrentNamespace, func.LLVMValue.AppendBasicBlock("entry"));
-        Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
+        funcType.OpeningScope = new Scope(@class != null
+            ? @class
+            : CurrentNamespace, func.LLVMValue.AppendBasicBlock("entry"));
+        Builder.PositionAtEnd(funcType.OpeningScope.LLVMBlock);
         CurrentFunction = func;
 
         if (funcDefNode.Name == Reserved.Init && funcDefNode.Privacy == PrivacyType.Static)
         {
-            if (func.Type.ReturnType.Class != func.OwnerClass)
+            if (funcType.ReturnType is ClassType classType)
             {
-                throw new Exception($"Init method does not return the same type as its owner class " +
-                    $"(\"{func.OwnerClass.Name}\").");
+                if (classType.Class != funcType.OwnerClass)
+                {
+                    throw new Exception($"Init method does not return the same type as its owner class " +
+                        $"(\"{funcType.OwnerClass.Name}\").");
+                }
+            }
+            else
+            {
+                
             }
 
             var @new = new Variable(Reserved.Self,
-                Builder.BuildMalloc(func.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: malloc or alloc?
-                func.OwnerClass.Type);
+                Builder.BuildMalloc(funcType.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: malloc or alloc?
+                funcType.OwnerClass.Type);
 
-            func.OpeningScope.Variables.Add(@new.Name, @new);
+            funcType.OpeningScope.Variables.Add(@new.Name, @new);
 
-            foreach (Field field in @new.Type.Class.Fields.Values)
+            if (@new.Type is not ClassType classTypeOfNew)
+            {
+                throw new Exception();
+            }
+            
+            foreach (Field field in classTypeOfNew.Class.Fields.Values)
             {
                 LLVMValueRef llvmField = Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
@@ -319,13 +336,13 @@ public class LLVMCompiler
         {
             LLVMValueRef paramAsVar = Builder.BuildAlloca(param.Type.LLVMType, param.Name);
             Builder.BuildStore(func.LLVMValue.Params[param.ParamIndex], paramAsVar);
-            func.OpeningScope.Variables.Add(param.Name,
+            funcType.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
                     paramAsVar,
                     new RefType(param.Type)));
         }
 
-        if (!CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
+        if (!CompileScope(funcType.OpeningScope, funcDefNode.ExecutionBlock))
         {
             throw new Exception("Function is not guaranteed to return.");
         }
@@ -1235,7 +1252,7 @@ public class LLVMCompiler
         return func.Call(this, args.ToArray());
     }
 
-    public void ResolveAttribute(FuncType func, AttributeNode attribute)
+    public void ResolveAttribute(FuncVal func, AttributeNode attribute)
     {
         if (attribute.Name == "CallingConvention")
         {
@@ -1278,7 +1295,7 @@ public class LLVMCompiler
             : value;
     }
 
-    public RefType WrapAsRef(ClassType type)
+    public RefType WrapAsRef(Type type)
         => type is RefType @ref
             ? @ref
             : new RefType(type);

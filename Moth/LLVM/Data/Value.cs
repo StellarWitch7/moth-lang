@@ -1,6 +1,4 @@
-﻿using LLVMSharp;
-
-namespace Moth.LLVM.Data;
+﻿namespace Moth.LLVM.Data;
 
 public class Value : CompilerData
 {
@@ -31,11 +29,11 @@ public class FuncVal : Value
     public virtual Value Call(LLVMCompiler compiler, Value[] args) => Type.Call(compiler, LLVMValue, args);
 }
 
-public abstract class Intrinsic : FuncVal
+public abstract class IntrinsicFunction : FuncVal
 {
     private LLVMValueRef _internalValue;
     
-    public Intrinsic(FuncType type) : base(type, null) { }
+    public IntrinsicFunction(FuncType type) : base(type, null) { }
 
     public override LLVMValueRef LLVMValue
     {
