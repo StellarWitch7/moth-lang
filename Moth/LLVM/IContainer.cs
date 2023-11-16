@@ -11,8 +11,8 @@ public interface IContainer
 
 public interface IFunctionContainer : IContainer
 {
-    public FuncVal GetFunction(Signature sig);
-    public bool TryGetFunction(Signature sig, out FuncVal func);
+    public Function GetFunction(Signature sig);
+    public bool TryGetFunction(Signature sig, out Function func);
 }
 
 public interface IClassContainer : IContainer

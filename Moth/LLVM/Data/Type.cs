@@ -1,7 +1,7 @@
 ﻿using Moth.AST.Node;
 using Moth.LLVM.Data;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM.Data;
 
 public enum TypeKind
 {
@@ -126,33 +126,21 @@ public abstract class FuncType : Type
     public abstract Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args, string name);
 }
 
-public class LLVMFunction : FuncType
+public class LLVMFuncType : FuncType
 {
-    public Scope? OpeningScope { get; set; }
-
-    public readonly IReadOnlyList<Parameter> Params;
     public readonly bool IsVariadic;
 
-    public LLVMFunction(string name, Type retType, Type[] paramTypes,
-        IReadOnlyList<Parameter> @params, bool isVariadic)
+    public LLVMFuncType(string name, Type retType, Type[] paramTypes, bool isVariadic)
         : base(name, retType, paramTypes)
     {
-        Params = @params;
         IsVariadic = isVariadic;
-    }
-
-    public LLVMFunction(string name, Type retType, Type[] paramTypes,
-        IReadOnlyList<Parameter> @params, bool isVariadic, Scope openingScope)
-        : this(name, retType, paramTypes, @params, isVariadic)
-    {
-        OpeningScope = openingScope;
     }
 
     public Class? OwnerClass
     {
         get
         {
-            return this is DefinedFunction defFunc
+            return this is MethodType defFunc
                 ? defFunc.OwnerClass
                 : null;
         }
@@ -167,24 +155,19 @@ public class LLVMFunction : FuncType
     public override string ToString() => throw new NotImplementedException();
 }
 
-public sealed class DefinedFunction : LLVMFunction
+public sealed class MethodType : LLVMFuncType
 {
     public new Class? OwnerClass { get; set; }
 
-    public readonly PrivacyType Privacy;
-
-    public DefinedFunction(string name, Type retType, Type[] paramTypes,
-        PrivacyType privacy, Class? ownerClass,
-        IReadOnlyList<Parameter> @params, bool isVariadic)
-        : base(name, retType, paramTypes, @params, isVariadic)
+    public MethodType(string name, Type retType, Type[] paramTypes, Class? ownerClass)
+        : base(name, retType, paramTypes, false)
     {
-        Privacy = privacy;
         OwnerClass = ownerClass;
     }
 }
 
-public sealed class LocalFunction : LLVMFunction
+public sealed class LocalFuncType : LLVMFuncType
 {
-    public LocalFunction(Type retType, Type[] paramTypes, IReadOnlyList<Parameter> @params)
-        : base("localfunc", retType, paramTypes, @params, false) { }
+    public LocalFuncType(Type retType, Type[] paramTypes)
+        : base(Reserved.LocalFunc, retType, paramTypes, false) { }
 }

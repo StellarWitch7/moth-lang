@@ -5,6 +5,7 @@ public static class Reserved
     public const string Main = "main";
     public const string Self = "self";
     public const string Init = "init";
+    public const string LocalFunc = "localfunc";
     public const string SizeOf = "sizeof";
     public const string AlignOf = "alignof";
 

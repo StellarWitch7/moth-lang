@@ -12,13 +12,16 @@ public class Value : CompilerData
     }
 }
 
-public class FuncVal : Value
+public class Function : Value
 {
     public override FuncType Type { get; }
+    public Parameter[] Params { get; }
+    public Scope? OpeningScope { get; set; }
     
-    public FuncVal(FuncType type, LLVMValueRef value) : base(type, value)
+    public Function(FuncType type, LLVMValueRef value, Parameter[] @params) : base(type, value)
     {
         Type = type;
+        Params = @params;
 
         if (value.Kind != LLVMValueKind.LLVMFunctionValueKind) //TODO: or is it ptr value?
         {
@@ -29,11 +32,11 @@ public class FuncVal : Value
     public virtual Value Call(LLVMCompiler compiler, Value[] args) => Type.Call(compiler, LLVMValue, args);
 }
 
-public abstract class IntrinsicFunction : FuncVal
+public abstract class IntrinsicFunction : Function
 {
     private LLVMValueRef _internalValue;
     
-    public IntrinsicFunction(FuncType type) : base(type, null) { }
+    public IntrinsicFunction(FuncType type) : base(type, default, new Parameter[0]) { }
 
     public override LLVMValueRef LLVMValue
     {

@@ -2,10 +2,10 @@
 
 public class Constant : CompilerData
 {
-    public ClassType Type { get; set; }
+    public Type Type { get; set; }
     public LLVMValueRef LLVMValue { get; set; }
 
-    public Constant(ClassType type, LLVMValueRef value)
+    public Constant(Type type, LLVMValueRef value)
     {
         Type = type;
         LLVMValue = value;

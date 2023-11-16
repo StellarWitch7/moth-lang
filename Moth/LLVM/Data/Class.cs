@@ -8,9 +8,9 @@ public class Class : Type, IFunctionContainer
     public string Name { get; }
     public PrivacyType Privacy { get; }
     public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, FuncVal> Methods { get; } = new Dictionary<Signature, FuncVal>();
+    public Dictionary<Signature, Function> Methods { get; } = new Dictionary<Signature, Function>();
     public Dictionary<string, Field> StaticFields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, FuncVal> StaticMethods { get; } = new Dictionary<Signature, FuncVal>();
+    public Dictionary<Signature, Function> StaticMethods { get; } = new Dictionary<Signature, Function>();
     public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
 
     public Class(IContainer? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
@@ -46,9 +46,9 @@ public class Class : Type, IFunctionContainer
         }
     }
 
-    public FuncVal GetFunction(Signature sig) => throw new NotImplementedException();
+    public Function GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public bool TryGetFunction(Signature sig, out FuncVal func) => throw new NotImplementedException();
+    public bool TryGetFunction(Signature sig, out Function func) => throw new NotImplementedException();
 
     public CompilerData GetData(string name) => throw new NotImplementedException();
 

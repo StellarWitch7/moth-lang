@@ -1,6 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using Type = Moth.LLVM.Type;
-using Value = Moth.LLVM.Data.Value;
 
 namespace Moth;
 

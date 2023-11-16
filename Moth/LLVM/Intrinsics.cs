@@ -8,7 +8,7 @@ public sealed class ConstRetFn : IntrinsicFunction
     private LLVMModuleRef _module { get; }
     
     public ConstRetFn(string name, Value value, LLVMModuleRef module)
-        : base(new LLVMFunction(name, value.Type, new Type[]{}, new Parameter[]{}, false))
+        : base(new LLVMFuncType(name, value.Type, new Type[]{}, false))
     {
         if (!value.LLVMValue.IsConstant)
         {
@@ -38,11 +38,7 @@ public sealed class Pow : IntrinsicFunction
     private LLVMModuleRef _module { get; }
 
     public Pow(string name, LLVMModuleRef module, Type retType, Type left, Type right)
-        : base(new LLVMFunction(name,
-            retType,
-            new Type[] { left, right },
-            new Parameter[]{},
-            false))
+        : base(new LLVMFuncType(name, retType, new Type[] { left, right }, false))
     {
         _module = module;
     }

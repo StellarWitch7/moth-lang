@@ -15,7 +15,7 @@ public class LLVMCompiler
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private Namespace? _currentNamespace;
-    private FuncVal? _currentFunction;
+    private Function? _currentFunction;
 
     public LLVMCompiler(string moduleName)
     {
@@ -41,7 +41,7 @@ public class LLVMCompiler
         }
     }
 
-    private FuncVal CurrentFunction
+    private Function CurrentFunction
     {
         get
         {
@@ -50,7 +50,7 @@ public class LLVMCompiler
         
         set
         {
-            _currentFunction = value.Type is LLVMFunction
+            _currentFunction = value.Type is LLVMFuncType
                 ? _currentFunction
                 : throw new Exception("Cannot assign function value as it is not of a valid type. " +
                     "This is a CRITICAL ERROR. Report ASAP.");
@@ -182,13 +182,13 @@ public class LLVMCompiler
 
         if (@class != null && funcDefNode.Privacy != PrivacyType.Static)
         {
-            paramTypes.Add(new PtrType(new ClassType(@class.Type.LLVMType, @class, TypeKind.Class)));
+            paramTypes.Add(new PtrType(@class));
             index++;
         }
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
-            ClassType paramType = ResolveParameter(paramNode);
+            Type paramType = ResolveParameter(paramNode);
             paramNode.TypeRef.Name = UnVoid(paramNode.TypeRef);
             @params.Add(new Parameter(index, paramNode.Name, paramType));
             paramTypes.Add(paramType);
@@ -209,13 +209,13 @@ public class LLVMCompiler
         var llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
-        var funcType = new DefinedFunction(funcName,
+        var funcType = new MethodType(funcName,
             returnType,
             paramTypes.ToArray(),
             funcDefNode.Privacy,
             @class, @params,
             funcDefNode.IsVariadic);
-        FuncVal func = new FuncVal(funcType, Module.AddFunction(funcName, llvmFuncType));
+        Function func = new Function(funcType, Module.AddFunction(funcName, llvmFuncType));
 
         if (@class != null)
         {
@@ -253,7 +253,7 @@ public class LLVMCompiler
 
     public void CompileFunction(FuncDefNode funcDefNode, Class? @class = null)
     {
-        FuncVal? func;
+        Function? func;
         var paramTypes = new List<ClassType>();
 
         foreach (ParameterNode param in funcDefNode.Params)
@@ -286,7 +286,7 @@ public class LLVMCompiler
             throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
         }
 
-        if (func.Type is not DefinedFunction funcType)
+        if (func.Type is not MethodType funcType)
         {
             throw new Exception($"{func.Type.Name} cannot be compiled.");
         }
@@ -348,9 +348,9 @@ public class LLVMCompiler
         }
     }
 
-    public ClassType ResolveParameter(ParameterNode param)
+    public Type ResolveParameter(ParameterNode param)
     {
-        ClassType type = ResolveType(param.TypeRef);
+        Type type = ResolveType(param.TypeRef);
 
         return param.RequireRefType
             ? new PtrType(new RefType(type))
@@ -520,9 +520,9 @@ public class LLVMCompiler
         return false;
     }
 
-    public ClassType ResolveType(TypeRefNode typeRef)
+    public Type ResolveType(TypeRefNode typeRef)
     {
-        ClassType type;
+        Type type;
 
         if (typeRef is GenericTypeRefNode)
         {
@@ -530,26 +530,21 @@ public class LLVMCompiler
         }
         else if (typeRef is FuncTypeRefNode fnTypeRef)
         {
-            ClassType retType = ResolveType(fnTypeRef.ReturnType);
-            var paramTypes = new List<ClassType>();
-            var llvmParamTypes = new List<LLVMTypeRef>();
+            Type retType = ResolveType(fnTypeRef.ReturnType);
+            var paramTypes = new List<Type>();
 
             foreach (TypeRefNode param in fnTypeRef.ParamterTypes)
             {
-                ClassType paramType = ResolveType(param);
+                Type paramType = ResolveType(param);
                 paramTypes.Add(paramType);
-                llvmParamTypes.Add(paramType.LLVMType);
             }
 
-            return new FuncType(retType,
-                paramTypes.ToArray(),
-                LLVMTypeRef.CreateFunction(retType.LLVMType,
-                    llvmParamTypes.ToArray()));
+            return new LocalFuncType(retType, paramTypes.ToArray());
         }
         else
         {
             Class @class = CurrentNamespace.GetClass(UnVoid(typeRef));
-            type = new ClassType(@class.Type.LLVMType, @class, TypeKind.Class);
+            type = @class;
         }
 
         int index = 0;
@@ -579,27 +574,24 @@ public class LLVMCompiler
         }
         else if (expr is LocalFuncDefNode localFuncDef)
         {
-            ClassType retType = ResolveType(localFuncDef.ReturnTypeRef);
+            Type retType = ResolveType(localFuncDef.ReturnTypeRef);
             var @params = new List<Parameter>();
-            var paramTypes = new List<ClassType>();
+            var paramTypes = new List<Type>();
             uint index = 0;
 
             foreach (ParameterNode param in localFuncDef.Params)
             {
-                ClassType paramType = ResolveParameter(param);
+                Type paramType = ResolveParameter(param);
                 paramTypes.Add(paramType);
                 @params.Add(new Parameter(index, param.Name, paramType));
                 index++;
             }
 
-            var funcType = new FuncType(retType,
-                paramTypes.ToArray(),
-                LLVMTypeRef.CreateFunction(retType.LLVMType,
-                    paramTypes.AsLLVMTypes().ToArray()));
-            LLVMValueRef func = Module.AddFunction("localfunc", funcType.LLVMType);
+            var funcType = new LocalFuncType(retType, paramTypes.ToArray());
+            LLVMValueRef func = Module.AddFunction(funcType.Name, funcType.LLVMType);
 
-            LLVMFunction? parentFunction = CurrentFunction;
-            var newFunc = new LocalFunction(funcType, func, @params)
+            Function? parentFunction = CurrentFunction;
+            var newFunc = new Function(funcType, func, @params.ToArray())
             {
                 OpeningScope = new Scope(CurrentNamespace, func.AppendBasicBlock("entry"))
             };
@@ -1252,7 +1244,7 @@ public class LLVMCompiler
         return func.Call(this, args.ToArray());
     }
 
-    public void ResolveAttribute(FuncVal func, AttributeNode attribute)
+    public void ResolveAttribute(Function func, AttributeNode attribute)
     {
         if (attribute.Name == "CallingConvention")
         {
