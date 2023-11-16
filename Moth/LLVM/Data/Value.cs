@@ -1,4 +1,6 @@
-﻿namespace Moth.LLVM.Data;
+﻿using Moth.AST.Node;
+
+namespace Moth.LLVM.Data;
 
 public class Value : CompilerData
 {
@@ -30,6 +32,17 @@ public class Function : Value
     }
 
     public virtual Value Call(LLVMCompiler compiler, Value[] args) => Type.Call(compiler, LLVMValue, args);
+}
+
+public class DefinedFunction : Function
+{
+    public PrivacyType Privacy { get; }
+    
+    public DefinedFunction(FuncType type, LLVMValueRef value, Parameter[] @params, PrivacyType privacy)
+        : base(type, value, @params)
+    {
+        Privacy = privacy;
+    }
 }
 
 public abstract class IntrinsicFunction : Function

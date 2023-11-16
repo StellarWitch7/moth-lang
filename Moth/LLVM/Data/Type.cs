@@ -159,8 +159,8 @@ public sealed class MethodType : LLVMFuncType
 {
     public new Class? OwnerClass { get; set; }
 
-    public MethodType(string name, Type retType, Type[] paramTypes, Class? ownerClass)
-        : base(name, retType, paramTypes, false)
+    public MethodType(string name, Type retType, Type[] paramTypes, bool isVariadic, Class? ownerClass)
+        : base(name, retType, paramTypes, isVariadic)
     {
         OwnerClass = ownerClass;
     }

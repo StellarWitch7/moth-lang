@@ -165,13 +165,13 @@ public class LLVMCompiler
 
         foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
         {
-            ClassType fieldType = ResolveType(field.TypeRef);
+            Type fieldType = ResolveType(field.TypeRef);
             llvmTypes.Add(fieldType.LLVMType);
             @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
             index++;
         }
 
-        @class.Type.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
+        @class.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
     }
 
     public void DefineFunction(FuncDefNode funcDefNode, Class? @class = null)
@@ -190,7 +190,7 @@ public class LLVMCompiler
         {
             Type paramType = ResolveParameter(paramNode);
             paramNode.TypeRef.Name = UnVoid(paramNode.TypeRef);
-            @params.Add(new Parameter(index, paramNode.Name, paramType));
+            @params.Add(new Parameter(index, paramNode.Name));
             paramTypes.Add(paramType);
             index++;
         }
@@ -206,20 +206,20 @@ public class LLVMCompiler
         }
 
         Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
-        var llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
+        LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
-        var funcType = new MethodType(funcName,
-            returnType,
-            paramTypes.ToArray(),
-            funcDefNode.Privacy,
-            @class, @params,
-            funcDefNode.IsVariadic);
-        Function func = new Function(funcType, Module.AddFunction(funcName, llvmFuncType));
+        LLVMFuncType funcType = @class == null
+            ? new LLVMFuncType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic)
+            : new MethodType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic, @class);
+        DefinedFunction func = new DefinedFunction(funcType,
+            Module.AddFunction(funcName, llvmFuncType),
+            @params.ToArray(),
+            funcDefNode.Privacy);
 
         if (@class != null)
         {
-            if (funcType.Privacy == PrivacyType.Static)
+            if (func.Privacy == PrivacyType.Static)
             {
                 @class.StaticMethods.Add(sig, func);
             }
@@ -254,7 +254,7 @@ public class LLVMCompiler
     public void CompileFunction(FuncDefNode funcDefNode, Class? @class = null)
     {
         Function? func;
-        var paramTypes = new List<ClassType>();
+        var paramTypes = new List<Type>();
 
         foreach (ParameterNode param in funcDefNode.Params)
         {
@@ -291,17 +291,17 @@ public class LLVMCompiler
             throw new Exception($"{func.Type.Name} cannot be compiled.");
         }
 
-        funcType.OpeningScope = new Scope(@class != null
+        func.OpeningScope = new Scope(@class != null
             ? @class
             : CurrentNamespace, func.LLVMValue.AppendBasicBlock("entry"));
-        Builder.PositionAtEnd(funcType.OpeningScope.LLVMBlock);
+        Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
         CurrentFunction = func;
 
         if (funcDefNode.Name == Reserved.Init && funcDefNode.Privacy == PrivacyType.Static)
         {
-            if (funcType.ReturnType is ClassType classType)
+            if (funcType.ReturnType is Class retType)
             {
-                if (classType.Class != funcType.OwnerClass)
+                if (retType != funcType.OwnerClass)
                 {
                     throw new Exception($"Init method does not return the same type as its owner class " +
                         $"(\"{funcType.OwnerClass.Name}\").");
@@ -309,21 +309,21 @@ public class LLVMCompiler
             }
             else
             {
-                
+                //TODO: what is this
             }
 
             var @new = new Variable(Reserved.Self,
-                Builder.BuildMalloc(funcType.OwnerClass.Type.LLVMType, Reserved.Self), //TODO: malloc or alloc?
-                funcType.OwnerClass.Type);
+                Builder.BuildMalloc(funcType.OwnerClass.LLVMType, Reserved.Self), //TODO: malloc or alloc?
+                funcType.OwnerClass);
 
-            funcType.OpeningScope.Variables.Add(@new.Name, @new);
+            func.OpeningScope.Variables.Add(@new.Name, @new);
 
-            if (@new.Type is not ClassType classTypeOfNew)
+            if (@new.Type is not Class classOfNew)
             {
                 throw new Exception();
             }
             
-            foreach (Field field in classTypeOfNew.Class.Fields.Values)
+            foreach (Field field in classOfNew.Fields.Values)
             {
                 LLVMValueRef llvmField = Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
@@ -334,15 +334,15 @@ public class LLVMCompiler
 
         foreach (Parameter param in CurrentFunction.Params)
         {
-            LLVMValueRef paramAsVar = Builder.BuildAlloca(param.Type.LLVMType, param.Name);
+            LLVMValueRef paramAsVar = Builder.BuildAlloca(CurrentFunction.Type.ParameterTypes[param.ParamIndex].LLVMType, param.Name);
             Builder.BuildStore(func.LLVMValue.Params[param.ParamIndex], paramAsVar);
-            funcType.OpeningScope.Variables.Add(param.Name,
+            func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
                     paramAsVar,
-                    new RefType(param.Type)));
+                    new RefType(CurrentFunction.Type.ParameterTypes[param.ParamIndex])));
         }
 
-        if (!CompileScope(funcType.OpeningScope, funcDefNode.ExecutionBlock))
+        if (!CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
         {
             throw new Exception("Function is not guaranteed to return.");
         }
@@ -359,7 +359,7 @@ public class LLVMCompiler
 
     public void DefineConstant(FieldDefNode constDef, Class? @class = null)
     {
-        ClassType constType = ResolveType(constDef.TypeRef);
+        Type constType = ResolveType(constDef.TypeRef);
         LLVMValueRef constVal = Module.AddGlobal(constType.LLVMType, constDef.Name);
 
         if (@class != null)
@@ -396,7 +396,7 @@ public class LLVMCompiler
                     else
                     {
                         throw new Exception($"Return value \"{expr.LLVMValue}\" does not match return type of function "
-                            + $"\"{CurrentFunction.Name}\" (\"{CurrentFunction.Type.ReturnType}\").");
+                            + $"\"{CurrentFunction.Type.Name}\" (\"{CurrentFunction.Type.ReturnType}\").");
                     }
                 }
                 else
@@ -583,23 +583,23 @@ public class LLVMCompiler
             {
                 Type paramType = ResolveParameter(param);
                 paramTypes.Add(paramType);
-                @params.Add(new Parameter(index, param.Name, paramType));
+                @params.Add(new Parameter(index, param.Name));
                 index++;
             }
 
             var funcType = new LocalFuncType(retType, paramTypes.ToArray());
-            LLVMValueRef func = Module.AddFunction(funcType.Name, funcType.LLVMType);
+            LLVMValueRef llvmFunc = Module.AddFunction(funcType.Name, funcType.LLVMType);
 
             Function? parentFunction = CurrentFunction;
-            var newFunc = new Function(funcType, func, @params.ToArray())
+            var func = new Function(funcType, llvmFunc, @params.ToArray())
             {
-                OpeningScope = new Scope(CurrentNamespace, func.AppendBasicBlock("entry"))
+                OpeningScope = new Scope(CurrentNamespace, llvmFunc.AppendBasicBlock("entry"))
             };
 
-            CurrentFunction = newFunc;
-            Value ret = !CompileScope(newFunc.OpeningScope, localFuncDef.ExecutionBlock)
+            CurrentFunction = func;
+            Value ret = !CompileScope(func.OpeningScope, localFuncDef.ExecutionBlock)
                 ? throw new Exception("Local function is not guaranteed to return.")
-                : new Value(funcType, func);
+                : new Value(funcType, llvmFunc);
             CurrentFunction = parentFunction;
 
             return ret;
@@ -638,9 +638,9 @@ public class LLVMCompiler
             Builder.PositionAtEnd(@continue);
             scope.LLVMBlock = @continue;
 
-            return thenVal.Type.Class.Name != elseVal.Type.Class.Name
-                ? throw new Exception("Then and else statements of inline if are not of the same type.")
-                : new Value(WrapAsRef(thenVal.Type), result);
+            return thenVal.Type.Equals(elseVal.Type)
+                ? new Value(WrapAsRef(thenVal.Type), result)
+                : throw new Exception("Then and else statements of inline if are not of the same type.");
         }
         else if (expr is ConstantNode constNode)
         {
@@ -657,18 +657,28 @@ public class LLVMCompiler
         else if (expr is IncrementVarNode incrementVar)
         {
             Value @ref = CompileRef(scope, incrementVar.RefNode);
-            var valToAdd = LLVMValueRef.CreateConstInt(@ref.Type.Class.Type.LLVMType, 1); //TODO: float compat?
+
+            if (@ref.Type is not RefType || SafeLoad(@ref).Type is BasedType or FuncType)
+            {
+                throw new Exception(); //TODO
+            }
+            
+            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
             Builder.BuildStore(Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd), @ref.LLVMValue);
-            return new Value(WrapAsRef(@ref.Type),
-                @ref.LLVMValue);
+            return new Value(WrapAsRef(@ref.Type), @ref.LLVMValue);
         }
         else if (expr is DecrementVarNode decrementVar)
         {
             Value @ref = CompileRef(scope, decrementVar.RefNode);
-            var valToSub = LLVMValueRef.CreateConstInt(@ref.Type.Class.Type.LLVMType, 1); //TODO: float compat?
+
+            if (@ref.Type is not RefType || SafeLoad(@ref).Type is BasedType or FuncType)
+            {
+                throw new Exception(); //TODO
+            }
+            
+            var valToSub = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
             Builder.BuildStore(Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToSub), @ref.LLVMValue);
-            return new Value(WrapAsRef(@ref.Type),
-                @ref.LLVMValue);
+            return new Value(WrapAsRef(@ref.Type), @ref.LLVMValue);
         }
         else if (expr is AsReferenceNode asReference)
         {
@@ -703,32 +713,32 @@ public class LLVMCompiler
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
             global.Initializer = constStr;
-            return new Value(new PtrType(@class.Type), global);
+            return new Value(new PtrType(@class), global);
         }
         else if (constNode.Value is bool @bool)
         {
             Class @class = UnsignedInt.Bool;
-            return new Value(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
+            return new Value(@class, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
         }
         else if (constNode.Value is int i32)
         {
             Class @class = SignedInt.Int32;
-            return new Value(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
+            return new Value(@class, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
         }
         else if (constNode.Value is float f32)
         {
             Class @class = Float.Float32;
-            return new Value(@class.Type, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
+            return new Value(@class, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
         }
         else if (constNode.Value is char ch)
         {
             Class @class = UnsignedInt.Char;
-            return new Value(@class.Type, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
+            return new Value(@class, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
         }
         else if (constNode.Value == null)
         {
             Class @class = UnsignedInt.Char;
-            return new Value(@class.Type, LLVMValueRef.CreateConstNull(@class.Type.LLVMType));
+            return new Value(@class, LLVMValueRef.CreateConstNull(@class.Type.LLVMType));
         }
         else
         {
@@ -742,19 +752,19 @@ public class LLVMCompiler
         Value right = SafeLoad(CompileExpression(scope, binaryOp.Right));
 
         if (binaryOp.Type == OperationType.Exponential
-            && right.Type.Class is Float or Int
-            && left.Type.Class is Float or Int)
+            && right.Type is Float or Int
+            && left.Type is Float or Int)
         {
             return CompilePow(left, right);
         }
-        else if (left.Type.Class.Name == right.Type.Class.Name
+        else if (left.Type.Equals(right.Type)
             || binaryOp.Type == OperationType.Equal
             || binaryOp.Type == OperationType.NotEqual)
         {
             LLVMValueRef leftVal;
             LLVMValueRef rightVal;
             LLVMValueRef builtVal;
-            ClassType builtType;
+            Type builtType;
 
             leftVal = left.LLVMValue;
             rightVal = right.LLVMValue;
@@ -763,47 +773,47 @@ public class LLVMCompiler
             switch (binaryOp.Type)
             {
                 case OperationType.Addition:
-                    builtVal = left.Type.Class is Float
+                    builtVal = left.Type is Float
                         ? Builder.BuildFAdd(leftVal, rightVal)
                         : Builder.BuildAdd(leftVal, rightVal);
                     break;
                 case OperationType.Subtraction:
-                    builtVal = left.Type.Class is Float
+                    builtVal = left.Type is Float
                         ? Builder.BuildFSub(leftVal, rightVal)
                         : Builder.BuildSub(leftVal, rightVal);
                     break;
                 case OperationType.Multiplication:
-                    builtVal = left.Type.Class is Float
+                    builtVal = left.Type is Float
                         ? Builder.BuildFMul(leftVal, rightVal)
                         : Builder.BuildMul(leftVal, rightVal);
                     break;
                 case OperationType.Division:
-                    builtVal = left.Type.Class is Float
+                    builtVal = left.Type is Float
                         ? Builder.BuildFDiv(leftVal, rightVal)
-                        : left.Type.Class is UnsignedInt
+                        : left.Type is UnsignedInt
                             ? Builder.BuildUDiv(leftVal, rightVal)
-                            : left.Type.Class is SignedInt
+                            : left.Type is SignedInt
                                 ? Builder.BuildSDiv(leftVal, rightVal)
                                 : throw new NotImplementedException();
 
                     break;
                 case OperationType.Modulo:
-                    builtVal = left.Type.Class is Float
+                    builtVal = left.Type is Float
                         ? Builder.BuildFRem(leftVal, rightVal)
-                        : left.Type.Class is UnsignedInt
+                        : left.Type is UnsignedInt
                             ? Builder.BuildURem(leftVal, rightVal)
-                            : left.Type.Class is SignedInt
+                            : left.Type is SignedInt
                                 ? Builder.BuildSRem(leftVal, rightVal)
                                 : throw new NotImplementedException();
 
                     break;
                 case OperationType.And:
                     builtVal = Builder.BuildAnd(leftVal, rightVal);
-                    builtType = UnsignedInt.Bool.Type;
+                    builtType = UnsignedInt.Bool;
                     break;
                 case OperationType.Or:
                     builtVal = Builder.BuildOr(leftVal, rightVal);
-                    builtType = UnsignedInt.Bool.Type;
+                    builtType = UnsignedInt.Bool;
                     break;
                 case OperationType.Equal:
                 case OperationType.NotEqual:
@@ -815,25 +825,25 @@ public class LLVMCompiler
                             ? binaryOp.Type == OperationType.Equal
                                 ? Builder.BuildIsNull(rightVal)
                                 : Builder.BuildIsNotNull(rightVal)
-                            : left.Type.Class is Float
+                            : left.Type is Float
                                 ? Builder.BuildFCmp(binaryOp.Type == OperationType.Equal
                                         ? LLVMRealPredicate.LLVMRealOEQ
                                         : LLVMRealPredicate.LLVMRealUNE,
                                     leftVal, rightVal)
-                                : left.Type.Class is Int
+                                : left.Type is Int
                                     ? Builder.BuildICmp(binaryOp.Type == OperationType.Equal
                                             ? LLVMIntPredicate.LLVMIntEQ
                                             : LLVMIntPredicate.LLVMIntNE,
                                         leftVal, rightVal)
                                     : throw new NotImplementedException();
 
-                    builtType = UnsignedInt.Bool.Type;
+                    builtType = UnsignedInt.Bool;
                     break;
                 case OperationType.GreaterThan:
                 case OperationType.GreaterThanOrEqual:
                 case OperationType.LesserThan:
                 case OperationType.LesserThanOrEqual:
-                    builtVal = left.Type.Class is Float
+                    builtVal = left.Type is Float
                         ? Builder.BuildFCmp(binaryOp.Type switch
                         {
                             OperationType.GreaterThan => LLVMRealPredicate.LLVMRealOGT,
@@ -842,7 +852,7 @@ public class LLVMCompiler
                             OperationType.LesserThanOrEqual => LLVMRealPredicate.LLVMRealOLE,
                             _ => throw new NotImplementedException(),
                         }, leftVal, rightVal)
-                        : left.Type.Class is UnsignedInt
+                        : left.Type is UnsignedInt
                             ? Builder.BuildICmp(binaryOp.Type switch
                             {
                                 OperationType.GreaterThan => LLVMIntPredicate.LLVMIntUGT,
@@ -851,7 +861,7 @@ public class LLVMCompiler
                                 OperationType.LesserThanOrEqual => LLVMIntPredicate.LLVMIntULE,
                                 _ => throw new NotImplementedException(),
                             }, leftVal, rightVal)
-                            : left.Type.Class is SignedInt
+                            : left.Type is SignedInt
                                 ? Builder.BuildICmp(binaryOp.Type switch
                                 {
                                     OperationType.GreaterThan => LLVMIntPredicate.LLVMIntSGT,
@@ -860,10 +870,10 @@ public class LLVMCompiler
                                     OperationType.LesserThanOrEqual => LLVMIntPredicate.LLVMIntSLE,
                                     _ => throw new NotImplementedException(),
                                 }, leftVal, rightVal)
-                                : throw new NotImplementedException($"Unimplemented comparison between {left.Type.Class.Name} and " +
-                                    $"{right.Type.Class.Name}.");
+                                : throw new NotImplementedException($"Unimplemented comparison between {left.Type} " +
+                                    $"and {right.Type}.");
 
-                    builtType = UnsignedInt.Bool.Type;
+                    builtType = UnsignedInt.Bool;
                     break;
                 default:
                     throw new NotImplementedException();
@@ -873,8 +883,8 @@ public class LLVMCompiler
         }
         else
         {
-            throw new Exception($"Operation cannot be done with operands of types \"{left.Type.Class.Name}\" "
-                + $"and \"{right.Type.Class.Name}\"!");
+            throw new Exception($"Operation cannot be done with operands of types \"{left.Type}\" "
+                + $"and \"{right.Type}\"!");
         }
     }
 
@@ -886,29 +896,29 @@ public class LLVMCompiler
         }
 
         Value right = SafeLoad(CompileExpression(scope, binaryOp.Right));
-        ClassType destType = ResolveType(left);
-        LLVMValueRef builtVal = destType.Class is Int
-            ? right.Type.Class is Int
-                ? destType.Class.Name == Reserved.Bool
+        Type destType = ResolveType(left);
+        LLVMValueRef builtVal = destType is Int
+            ? right.Type is Int
+                ? destType.Equals(UnsignedInt.Bool)
                     ? Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
                         LLVMValueRef.CreateConstInt(right.Type.LLVMType, 0), right.LLVMValue)
-                    : right.Type.Class.Name == Reserved.Bool
+                    : right.Type.Equals(UnsignedInt.Bool)
                         ? Builder.BuildZExt(right.LLVMValue, destType.LLVMType)
                         : Builder.BuildIntCast(right.LLVMValue, destType.LLVMType)
-                : right.Type.Class is Float
-                    ? destType.Class is UnsignedInt
+                : right.Type is Float
+                    ? destType is UnsignedInt
                         ? Builder.BuildFPToUI(right.LLVMValue, destType.LLVMType)
-                        : destType.Class is SignedInt
+                        : destType is SignedInt
                             ? Builder.BuildFPToSI(right.LLVMValue, destType.LLVMType)
                             : throw new NotImplementedException()
                     : throw new NotImplementedException()
-            : destType.Class is Float
-                ? right.Type.Class is Float
+            : destType is Float
+                ? right.Type is Float
                     ? Builder.BuildFPCast(right.LLVMValue, destType.LLVMType)
-                    : right.Type.Class is Int
-                        ? right.Type.Class is UnsignedInt
+                    : right.Type is Int
+                        ? right.Type is UnsignedInt
                             ? Builder.BuildUIToFP(right.LLVMValue, destType.LLVMType)
-                            : right.Type.Class is SignedInt
+                            : right.Type is SignedInt
                                 ? Builder.BuildSIToFP(right.LLVMValue, destType.LLVMType)
                                 : throw new NotImplementedException()
                         : throw new NotImplementedException()
@@ -929,33 +939,33 @@ public class LLVMCompiler
         LLVMValueRef val;
         string intrinsic;
         LLVMTypeRef destType = LLVMTypeRef.Float;
-        bool returnInt = left.Type.Class is Int && right.Type.Class is Int;
+        bool returnInt = left.Type is Int && right.Type is Int;
 
-        if (left.Type.Class is Int)
+        if (left.Type is Int)
         {
-            if (left.Type.Class.Name is Reserved.UnsignedInt64
-                or Reserved.SignedInt64)
+            if (left.Type.Equals(UnsignedInt.UInt64)
+                || left.Type.Equals(SignedInt.Int64))
             {
                 destType = LLVMTypeRef.Double;
             }
 
-            val = left.Type.Class is SignedInt
+            val = left.Type is SignedInt
                 ? Builder.BuildSIToFP(SafeLoad(left).LLVMValue, destType)
-                : left.Type.Class is UnsignedInt
+                : left.Type is UnsignedInt
                     ? Builder.BuildUIToFP(SafeLoad(left).LLVMValue, destType)
                     : throw new NotImplementedException();
             left = new Value(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                    ? f64.Type
-                    : f32.Type,
+                    ? f64
+                    : f32,
                 val);
         }
-        else if (left.Type.Class is Float
-            && left.Type.Class.Name != Reserved.Float64)
+        else if (left.Type is Float
+            && !left.Type.Equals(Float.Float64))
         {
             val = Builder.BuildFPCast(SafeLoad(left).LLVMValue, destType);
             left = new Value(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                    ? f64.Type
-                    : f32.Type,
+                    ? f64
+                    : f32,
                 val);
         }
         else
@@ -963,11 +973,11 @@ public class LLVMCompiler
             throw new NotImplementedException();
         }
 
-        if (right.Type.Class is Float)
+        if (right.Type is Float)
         {
-            if (left.Type.Class.Name == Reserved.Float64)
+            if (left.Type.Name == Reserved.Float64)
             {
-                if (right.Type.Class.Name != Reserved.Float64)
+                if (right.Type.Name != Reserved.Float64)
                 {
                     val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
                     right = new Value(f64.Type, val);
@@ -977,7 +987,7 @@ public class LLVMCompiler
             }
             else
             {
-                if (right.Type.Class.Name != Reserved.Float32)
+                if (right.Type.Name != Reserved.Float32)
                 {
                     val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
                     right = new Value(f32.Type, val);
@@ -986,11 +996,11 @@ public class LLVMCompiler
                 intrinsic = "llvm.pow.f32";
             }
         }
-        else if (right.Type.Class is Int)
+        else if (right.Type is Int)
         {
-            if (left.Type.Class.Name == Reserved.Float64)
+            if (left.Type.Name == Reserved.Float64)
             {
-                if (right.Type.Class.Name is not Reserved.SignedInt16
+                if (right.Type.Name is not Reserved.SignedInt16
                     and not Reserved.UnsignedInt16)
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
@@ -1001,7 +1011,7 @@ public class LLVMCompiler
             }
             else
             {
-                if (right.Type.Class.Name is not Reserved.SignedInt32
+                if (right.Type.Name is not Reserved.SignedInt32
                     and not Reserved.UnsignedInt32)
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
@@ -1169,7 +1179,7 @@ public class LLVMCompiler
     {
         if (context != null)
         {
-            Field field = context.Type.Class.Fields[refNode.Name];
+            Field field = context.Type.Fields[refNode.Name];
             ClassType type = SafeLoad(context).Type;
             return new Value(WrapAsRef(field.Type),
                 Builder.BuildStructGEP2(type.LLVMType,
@@ -1214,7 +1224,7 @@ public class LLVMCompiler
 
         var sig = new Signature(funcCall.Name, argTypes);
 
-        if (context != null && context.Type.Class.Methods.TryGetValue(sig, out func))
+        if (context != null && context.Type.Methods.TryGetValue(sig, out func))
         {
             if (context.Type.LLVMType == func.Type.LLVMType.ParamTypes[0])
             {
@@ -1282,7 +1292,7 @@ public class LLVMCompiler
 
     public Value SafeLoad(Value value)
     {
-        return value.Type is RefType @ref && value.Type.Class.Name != Reserved.Void
+        return value.Type is RefType @ref && value.Type.Name != Reserved.Void
             ? new Value(@ref.BaseType, Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue))
             : value;
     }
