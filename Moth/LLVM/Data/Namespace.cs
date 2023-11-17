@@ -18,11 +18,5 @@ public class Namespace : CompilerData, IClassContainer, IFunctionContainer
 
     public Function GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public bool TryGetData(string name, out CompilerData data) => throw new NotImplementedException();
-
-    public bool TryGetFunction(Signature sig, out Function func) => throw new NotImplementedException();
-
     public Class GetClass(string name) => throw new NotImplementedException();
-
-    public bool TryGetClass(string name, out Class @class) => throw new NotImplementedException();
 }

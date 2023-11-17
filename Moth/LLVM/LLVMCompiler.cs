@@ -62,7 +62,43 @@ public class LLVMCompiler
             ? func
             : CreateIntrinsic(name);
 
-    public Namespace ResolveNamespace(string str) => throw new NotImplementedException();
+    public Namespace ResolveNamespace(string str) //TODO: improve
+    {
+        Namespace value = null;
+        string[] names = str.Split('.');
+
+        foreach (var name in names)
+        {
+            if (value != null)
+            {
+                if (value.Namespaces.TryGetValue(name, out Namespace o))
+                {
+                    value = o;
+                }
+                else
+                {
+                    var @new = new Namespace(value);
+                    value.Namespaces.Add(name, @new);
+                    value = @new;
+                }
+            }
+            else
+            {
+                if (GlobalNamespace.Namespaces.TryGetValue(name, out Namespace o))
+                {
+                    value = o;
+                }
+                else
+                {
+                    var @new = new Namespace(GlobalNamespace);
+                    GlobalNamespace.Namespaces.Add(name, @new);
+                    value = @new;
+                }
+            }
+        }
+
+        return value;
+    }
 
     public void Warn(string message) => Log($"Warning: {message}");
 
@@ -717,12 +753,12 @@ public class LLVMCompiler
         }
         else if (constNode.Value is bool @bool)
         {
-            Class @class = UnsignedInt.Bool;
+            Class @class = Primitives.Bool;
             return new Value(@class, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
         }
         else if (constNode.Value is int i32)
         {
-            Class @class = SignedInt.Int32;
+            Class @class = Primitives.Int32;
             return new Value(@class, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
         }
         else if (constNode.Value is float f32)
@@ -732,12 +768,12 @@ public class LLVMCompiler
         }
         else if (constNode.Value is char ch)
         {
-            Class @class = UnsignedInt.Char;
+            Class @class = Primitives.Char;
             return new Value(@class, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
         }
         else if (constNode.Value == null)
         {
-            Class @class = UnsignedInt.Char;
+            Class @class = Primitives.Char;
             return new Value(@class, LLVMValueRef.CreateConstNull(@class.LLVMType));
         }
         else
@@ -809,11 +845,11 @@ public class LLVMCompiler
                     break;
                 case OperationType.And:
                     builtVal = Builder.BuildAnd(leftVal, rightVal);
-                    builtType = UnsignedInt.Bool;
+                    builtType = Primitives.Bool;
                     break;
                 case OperationType.Or:
                     builtVal = Builder.BuildOr(leftVal, rightVal);
-                    builtType = UnsignedInt.Bool;
+                    builtType = Primitives.Bool;
                     break;
                 case OperationType.Equal:
                 case OperationType.NotEqual:
@@ -837,7 +873,7 @@ public class LLVMCompiler
                                         leftVal, rightVal)
                                     : throw new NotImplementedException();
 
-                    builtType = UnsignedInt.Bool;
+                    builtType = Primitives.Bool;
                     break;
                 case OperationType.GreaterThan:
                 case OperationType.GreaterThanOrEqual:
@@ -873,7 +909,7 @@ public class LLVMCompiler
                                 : throw new NotImplementedException($"Unimplemented comparison between {left.Type} " +
                                     $"and {right.Type}.");
 
-                    builtType = UnsignedInt.Bool;
+                    builtType = Primitives.Bool;
                     break;
                 default:
                     throw new NotImplementedException();
@@ -899,10 +935,10 @@ public class LLVMCompiler
         Type destType = ResolveType(left);
         LLVMValueRef builtVal = destType is Int
             ? right.Type is Int
-                ? destType.Equals(UnsignedInt.Bool)
+                ? destType.Equals(Primitives.Bool)
                     ? Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
                         LLVMValueRef.CreateConstInt(right.Type.LLVMType, 0), right.LLVMValue)
-                    : right.Type.Equals(UnsignedInt.Bool)
+                    : right.Type.Equals(Primitives.Bool)
                         ? Builder.BuildZExt(right.LLVMValue, destType.LLVMType)
                         : Builder.BuildIntCast(right.LLVMValue, destType.LLVMType)
                 : right.Type is Float
@@ -930,9 +966,9 @@ public class LLVMCompiler
 
     public Value CompilePow(Value left, Value right)
     {
-        Class i16 = SignedInt.Int16;
-        Class i32 = SignedInt.Int32;
-        Class i64 = SignedInt.Int64;
+        Class i16 = Primitives.Int16;
+        Class i32 = Primitives.Int32;
+        Class i64 = Primitives.Int64;
         Class f32 = Float.Float32;
         Class f64 = Float.Float64;
 
@@ -943,8 +979,8 @@ public class LLVMCompiler
 
         if (left.Type is Int)
         {
-            if (left.Type.Equals(UnsignedInt.UInt64)
-                || left.Type.Equals(SignedInt.Int64))
+            if (left.Type.Equals(Primitives.UInt64)
+                || left.Type.Equals(Primitives.Int64))
             {
                 destType = LLVMTypeRef.Double;
             }
@@ -1000,8 +1036,8 @@ public class LLVMCompiler
         {
             if (left.Type.Equals(Float.Float64))
             {
-                if (!right.Type.Equals(UnsignedInt.UInt16)
-                    && !right.Type.Equals(SignedInt.Int16))
+                if (!right.Type.Equals(Primitives.UInt16)
+                    && !right.Type.Equals(Primitives.Int16))
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
                     right = new Value(i16, val);
@@ -1011,8 +1047,8 @@ public class LLVMCompiler
             }
             else
             {
-                if (right.Type.Equals(UnsignedInt.UInt32)
-                    || right.Type.Equals(SignedInt.Int32))
+                if (right.Type.Equals(Primitives.UInt32)
+                    || right.Type.Equals(Primitives.Int32))
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
                     right = new Value(i32, val);
@@ -1294,7 +1330,7 @@ public class LLVMCompiler
 
     public Value SafeLoad(Value value)
     {
-        return value.Type is RefType @ref && !value.Type.Equals(Class.Void)
+        return value.Type is RefType @ref && !value.Type.Equals(Primitives.Void)
             ? new Value(@ref.BaseType, Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue))
             : value;
     }
@@ -1308,20 +1344,20 @@ public class LLVMCompiler
     {
         var @namespace = new Namespace(null);
 
-        @namespace.Classes.Add(Reserved.Void, Class.Void);
+        @namespace.Classes.Add(Reserved.Void, Primitives.Void);
         @namespace.Classes.Add(Reserved.Float16, Float.Float16);
         @namespace.Classes.Add(Reserved.Float32, Float.Float32);
         @namespace.Classes.Add(Reserved.Float64, Float.Float64);
-        @namespace.Classes.Add(Reserved.Bool, UnsignedInt.Bool);
-        @namespace.Classes.Add(Reserved.Char, UnsignedInt.Char);
-        @namespace.Classes.Add(Reserved.UnsignedInt8, UnsignedInt.UInt8);
-        @namespace.Classes.Add(Reserved.UnsignedInt16, UnsignedInt.UInt16);
-        @namespace.Classes.Add(Reserved.UnsignedInt32, UnsignedInt.UInt32);
-        @namespace.Classes.Add(Reserved.UnsignedInt64, UnsignedInt.UInt64);
-        @namespace.Classes.Add(Reserved.SignedInt8, SignedInt.Int8);
-        @namespace.Classes.Add(Reserved.SignedInt16, SignedInt.Int16);
-        @namespace.Classes.Add(Reserved.SignedInt32, SignedInt.Int32);
-        @namespace.Classes.Add(Reserved.SignedInt64, SignedInt.Int64);
+        @namespace.Classes.Add(Reserved.Bool, Primitives.Bool);
+        @namespace.Classes.Add(Reserved.Char, Primitives.Char);
+        @namespace.Classes.Add(Reserved.UnsignedInt8, Primitives.UInt8);
+        @namespace.Classes.Add(Reserved.UnsignedInt16, Primitives.UInt16);
+        @namespace.Classes.Add(Reserved.UnsignedInt32, Primitives.UInt32);
+        @namespace.Classes.Add(Reserved.UnsignedInt64, Primitives.UInt64);
+        @namespace.Classes.Add(Reserved.SignedInt8, Primitives.Int8);
+        @namespace.Classes.Add(Reserved.SignedInt16, Primitives.Int16);
+        @namespace.Classes.Add(Reserved.SignedInt32, Primitives.Int32);
+        @namespace.Classes.Add(Reserved.SignedInt64, Primitives.Int64);
 
         foreach (Class @class in @namespace.Classes.Values)
         {
@@ -1335,8 +1371,8 @@ public class LLVMCompiler
     {
         Pow func = name switch
         {
-            "llvm.powi.f32.i32" => new Pow(name, Module, Float.Float32, Float.Float32, SignedInt.Int32),
-            "llvm.powi.f64.i16" => new Pow(name, Module, Float.Float64, Float.Float64, SignedInt.Int64),
+            "llvm.powi.f32.i32" => new Pow(name, Module, Float.Float32, Float.Float32, Primitives.Int32),
+            "llvm.powi.f64.i16" => new Pow(name, Module, Float.Float64, Float.Float64, Primitives.Int64),
             "llvm.pow.f32" => new Pow(name, Module, Float.Float32, Float.Float32, Float.Float32),
             "llvm.pow.f64" => new Pow(name, Module, Float.Float64, Float.Float64, Float.Float64),
             _ => throw new NotImplementedException($"Intrinsic \"{name}\" is not implemented."),

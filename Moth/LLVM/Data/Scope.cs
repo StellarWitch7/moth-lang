@@ -13,6 +13,4 @@ public class Scope : CompilerData, IContainer
     }
 
     public CompilerData GetData(string name) => throw new NotImplementedException();
-
-    public bool TryGetData(string name, out CompilerData data) => throw new NotImplementedException();
 }

@@ -4,8 +4,6 @@ namespace Moth.LLVM.Data;
 
 public class Class : Type, IFunctionContainer
 {
-    public static Class Void = new Class(null, Reserved.Void, LLVMTypeRef.Void, PrivacyType.Public);
-    
     public IContainer? Parent { get; }
     public string Name { get; }
     public PrivacyType Privacy { get; }
@@ -31,7 +29,7 @@ public class Class : Type, IFunctionContainer
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
                 : LLVMType.SizeOf;
 
-            var value = new Value(UnsignedInt.UInt64, retValue);
+            var value = new Value(Primitives.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
@@ -42,7 +40,7 @@ public class Class : Type, IFunctionContainer
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
                 : LLVMType.AlignOf;
 
-            var value = new Value(UnsignedInt.UInt64, retValue);
+            var value = new Value(Primitives.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }
@@ -50,11 +48,7 @@ public class Class : Type, IFunctionContainer
 
     public Function GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public bool TryGetFunction(Signature sig, out Function func) => throw new NotImplementedException();
-
     public CompilerData GetData(string name) => throw new NotImplementedException();
-
-    public bool TryGetData(string name, out CompilerData data) => throw new NotImplementedException();
     
     public override string ToString() => Name;
 
