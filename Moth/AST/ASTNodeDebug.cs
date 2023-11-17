@@ -17,7 +17,7 @@ public abstract partial class ASTNode
 
     public virtual void WriteDebugString(IndentedTextWriter writer, bool indent = false)
     {
-        Type type = GetType();
+        SystemType type = GetType();
         PropertyInfo[] props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
         writer.Write(type.Name);

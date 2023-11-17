@@ -2,7 +2,7 @@
   "profiles": {
     "MothCLI": {
       "commandName": "Project",
-      "commandLineArgs": "-v --debug-test -o test -i D:/home/aurora/RiderProjects/moth-lang/TestScripts/moth/Program.moth D:/home/aurora/RiderProjects/moth-lang/TestScripts/moth/Foreign.moth D:/home/aurora/RiderProjects/moth-lang/TestScripts/moth/System.moth",
+      "commandLineArgs": "-v --debug-test -o test -i /home/aurora/RiderProjects/moth-lang/TestScripts/moth/Program.moth /home/aurora/RiderProjects/moth-lang/TestScripts/moth/Foreign.moth /home/aurora/RiderProjects/moth-lang/TestScripts/moth/System.moth",
       "workingDirectory": "/home/aurora/RiderProjects/moth-lang/run",
       "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.CLI/bin/Debug/net7.0/MothCLI.exe",
       "externalTerminal": true,

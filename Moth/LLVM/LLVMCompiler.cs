@@ -738,7 +738,7 @@ public class LLVMCompiler
         else if (constNode.Value == null)
         {
             Class @class = UnsignedInt.Char;
-            return new Value(@class, LLVMValueRef.CreateConstNull(@class.Type.LLVMType));
+            return new Value(@class, LLVMValueRef.CreateConstNull(@class.LLVMType));
         }
         else
         {
@@ -975,22 +975,22 @@ public class LLVMCompiler
 
         if (right.Type is Float)
         {
-            if (left.Type.Name == Reserved.Float64)
+            if (left.Type.Equals(Float.Float64))
             {
-                if (right.Type.Name != Reserved.Float64)
+                if (right.Type.Equals(Float.Float64))
                 {
                     val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
-                    right = new Value(f64.Type, val);
+                    right = new Value(f64, val);
                 }
 
                 intrinsic = "llvm.pow.f64";
             }
             else
             {
-                if (right.Type.Name != Reserved.Float32)
+                if (right.Type.Equals(Float.Float32))
                 {
                     val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
-                    right = new Value(f32.Type, val);
+                    right = new Value(f32, val);
                 }
 
                 intrinsic = "llvm.pow.f32";
@@ -998,24 +998,24 @@ public class LLVMCompiler
         }
         else if (right.Type is Int)
         {
-            if (left.Type.Name == Reserved.Float64)
+            if (left.Type.Equals(Float.Float64))
             {
-                if (right.Type.Name is not Reserved.SignedInt16
-                    and not Reserved.UnsignedInt16)
+                if (!right.Type.Equals(UnsignedInt.UInt16)
+                    && !right.Type.Equals(SignedInt.Int16))
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
-                    right = new Value(i16.Type, val);
+                    right = new Value(i16, val);
                 }
 
                 intrinsic = "llvm.powi.f64.i16";
             }
             else
             {
-                if (right.Type.Name is not Reserved.SignedInt32
-                    and not Reserved.UnsignedInt32)
+                if (right.Type.Equals(UnsignedInt.UInt32)
+                    || right.Type.Equals(SignedInt.Int32))
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
-                    right = new Value(i32.Type, val);
+                    right = new Value(i32, val);
                 }
 
                 intrinsic = "llvm.powi.f32.i32";
@@ -1037,10 +1037,10 @@ public class LLVMCompiler
         if (returnInt)
         {
             result = result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                ? new Value(i64.Type,
+                ? new Value(i64,
                     Builder.BuildFPToSI(result.LLVMValue,
                         LLVMTypeRef.Int64))
-                : new Value(i32.Type,
+                : new Value(i32,
                     Builder.BuildFPToSI(result.LLVMValue,
                         LLVMTypeRef.Int32));
         }
@@ -1072,7 +1072,7 @@ public class LLVMCompiler
     public Value CompileLocal(Scope scope, LocalDefNode localDef)
     {
         Value? value = null;
-        ClassType type;
+        Type type;
 
         if (localDef is InferredLocalDefNode inferredLocalDef)
         {
@@ -1108,16 +1108,14 @@ public class LLVMCompiler
                     throw new Exception("Attempted self-instance reference in a global function.");
                 }
 
-                if (CurrentFunction.Name == Reserved.Init)
+                if (CurrentFunction.Type.Name == Reserved.Init)
                 {
                     Variable self = scope.Variables[Reserved.Self];
-                    context = new Value(WrapAsRef(self.Type),
-                            self.LLVMVariable);
+                    context = new Value(WrapAsRef(self.Type), self.LLVMVariable);
                 }
                 else
                 {
-                    context = new Value(WrapAsRef(CurrentFunction.OwnerClass.Type),
-                        CurrentFunction.LLVMValue.FirstParam);
+                    context = new Value(WrapAsRef(CurrentFunction.OwnerClass), CurrentFunction.LLVMValue.FirstParam);
                 }
 
                 refNode = refNode.Child;
@@ -1139,7 +1137,7 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    throw new Exception($"#{@class.Type} cannot be treated like an expression value.");
+                    throw new Exception($"#{@class} cannot be treated like an expression value.");
                 }
             }
             else if (refNode is FuncCallNode funcCall)
@@ -1151,7 +1149,7 @@ public class LLVMCompiler
             {
                 context = SafeLoad(CompileVarRef(context, scope, refNode));
 
-                ClassType resultType = context.Type is PtrType ptrType
+                Type resultType = context.Type is PtrType ptrType
                     ? ptrType.BaseType
                     : throw new Exception($"Tried to use an index access on non-pointer \"{context.Type.LLVMType}\".");
 
@@ -1179,8 +1177,13 @@ public class LLVMCompiler
     {
         if (context != null)
         {
-            Field field = context.Type.Fields[refNode.Name];
-            ClassType type = SafeLoad(context).Type;
+            if (context.Type is not Class classType)
+            {
+                throw new Exception(); //TODO
+            }
+            
+            Field field = classType.Fields[refNode.Name]; //TODO: use the GetField() method on the class instead
+            Type type = SafeLoad(context).Type;
             return new Value(WrapAsRef(field.Type),
                 Builder.BuildStructGEP2(type.LLVMType,
                     context.LLVMValue,
@@ -1201,8 +1204,8 @@ public class LLVMCompiler
 
     public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Class? staticClass = null)
     { //TODO: needs to be reworked
-        FuncType? func;
-        var argTypes = new List<ClassType>();
+        Function? func;
+        var argTypes = new List<Type>();
         var args = new List<Value>();
         bool contextWasNull = context == null;
 
@@ -1210,8 +1213,7 @@ public class LLVMCompiler
         {
             if (CurrentFunction.OwnerClass != null)
             {
-                context = new Value(CurrentFunction.OwnerClass.Type,
-                    CurrentFunction.LLVMValue.FirstParam);
+                context = new Value(CurrentFunction.OwnerClass, CurrentFunction.LLVMValue.FirstParam);
             }
         }
 
@@ -1224,7 +1226,7 @@ public class LLVMCompiler
 
         var sig = new Signature(funcCall.Name, argTypes);
 
-        if (context != null && context.Type.Methods.TryGetValue(sig, out func))
+        if (context != null && context.Type is Class classType && classType.Methods.TryGetValue(sig, out func))
         {
             if (context.Type.LLVMType == func.Type.LLVMType.ParamTypes[0])
             {
@@ -1292,7 +1294,7 @@ public class LLVMCompiler
 
     public Value SafeLoad(Value value)
     {
-        return value.Type is RefType @ref && value.Type.Name != Reserved.Void
+        return value.Type is RefType @ref && !value.Type.Equals(Class.Void)
             ? new Value(@ref.BaseType, Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue))
             : value;
     }
@@ -1306,7 +1308,7 @@ public class LLVMCompiler
     {
         var @namespace = new Namespace(null);
 
-        @namespace.Classes.Add(Reserved.Void, new Class(@namespace, Reserved.Void, LLVMTypeRef.Void, PrivacyType.Public));
+        @namespace.Classes.Add(Reserved.Void, Class.Void);
         @namespace.Classes.Add(Reserved.Float16, Float.Float16);
         @namespace.Classes.Add(Reserved.Float32, Float.Float32);
         @namespace.Classes.Add(Reserved.Float64, Float.Float64);
@@ -1333,10 +1335,10 @@ public class LLVMCompiler
     {
         Pow func = name switch
         {
-            "llvm.powi.f32.i32" => new Pow(name, Module, Float.Float32.Type, Float.Float32.Type, SignedInt.Int32.Type),
-            "llvm.powi.f64.i16" => new Pow(name, Module, Float.Float64.Type, Float.Float64.Type, SignedInt.Int64.Type),
-            "llvm.pow.f32" => new Pow(name, Module, Float.Float32.Type, Float.Float32.Type, Float.Float32.Type),
-            "llvm.pow.f64" => new Pow(name, Module, Float.Float64.Type, Float.Float64.Type, Float.Float64.Type),
+            "llvm.powi.f32.i32" => new Pow(name, Module, Float.Float32, Float.Float32, SignedInt.Int32),
+            "llvm.powi.f64.i16" => new Pow(name, Module, Float.Float64, Float.Float64, SignedInt.Int64),
+            "llvm.pow.f32" => new Pow(name, Module, Float.Float32, Float.Float32, Float.Float32),
+            "llvm.pow.f64" => new Pow(name, Module, Float.Float64, Float.Float64, Float.Float64),
             _ => throw new NotImplementedException($"Intrinsic \"{name}\" is not implemented."),
         };
 

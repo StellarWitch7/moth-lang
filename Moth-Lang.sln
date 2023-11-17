@@ -11,9 +11,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moth", "Moth\Moth.csproj", "{45A62957-88A8-419D-98D0-EFD5C901AA06}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5C5BA33D-75C4-4FC6-82CA-65BCF15F0F8C}"
-	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moth.Test", "Moth.Test\Moth.Test.csproj", "{D2661EE9-F280-4797-94DF-D4FB93EB48B0}"
 EndProject

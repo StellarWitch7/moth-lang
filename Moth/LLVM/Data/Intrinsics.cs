@@ -1,6 +1,4 @@
-﻿using Moth.LLVM.Data;
-
-namespace Moth.LLVM;
+﻿namespace Moth.LLVM.Data;
 
 public sealed class ConstRetFn : IntrinsicFunction
 {

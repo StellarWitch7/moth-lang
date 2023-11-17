@@ -4,6 +4,8 @@ namespace Moth.LLVM.Data;
 
 public class Class : Type, IFunctionContainer
 {
+    public static Class Void = new Class(null, Reserved.Void, LLVMTypeRef.Void, PrivacyType.Public);
+    
     public IContainer? Parent { get; }
     public string Name { get; }
     public PrivacyType Privacy { get; }
@@ -31,7 +33,7 @@ public class Class : Type, IFunctionContainer
 
             var value = new Value(UnsignedInt.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<ClassType>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
 
         // alignof()
@@ -42,7 +44,7 @@ public class Class : Type, IFunctionContainer
 
             var value = new Value(UnsignedInt.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<ClassType>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }
     }
 
