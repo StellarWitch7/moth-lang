@@ -14,6 +14,7 @@ public class LLVMCompiler
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
+    private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
 
@@ -77,7 +78,7 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    var @new = new Namespace(value);
+                    var @new = new Namespace(value, name);
                     value.Namespaces.Add(name, @new);
                     value = @new;
                 }
@@ -90,7 +91,7 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    var @new = new Namespace(GlobalNamespace);
+                    var @new = new Namespace(GlobalNamespace, name);
                     GlobalNamespace.Namespaces.Add(name, @new);
                     value = @new;
                 }
@@ -98,6 +99,18 @@ public class LLVMCompiler
         }
 
         return value;
+    }
+
+    public Namespace[] ResolveImports(string[] importNames)
+    {
+        List<Namespace> result = new List<Namespace>();
+
+        foreach (var importName in importNames)
+        {
+            result.Add(ResolveNamespace(importName));
+        }
+
+        return result.ToArray();
     }
 
     public void Warn(string message) => Log($"Warning: {message}");
@@ -108,7 +121,7 @@ public class LLVMCompiler
     {
         foreach (ScriptAST script in scripts)
         {
-            CurrentNamespace = ResolveNamespace(script.Namespace);
+            OpenFile(script.Namespace, script.Imports.ToArray());
 
             foreach (FieldDefNode constDefNode in script.GlobalConstants)
             {
@@ -148,7 +161,7 @@ public class LLVMCompiler
 
         foreach (ScriptAST script in scripts)
         {
-            CurrentNamespace = ResolveNamespace(script.Namespace);
+            OpenFile(script.Namespace, script.Imports.ToArray());
 
             foreach (ClassNode @class in script.ClassNodes)
             {
@@ -161,7 +174,7 @@ public class LLVMCompiler
 
         foreach (ScriptAST script in scripts)
         {
-            CurrentNamespace = ResolveNamespace(script.Namespace);
+            OpenFile(script.Namespace, script.Imports.ToArray());
 
             foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
             {
@@ -1342,7 +1355,7 @@ public class LLVMCompiler
 
     private Namespace InitGlobalNamespace()
     {
-        var @namespace = new Namespace(null);
+        var @namespace = new Namespace(null, "global_compiler");
 
         @namespace.Classes.Add(Reserved.Void, Primitives.Void);
         @namespace.Classes.Add(Reserved.Float16, Float.Float16);
@@ -1380,5 +1393,11 @@ public class LLVMCompiler
 
         _intrinsics.Add(name, func);
         return func;
+    }
+    
+    private void OpenFile(string @namespace, string[] imports)
+    {
+        CurrentNamespace = ResolveNamespace(@namespace);
+        _imports = ResolveImports(imports);
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using Moth.LLVM;
+using Moth.LLVM.Data;
+using System.Runtime.InteropServices;
 
 namespace Moth;
 
@@ -63,5 +65,13 @@ public static class ArrayExtensions
         }
 
         return hash;
+    }
+
+    public static CompilerData GetData(this Namespace[] imports)
+    {
+        foreach (var import in imports)
+        {
+            //TODO
+        }
     }
 }
