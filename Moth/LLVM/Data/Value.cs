@@ -11,3 +11,18 @@ public class Value : CompilerData
         LLVMValue = value;
     }
 }
+
+public class ClassValue : Value
+{
+    public ClassValue(Class type, LLVMValueRef value) : base(type, value) { }
+}
+
+public class FieldValue : Value
+{
+    public FieldValue(LLVMCompiler compiler, Field field, ClassValue owner)
+        : base(field.Type,
+            compiler.Builder.BuildStructGEP2(owner.Type.LLVMType,
+                owner.LLVMValue,
+                field.FieldIndex,
+                field.Name)) { }
+}

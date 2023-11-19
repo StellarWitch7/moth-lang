@@ -2,22 +2,22 @@ namespace MothStd; // part of the standard libs
 
 public class Sys {
 
-    static Write(char #char) #void {
+    public static func Write(char #char) #void {
         #Sys.Write(char, stdout());
         return;
     }
 
-    static Write(char #char, file #void*) #void {
+    public static func Write(char #char, file #void*) #void {
         #Sys.Write("", char, file);
         return;
     }
 
-    static Write(string #char*, end #char) #void {
+    public static func Write(string #char*, end #char) #void {
         #Sys.Write(string, end, stdout());
         return;
     }
 
-    static Write(string #char*, end #char, file #void*) #void {
+    public static func Write(string #char*, end #char, file #void*) #void {
         local size #u64 = #u64 <- 10000;
         local toPrint #char* = malloc(size); //TODO: terrible
 
@@ -35,28 +35,28 @@ public class Sys {
         return;
     }
 
-    static Write(string #char*) #void {
+    public static func Write(string #char*) #void {
         #Sys.Write(string, stdout());
         return;
     }
 
-    static Write(string #char*, file #void*) #void {
+    public static func Write(string #char*, file #void*) #void {
         fputs(string, file);
         fflush(file);
         return;
     }
 
-    static WriteLine(string #char*) #void {
+    public static func WriteLine(string #char*) #void {
         #Sys.WriteLine(string, stdout());
         return;
     }
 
-    static WriteLine(string #char*, file #void*) #void {
+    public static func WriteLine(string #char*, file #void*) #void {
         #Sys.Write(string, '\n', file);
         return;
     }
 
-    static GetChar(file #void*) #char {
+    public static func GetChar(file #void*) #char {
         local ch #i32 = fgetc(file);
 
         if !eof(ch) {
@@ -66,7 +66,7 @@ public class Sys {
         }
     }
 
-    static ReadLine(file #void*) #char* {
+    public static func ReadLine(file #void*) #char* {
         local size #u64 = #u64 <- 512;
         local string #char* = malloc(size);
         local ch #char;
@@ -93,11 +93,11 @@ public class Sys {
         return string;
     }
 
-    static Input(string #char*) #char* {
+    public static func Input(string #char*) #char* {
         return #Sys.Input(string, stdout(), stdin());
     }
 
-    static Input(string #char*, ouput #void*, input #void*) #char* {
+    public static func Input(string #char*, ouput #void*, input #void*) #char* {
         #Sys.Write(string, '\0', ouput);
         return #Sys.ReadLine(input);
     }
@@ -106,12 +106,12 @@ public class Sys {
 //public class Array<\T, SIZE #i32\> {
 //    private value ?T*;
 //
-//    static init() #Array<\?T, SIZE\> {
+//    public static func init() #Array<\?T, SIZE\> {
 //        self.value = malloc(SIZE * ?T.sizeof());
 //        return self;
 //    }
 //
-//    public GetIndex(index #u32, ref val ?T) #bool {
+//    public func GetIndex(index #u32, ref val ?T) #bool {
 //        ref val = if index > 0
 //            and index < SIZE - 1
 //            then self.value[index]
@@ -122,7 +122,7 @@ public class Sys {
 //            else false;
 //    }
 //
-//    public SetIndex(index #u32, item ?T) #bool {
+//    public func SetIndex(index #u32, item ?T) #bool {
 //
 //        if index < 0 or index > SIZE - 1 {
 //            return false;
@@ -132,7 +132,7 @@ public class Sys {
 //        return true;
 //    }
 //
-//    public AsPointer() ?T* {
+//    public func AsPointer() ?T* {
 //        return value;
 //    }
 //}

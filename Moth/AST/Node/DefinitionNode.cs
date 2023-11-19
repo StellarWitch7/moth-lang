@@ -8,7 +8,4 @@ public enum PrivacyType
 {
     Private,
     Public,
-    Static,
-    Global,
-    Foreign
 }

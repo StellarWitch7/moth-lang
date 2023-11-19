@@ -2,13 +2,13 @@
 
 public class Signature
 {
-    public string Name { get; }
+    public Key Key { get; }
     public bool IsVariadic { get; set; }
     public IReadOnlyList<Type> Params { get; set; }
 
-    public Signature(string name, IReadOnlyList<Type> @params, bool isVariadic = false)
+    public Signature(Key key, IReadOnlyList<Type> @params, bool isVariadic = false)
     {
-        Name = name;
+        Key = key;
         Params = @params;
         IsVariadic = isVariadic;
     }
@@ -16,7 +16,7 @@ public class Signature
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.Append($"{Name}:");
+        builder.Append($"{Key}:");
 
         foreach (Type param in Params)
         {
@@ -39,7 +39,7 @@ public class Signature
             return true;
         }
 
-        if (Name != sig.Name)
+        if (!Key.Equals(sig.Key))
         {
             return false;
         }
@@ -69,5 +69,5 @@ public class Signature
         return isEqual;
     }
 
-    public override int GetHashCode() => 3 * Name.GetHashCode();
+    public override int GetHashCode() => 3 * Key.GetHashCode();
 }

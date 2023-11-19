@@ -4,10 +4,10 @@ namespace Moth.LLVM.Data;
 
 public class Field : CompilerData
 {
-    public string Name { get; set; }
-    public uint FieldIndex { get; set; }
-    public Type Type { get; set; }
-    public PrivacyType Privacy { get; set; }
+    public string Name { get; }
+    public uint FieldIndex { get; }
+    public Type Type { get; }
+    public PrivacyType Privacy { get; }
 
     public Field(string name, uint index, Type type, PrivacyType privacy)
     {

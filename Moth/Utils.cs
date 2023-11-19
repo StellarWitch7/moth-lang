@@ -1,4 +1,5 @@
-﻿using Moth.LLVM;
+﻿using Moth.AST.Node;
+using Moth.LLVM;
 using Moth.LLVM.Data;
 using System.Runtime.InteropServices;
 
@@ -67,11 +68,23 @@ public static class ArrayExtensions
         return hash;
     }
 
-    public static CompilerData GetData(this Namespace[] imports)
+    public static bool TryGetNamespace(this Namespace[] imports, string name, out Namespace nmspace)
     {
+        nmspace = null;
+        
         foreach (var import in imports)
         {
-            //TODO
+            if (import.Namespaces.TryGetValue(name, out nmspace))
+            {
+                return true;
+            }
+            else if (import.Name == name)
+            {
+                nmspace = import;
+                return true;
+            }
         }
+
+        return false;
     }
 }

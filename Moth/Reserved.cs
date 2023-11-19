@@ -9,6 +9,10 @@ public static class Reserved
     public const string SizeOf = "sizeof";
     public const string AlignOf = "alignof";
 
+    public const string Local = "local";
+    public const string Private = "private";
+    public const string Public = "public";
+    
     public const string Void = "void";
     public const string Float16 = "f16";
     public const string Float32 = "f32";

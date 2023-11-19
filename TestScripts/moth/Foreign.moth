@@ -1,33 +1,33 @@
 namespace MothStd; // part of the standard libs
 
-foreign malloc(size #u64) #void*;
-foreign realloc(ptr #void*, size #u64) #void*;
-foreign free(pointer #void*) #void;
+private foreign malloc(size #u64) #void*;
+private foreign realloc(ptr #void*, size #u64) #void*;
+private foreign free(pointer #void*) #void;
 
-foreign printf(text #char*, ~~) #i32;
-foreign sprintf(destination #char*, format #char*, ~~) #i32;
-foreign fflush(stream #void*) #i32;
-foreign fputs(string #char*, file #void*) #i32;
-foreign fgets(str #char*, n #i32, FILE #void*) #char*;
-foreign fgetc(file #void*) #i32;
-foreign fopen(path #char*, mode #char*) #void*;
-foreign strcpy(destination #char*, source #char*) #char*;
+private foreign printf(text #char*, ~~) #i32;
+private foreign sprintf(destination #char*, format #char*, ~~) #i32;
+private foreign fflush(stream #void*) #i32;
+private foreign fputs(string #char*, file #void*) #i32;
+private foreign fgets(str #char*, n #i32, FILE #void*) #char*;
+private foreign fgetc(file #void*) #i32;
+private foreign fopen(path #char*, mode #char*) #void*;
+private foreign strcpy(destination #char*, source #char*) #char*;
 
 @CallingConvention("cdecl")
-foreign __acrt_iob_func(n #u32) #void*;
+private foreign __acrt_iob_func(n #u32) #void*;
 
-func stdin() #void* {
+public func stdin() #void* {
     return __acrt_iob_func(#u32 <- 0);
 }
 
-func stdout() #void* {
+public func stdout() #void* {
     return __acrt_iob_func(#u32 <- 1);
 }
 
-func stderr() #void* {
+public func stderr() #void* {
     return __acrt_iob_func(#u32 <- 2);
 }
 
-func eof(ch #i32) #bool {
+public func eof(ch #i32) #bool {
     return ch < 0;
 }

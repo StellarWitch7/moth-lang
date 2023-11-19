@@ -1,6 +1,6 @@
 namespace Test;
 
-func main() #i32 {
+private func main() #i32 {
     // #Sys.WriteLine("Welcome!");
     // #Sys.WriteLine(#Sys.Input("Enter something to be repeated: "));
     // local array #TestArray = #TestArray.init(#u64 <- 10);
@@ -21,13 +21,13 @@ public class TestArray {
     private value #i32*;
     private size #u64;
 
-    static init(size #u64) #TestArray {
+    public static func init(size #u64) #TestArray {
         self.value = #i32* <- malloc(size * #i32.sizeof());
         self.size = size;
         return self;
     }
 
-    public GetIndex(index #u64, ref val #i32) #bool {
+    public func GetIndex(index #u64, ref val #i32) #bool {
         (load val) = if (index >= (#u64 <- 0))
             and index < self.size
             then self.value[index]
@@ -38,7 +38,7 @@ public class TestArray {
             else false;
     }
 
-    public SetIndex(index #u64, item #i32) #bool {
+    public func SetIndex(index #u64, item #i32) #bool {
         if (index < (#u64 <- 0)) or index >= self.size {
             return false;
         }
@@ -47,7 +47,7 @@ public class TestArray {
         return true;
     }
 
-    public AsPointer() #i32* {
+    public func AsPointer() #i32* {
         return self.value;
     }
 }

@@ -1,19 +1,24 @@
-﻿using Moth.LLVM.Data;
+﻿using Moth.AST.Node;
+using Moth.LLVM.Data;
 
 namespace Moth.LLVM;
 
 public interface IContainer
 {
     public IContainer? Parent { get; }
-    public CompilerData GetData(string name);
+}
 
-    public bool TryGetData(string name, out CompilerData data)
+public interface INamespaceContainer : IContainer
+{
+    public Namespace GetNamespace(string name);
+
+    public bool TryGetNamespace(string name, out Namespace nmspace)
     {
         try
         {
-            data = GetData(name);
+            nmspace = GetNamespace(name);
 
-            if (data == null)
+            if (nmspace == null)
             {
                 throw new Exception();
             }
@@ -22,7 +27,32 @@ public interface IContainer
         }
         catch
         {
-            data = null;
+            nmspace = null;
+            return false;
+        }
+    }
+}
+
+public interface IClassContainer : IContainer
+{
+    public Class GetClass(Key key);
+
+    public bool TryGetClass(Key key, out Class @class)
+    {
+        try
+        {
+            @class = GetClass(key);
+
+            if (@class == null)
+            {
+                throw new Exception();
+            }
+            
+            return true;
+        }
+        catch
+        {
+            @class = null;
             return false;
         }
     }
@@ -53,17 +83,17 @@ public interface IFunctionContainer : IContainer
     }
 }
 
-public interface IClassContainer : IContainer
+public interface IFieldContainer : IContainer
 {
-    public Class GetClass(string name);
-
-    public bool TryGetClass(string name, out Class @class)
+    public Field GetField(Key key);
+    
+    public bool TryGetClass(Key key, out Field field)
     {
         try
         {
-            @class = GetClass(name);
+            field = GetField(key);
 
-            if (@class == null)
+            if (field == null)
             {
                 throw new Exception();
             }
@@ -72,7 +102,7 @@ public interface IClassContainer : IContainer
         }
         catch
         {
-            @class = null;
+            field = null;
             return false;
         }
     }

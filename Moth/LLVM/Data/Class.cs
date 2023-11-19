@@ -2,7 +2,7 @@
 
 namespace Moth.LLVM.Data;
 
-public class Class : Type, IFunctionContainer
+public class Class : Type, IFunctionContainer, IFieldContainer
 {
     public IContainer? Parent { get; }
     public string Name { get; }
@@ -31,7 +31,10 @@ public class Class : Type, IFunctionContainer
 
             var value = new Value(Primitives.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(new Key(Reserved.SizeOf,
+                        PrivacyType.Public),
+                    Array.Empty<Type>()),
+                func);
         }
 
         // alignof()
@@ -42,13 +45,16 @@ public class Class : Type, IFunctionContainer
 
             var value = new Value(Primitives.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(new Key(Reserved.AlignOf,
+                        PrivacyType.Public),
+                    Array.Empty<Type>()),
+                func);
         }
     }
 
     public Function GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public CompilerData GetData(string name) => throw new NotImplementedException();
+    public Field GetField(Key key) => throw new NotImplementedException();
     
     public override string ToString() => Name;
 

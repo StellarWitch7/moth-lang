@@ -29,6 +29,14 @@ public class LLVMCompiler
 
     public LLVMCompiler(string moduleName, IReadOnlyCollection<ScriptAST> scripts) : this(moduleName) => Compile(scripts);
 
+    public IContainer Parent
+    {
+        get
+        {
+            return CurrentNamespace;
+        }
+    }
+    
     private Namespace CurrentNamespace
     {
         get
@@ -137,7 +145,7 @@ public class LLVMCompiler
             {
                 if (@class is GenericClassNode genericClass)
                 {
-                    CurrentNamespace.GenericClassTemplates.Add(genericClass.Name, genericClass);
+                    CurrentNamespace.GenericClassTemplates.Add(new Key(genericClass.Name, genericClass.Privacy), genericClass);
                 }
                 else
                 {
@@ -149,7 +157,7 @@ public class LLVMCompiler
             {
                 if (classNode is not GenericClassNode)
                 {
-                    Class @class = CurrentNamespace.GetClass(classNode.Name);
+                    Class @class = CurrentNamespace.GetClass(new Key(classNode.Name, PrivacyType.Private));
 
                     foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
@@ -196,6 +204,26 @@ public class LLVMCompiler
         }
 
         return this;
+    }
+
+    public Namespace GetNamespace(string name)
+    {
+        Namespace nmspace;
+        
+        if (((INamespaceContainer)CurrentNamespace).TryGetNamespace(name, out nmspace))
+        {
+            return nmspace;
+        }
+        else if (_imports.TryGetNamespace(name, out nmspace))
+        {
+            return nmspace;
+        }
+        else
+        {
+            throw new Exception($"Could not find type or namespace \"{name}\".");
+        }
+
+        return nmspace;
     }
 
     public void DefineClass(ClassNode classNode)
@@ -340,9 +368,10 @@ public class LLVMCompiler
             throw new Exception($"{func.Type.Name} cannot be compiled.");
         }
 
-        func.OpeningScope = new Scope(@class != null
-            ? @class
-            : CurrentNamespace, func.LLVMValue.AppendBasicBlock("entry"));
+        func.OpeningScope = new Scope(func.OwnerClass != null
+                ? func.OwnerClass
+                : this,
+            func.LLVMValue.AppendBasicBlock("entry"));
         Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
         CurrentFunction = func;
 
@@ -642,7 +671,7 @@ public class LLVMCompiler
             Function? parentFunction = CurrentFunction;
             var func = new Function(funcType, llvmFunc, @params.ToArray())
             {
-                OpeningScope = new Scope(CurrentNamespace, llvmFunc.AppendBasicBlock("entry"))
+                OpeningScope = new Scope(this, llvmFunc.AppendBasicBlock("entry")) //TODO: should the parent be the scope?
             };
 
             CurrentFunction = func;
