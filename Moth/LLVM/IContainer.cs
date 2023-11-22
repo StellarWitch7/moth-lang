@@ -35,9 +35,9 @@ public interface INamespaceContainer : IContainer
 
 public interface IClassContainer : IContainer
 {
-    public Class GetClass(Key key);
+    public Class GetClass(string key);
 
-    public bool TryGetClass(Key key, out Class @class)
+    public bool TryGetClass(string key, out Class @class)
     {
         try
         {
@@ -85,9 +85,9 @@ public interface IFunctionContainer : IContainer
 
 public interface IFieldContainer : IContainer
 {
-    public Field GetField(Key key);
+    public Field GetField(string key);
     
-    public bool TryGetClass(Key key, out Field field)
+    public bool TryGetClass(string key, out Field field)
     {
         try
         {

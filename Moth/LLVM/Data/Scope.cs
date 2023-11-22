@@ -3,7 +3,7 @@
 public class Scope : CompilerData
 {
     public LLVMBasicBlockRef LLVMBlock { get; set; }
-    public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+    public Dictionary<string, Variable> Variables { get; set; } = new Dictionary<string, Variable>();
 
     public Scope(LLVMBasicBlockRef llvmBlock)
     {

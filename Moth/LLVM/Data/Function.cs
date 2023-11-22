@@ -34,11 +34,13 @@ public class Function : Value
 
 public class DefinedFunction : Function
 {
+    public IContainer? Parent { get; }
     public PrivacyType Privacy { get; }
     
-    public DefinedFunction(FuncType type, LLVMValueRef value, Parameter[] @params, PrivacyType privacy)
+    public DefinedFunction(IContainer? parent, FuncType type, LLVMValueRef value, Parameter[] @params, PrivacyType privacy)
         : base(type, value, @params)
     {
+        Parent = parent;
         Privacy = privacy;
     }
 }

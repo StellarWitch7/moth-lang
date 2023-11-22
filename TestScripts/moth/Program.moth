@@ -1,8 +1,10 @@
 namespace Test;
 
+with MothStd;
+
 private func main() #i32 {
-    // #Sys.WriteLine("Welcome!");
-    // #Sys.WriteLine(#Sys.Input("Enter something to be repeated: "));
+    // writeLine("Welcome!");
+    // writeLine(#Sys.Input("Enter something to be repeated: "));
     // local array #TestArray = #TestArray.init(#u64 <- 10);
     // array.SetIndex(#u64 <- 1, 2);
     // local val ?= 6;

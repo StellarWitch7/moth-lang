@@ -117,7 +117,7 @@ public static class Tokenizer
                                 "and" => TokenType.And,
                                 "func" => TokenType.Function,
                                 "class" => TokenType.Class,
-                                "use" => TokenType.Import,
+                                "with" => TokenType.Import,
                                 "public" => TokenType.Public,
                                 "static" => TokenType.Static,
                                 "return" => TokenType.Return,

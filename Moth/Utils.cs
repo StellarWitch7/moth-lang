@@ -76,15 +76,80 @@ public static class ArrayExtensions
         {
             if (import.Namespaces.TryGetValue(name, out nmspace))
             {
-                return true;
+                break;
             }
             else if (import.Name == name)
             {
                 nmspace = import;
-                return true;
+                break;
             }
         }
 
-        return false;
+        if (nmspace != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public static bool TryGetFunction(this Namespace[] imports, Signature sig, out Function func)
+    {
+        func = null;
+        
+        foreach (var import in imports)
+        {
+            if (import.Functions.TryGetValue(sig, out func))
+            {
+                if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private)
+                {
+                    func = null;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        if (func != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public static bool TryGetStruct(this Namespace[] imports, string name, out Struct @struct)
+    {
+        @struct = null;
+        
+        foreach (var import in imports)
+        {
+            if (import.Structs.TryGetValue(name, out @struct))
+            {
+                if (@struct.Privacy == PrivacyType.Private)
+                {
+                    @struct = null;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        if (@struct != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 }

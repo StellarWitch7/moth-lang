@@ -8,9 +8,9 @@ public class Namespace : CompilerData, INamespaceContainer, IFunctionContainer, 
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
     public Dictionary<Signature, Function> Functions { get; } = new Dictionary<Signature, Function>();
-    public Dictionary<Key, Class> Classes { get; } = new Dictionary<Key, Class>();
-    public Dictionary<Key, Constant> Constants { get; } = new Dictionary<Key, Constant>();
-    public Dictionary<Key, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<Key, GenericClassNode>();
+    public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
+    public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
+    public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
     public GenericDictionary GenericClasses { get; } = new GenericDictionary();
 
     public Namespace(IContainer? parent, string name)
@@ -23,5 +23,5 @@ public class Namespace : CompilerData, INamespaceContainer, IFunctionContainer, 
 
     public Function GetFunction(Signature sig) => throw new NotImplementedException();
 
-    public Class GetClass(Key key) => throw new NotImplementedException();
+    public Class GetClass(string key) => throw new NotImplementedException();
 }

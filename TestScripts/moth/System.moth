@@ -1,63 +1,86 @@
 namespace MothStd; // part of the standard libs
 
-public class Sys {
+public func stdin() #File {
+    return #File.init(__acrt_iob_func(#u32 <- 0));
+}
 
-    public static func Write(char #char) #void {
-        #Sys.Write(char, stdout());
+public func stdout() #File {
+    return #File.init(__acrt_iob_func(#u32 <- 1));
+}
+
+public func stderr() #File {
+    return #File.init(__acrt_iob_func(#u32 <- 2));
+}
+
+public func eof(ch #i32) #bool {
+    return ch < 0;
+}
+
+public func write(char #char) #void {
+    stdout().Write(char);
+    return;
+}
+
+public func write(string #char*) #void {
+    stdout().Write(string);
+    return;
+}
+
+public func write(string #char*, end #char) #void {
+    stdout().Write(string, end);
+    return;
+}
+
+public func writeLine(string #char*) #void [
+    stdout().WriteLine(string);
+    return;
+]
+
+public func input(string #char*) #char* {
+    return input(string, stdout(), stdin());
+}
+
+public func input(string #char*, ouput #File, input #File) #char* {
+    ouput.Write(string, '\0');
+    return input.ReadLine();
+}
+
+public func openFile(path #char*, mode #char*) #File {
+    return File.init(fopen(path, mode));
+}
+
+public class File {
+    public CFile #FILE*;
+
+    public static func init(cfile #FILE*) #File {
+        self.CFile = cfile;
+        return self;
+    }
+
+    public func Write(string #char*) #void {
+        CFile.fputs(string);
+        CFile.fflush(file);
         return;
     }
 
-    public static func Write(char #char, file #void*) #void {
-        #Sys.Write("", char, file);
+    public func Write(char #char) #void {
+        self.Write(ref char);
         return;
     }
 
-    public static func Write(string #char*, end #char) #void {
-        #Sys.Write(string, end, stdout());
+    public func Write(string #char*, end #char) #void {
+        self.Write(string)
+        self.Write(end);
         return;
     }
 
-    public static func Write(string #char*, end #char, file #void*) #void {
-        local size #u64 = #u64 <- 10000;
-        local toPrint #char* = malloc(size); //TODO: terrible
-
-        while toPrint == null {
-            if size > (#u64 <- 0) {
-                toPrint = malloc(--size);
-            } else {
-                return;
-            }
-        }
-
-        sprintf(toPrint, "%s%c", string, end);
-        #Sys.Write(toPrint);
-        free(toPrint);
+    public func WriteLine(string #char*) #void {
+        self.Write(string, '\n');
         return;
     }
 
-    public static func Write(string #char*) #void {
-        #Sys.Write(string, stdout());
-        return;
-    }
-
-    public static func Write(string #char*, file #void*) #void {
-        fputs(string, file);
-        fflush(file);
-        return;
-    }
-
-    public static func WriteLine(string #char*) #void {
-        #Sys.WriteLine(string, stdout());
-        return;
-    }
-
-    public static func WriteLine(string #char*, file #void*) #void {
-        #Sys.Write(string, '\n', file);
-        return;
-    }
-
-    public static func GetChar(file #void*) #char {
-        local ch #i32 = fgetc(file);
+    public func GetChar() #char {
+        local ch #i32 = fgetc(self.CFile);
 
         if !eof(ch) {
             return #char <- ch;
@@ -66,7 +89,7 @@ public class Sys {
         }
     }
 
-    public static func ReadLine(file #void*) #char* {
+    public func ReadLine() #char* {
         local size #u64 = #u64 <- 512;
         local string #char* = malloc(size);
         local ch #char;
@@ -76,7 +99,7 @@ public class Sys {
             return string;
         }
 
-        while (ch = #Sys.GetChar(file)) != '\0' and ch != '\n' {
+        while (ch = self.GetChar()) != '\0' and ch != '\n' {
             string[++len] = ch;
             
             if len >= (#i32 <- size) {
@@ -91,15 +114,6 @@ public class Sys {
         string[++len] = '\0';
         string = realloc(string, #u64 <- ++len);
         return string;
-    }
-
-    public static func Input(string #char*) #char* {
-        return #Sys.Input(string, stdout(), stdin());
-    }
-
-    public static func Input(string #char*, ouput #void*, input #void*) #char* {
-        #Sys.Write(string, '\0', ouput);
-        return #Sys.ReadLine(input);
     }
 }
 
