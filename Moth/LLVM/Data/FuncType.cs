@@ -68,12 +68,12 @@ public class LLVMFuncType : FuncType
         IsVariadic = isVariadic;
     }
 
-    public Class? OwnerClass
+    public Struct? OwnerClass
     {
         get
         {
             return this is MethodType defFunc
-                ? defFunc.OwnerClass
+                ? defFunc.OwnerStruct
                 : null;
         }
     }
@@ -89,12 +89,12 @@ public class LLVMFuncType : FuncType
 
 public sealed class MethodType : LLVMFuncType
 {
-    public new Class? OwnerClass { get; set; }
+    public new Struct? OwnerStruct { get; set; }
 
-    public MethodType(string name, Type retType, Type[] paramTypes, bool isVariadic, Class? ownerClass)
+    public MethodType(string name, Type retType, Type[] paramTypes, bool isVariadic, Struct? ownerStruct)
         : base(name, retType, paramTypes, isVariadic)
     {
-        OwnerClass = ownerClass;
+        OwnerStruct = ownerStruct;
     }
 }
 

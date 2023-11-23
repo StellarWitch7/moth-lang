@@ -157,11 +157,11 @@ public class LLVMCompiler
             {
                 if (classNode is not GenericClassNode)
                 {
-                    Class @class = CurrentNamespace.GetClass(classNode.Name);
+                    Struct @struct = GetStruct(classNode.Name);
 
                     foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        DefineFunction(funcDefNode, @class);
+                        DefineFunction(funcDefNode, @struct);
                     }
                 }
             }
@@ -193,37 +193,17 @@ public class LLVMCompiler
             {
                 if (classNode is not GenericClassNode)
                 {
-                    Class @class = CurrentNamespace.GetClass(classNode.Name);
+                    Struct @struct = GetStruct(classNode.Name);
 
                     foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
                     {
-                        CompileFunction(funcDefNode, @class);
+                        CompileFunction(funcDefNode, @struct);
                     }
                 }
             }
         }
 
         return this;
-    }
-
-    public Namespace GetNamespace(string name)
-    {
-        Namespace nmspace;
-        
-        if (((INamespaceContainer)CurrentNamespace).TryGetNamespace(name, out nmspace))
-        {
-            return nmspace;
-        }
-        else if (_imports.TryGetNamespace(name, out nmspace))
-        {
-            return nmspace;
-        }
-        else
-        {
-            throw new Exception($"Could not find type or namespace \"{name}\".");
-        }
-
-        return nmspace;
     }
 
     public void DefineClass(ClassNode classNode)
@@ -239,29 +219,29 @@ public class LLVMCompiler
     public void CompileClass(ClassNode classNode)
     {
         var llvmTypes = new List<LLVMTypeRef>();
-        Class @class = CurrentNamespace.GetClass(classNode.Name);
+        Struct @struct = GetStruct(classNode.Name);
         uint index = 0;
 
         foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
         {
             Type fieldType = ResolveType(field.TypeRef);
             llvmTypes.Add(fieldType.LLVMType);
-            @class.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
+            @struct.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
             index++;
         }
 
-        @class.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
+        @struct.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
     }
 
-    public void DefineFunction(FuncDefNode funcDefNode, Class? @class = null)
+    public void DefineFunction(FuncDefNode funcDefNode, Struct? @struct = null)
     {
         uint index = 0;
         var @params = new List<Parameter>();
         var paramTypes = new List<Type>();
 
-        if (@class != null && !funcDefNode.IsStatic)
+        if (@struct != null && !funcDefNode.IsStatic)
         {
-            paramTypes.Add(new PtrType(@class));
+            paramTypes.Add(new PtrType(@struct));
             index++;
         }
 
@@ -279,35 +259,39 @@ public class LLVMCompiler
             ? funcDefNode.Name
             : sig.ToString();
 
-        if (@class != null)
+        if (@struct != null)
         {
-            funcName = $"{@class.Name}.{funcName}";
+            funcName = $"{@struct.Name}.{funcName}";
         }
 
         Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
-        LLVMFuncType funcType = @class == null
+        LLVMFuncType funcType = @struct == null
             ? new LLVMFuncType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic)
-            : new MethodType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic, @class);
-        DefinedFunction func = new DefinedFunction(@class == null
+            : new MethodType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic, @struct);
+        DefinedFunction func = new DefinedFunction(@struct == null
                 ? CurrentNamespace
-                : @class,
+                : @struct,
             funcType,
             Module.AddFunction(funcName, llvmFuncType),
             @params.ToArray(),
             funcDefNode.Privacy);
 
-        if (@class != null)
+        if (@struct != null)
         {
-            if (func.IsStatic)
+            if (funcDefNode.IsStatic)
             {
-                @class.StaticMethods.Add(sig, func);
+                @struct.StaticMethods.Add(sig, func);
+            }
+            else if (@struct is Class @class)
+            {
+                @class.Methods.Add(sig, func);
             }
             else
             {
-                @class.Methods.Add(sig, func);
+                throw new Exception($"Cannot have instance method \"{func.Type.Name}\" on struct \"{@struct.Name}\"");
             }
         }
         else
@@ -333,7 +317,7 @@ public class LLVMCompiler
         return typeName;
     }
 
-    public void CompileFunction(FuncDefNode funcDefNode, Class? @class = null)
+    public void CompileFunction(FuncDefNode funcDefNode, Struct? @struct = null)
     {
         Function? func;
         var paramTypes = new List<Type>();
@@ -349,11 +333,11 @@ public class LLVMCompiler
         {
             return;
         }
-        else if (@class != null && !funcDefNode.IsStatic && @class.Methods.TryGetValue(sig, out func))
+        else if (@struct != null && @struct is Class @class && !funcDefNode.IsStatic && @class.Methods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
-        else if (@class != null && funcDefNode.IsStatic && @class.StaticMethods.TryGetValue(sig, out func))
+        else if (@struct != null && funcDefNode.IsStatic && @struct.StaticMethods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -379,10 +363,10 @@ public class LLVMCompiler
         {
             if (funcType.ReturnType is Class retType)
             {
-                if (retType != funcType.OwnerClass)
+                if (retType != funcType.OwnerStruct)
                 {
                     throw new Exception($"Init method does not return the same type as its owner class " +
-                        $"(\"{funcType.OwnerClass.Name}\").");
+                        $"(\"{funcType.OwnerStruct.Name}\").");
                 }
             }
             else
@@ -391,8 +375,8 @@ public class LLVMCompiler
             }
 
             var @new = new Variable(Reserved.Self,
-                Builder.BuildMalloc(funcType.OwnerClass.LLVMType, Reserved.Self),
-                funcType.OwnerClass);
+                Builder.BuildMalloc(funcType.OwnerStruct.LLVMType, Reserved.Self),
+                funcType.OwnerStruct);
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
@@ -634,8 +618,8 @@ public class LLVMCompiler
         }
         else
         {
-            Class @class = CurrentNamespace.GetClass(UnVoid(typeRef));
-            type = @class;
+            Struct @struct = GetStruct(UnVoid(typeRef));
+            type = @struct;
         }
 
         int index = 0;
@@ -800,11 +784,11 @@ public class LLVMCompiler
     {
         if (constNode.Value is string str)
         {
-            Class @class = CurrentNamespace.GetClass(Reserved.Char);
+            Struct @struct = GetStruct(Reserved.Char);
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
             global.Initializer = constStr;
-            return new Value(new PtrType(@class), global);
+            return new Value(new PtrType(@struct), global);
         }
         else if (constNode.Value is bool @bool)
         {
@@ -1196,7 +1180,7 @@ public class LLVMCompiler
         {
             if (refNode is ThisNode)
             {
-                if (CurrentFunction.OwnerClass == null)
+                if (CurrentFunction.OwnerStruct == null)
                 {
                     throw new Exception("Attempted self-instance reference in a global function.");
                 }
@@ -1208,29 +1192,24 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    context = new Value(WrapAsRef(CurrentFunction.OwnerClass), CurrentFunction.LLVMValue.FirstParam);
+                    context = new Value(WrapAsRef(CurrentFunction.OwnerStruct), CurrentFunction.LLVMValue.FirstParam);
                 }
 
                 refNode = refNode.Child;
             }
             else if (refNode is TypeRefNode typeRef)
             {
-                Class @class = CurrentNamespace.GetClass(UnVoid(typeRef));
+                Struct @struct = GetStruct(UnVoid(typeRef));
                 refNode = refNode.Child;
 
                 if (refNode is FuncCallNode funcCall)
                 {
-                    context = CompileFuncCall(context, scope, funcCall, @class);
+                    context = CompileFuncCall(context, scope, funcCall, @struct);
                     refNode = refNode.Child;
-                }
-                else if (refNode != null)
-                {
-                    Field field = @class.StaticFields[refNode.Name];
-                    throw new NotImplementedException();
                 }
                 else
                 {
-                    throw new Exception($"#{@class} cannot be treated like an expression value.");
+                    throw new Exception($"#{@struct} cannot be treated like an expression value.");
                 }
             }
             else if (refNode is FuncCallNode funcCall)
@@ -1295,7 +1274,7 @@ public class LLVMCompiler
         }
     }
 
-    public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Class? staticClass = null)
+    public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Struct? sourceStruct = null)
     { //TODO: needs to be reworked
         Function? func;
         var argTypes = new List<Type>();
@@ -1304,9 +1283,9 @@ public class LLVMCompiler
 
         if (context == null)
         {
-            if (CurrentFunction.OwnerClass != null)
+            if (CurrentFunction.OwnerStruct != null)
             {
-                context = new Value(CurrentFunction.OwnerClass, CurrentFunction.LLVMValue.FirstParam);
+                context = new Value(CurrentFunction.OwnerStruct, CurrentFunction.LLVMValue.FirstParam);
             }
         }
 
@@ -1337,7 +1316,7 @@ public class LLVMCompiler
         {
             // Keep empty
         }
-        else if (staticClass != null && staticClass.StaticMethods.TryGetValue(sig, out func))
+        else if (sourceStruct != null && sourceStruct.StaticMethods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -1382,6 +1361,58 @@ public class LLVMCompiler
         else
         {
             throw new NotImplementedException();
+        }
+    }
+
+    public Namespace GetNamespace(string name)
+    {
+        if (CurrentNamespace.Name == name)
+        {
+            return CurrentNamespace;
+        }
+        else if (CurrentNamespace.TryGetNamespace(name, out Namespace nmspace))
+        {
+            return nmspace;
+        }
+        else if (_imports.TryGetNamespace(name, out nmspace))
+        {
+            return nmspace;
+        }
+        else
+        {
+            throw new Exception($"Could not find namespace \"{name}\".");
+        }
+    }
+
+    public Struct GetStruct(string name)
+    {
+        if (CurrentNamespace.TryGetStruct(name, out Struct @struct))
+        {
+            return @struct;
+        }
+        else if (_imports.TryGetStruct(name, out @struct))
+        {
+            return @struct;
+        }
+        else
+        {
+            throw new Exception($"Could not find type \"{name}\".");
+        }
+    }
+
+    public Function GetFunction(Signature sig)
+    {
+        if (CurrentNamespace.TryGetFunction(sig, out Function func))
+        {
+            return func;
+        }
+        else if (_imports.TryGetFunction(sig, out func))
+        {
+            return func;
+        }
+        else
+        {
+            throw new Exception($"Could not find function \"{sig}\".");
         }
     }
 

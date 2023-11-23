@@ -21,7 +21,7 @@ public class Function : Value
         }
     }
 
-    public Class OwnerClass
+    public Struct OwnerStruct
     {
         get
         {
