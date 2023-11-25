@@ -375,8 +375,8 @@ public class LLVMCompiler
             }
 
             var @new = new Variable(Reserved.Self,
-                Builder.BuildMalloc(funcType.OwnerStruct.LLVMType, Reserved.Self),
-                funcType.OwnerStruct);
+                new RefType(funcType.OwnerStruct),
+                Builder.BuildMalloc(funcType.OwnerStruct.LLVMType, Reserved.Self));
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
@@ -387,7 +387,7 @@ public class LLVMCompiler
             
             foreach (Field field in classOfNew.Fields.Values)
             {
-                LLVMValueRef llvmField = Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMVariable, field.FieldIndex);
+                LLVMValueRef llvmField = Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMValue, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
 
                 Builder.BuildStore(zeroedVal, llvmField);
@@ -401,8 +401,8 @@ public class LLVMCompiler
             Builder.BuildStore(func.LLVMValue.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
-                    paramAsVar,
-                    new RefType(CurrentFunction.Type.ParameterTypes[param.ParamIndex])));
+                    new RefType(CurrentFunction.Type.ParameterTypes[param.ParamIndex]),
+                    paramAsVar));
         }
 
         if (!CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
@@ -1161,15 +1161,15 @@ public class LLVMCompiler
             type = ResolveType(localDef.TypeRef);
         }
 
-        LLVMValueRef @var = Builder.BuildAlloca(type.LLVMType, localDef.Name); //TODO: crashes with a func type, if on stack
-        scope.Variables.Add(localDef.Name, new Variable(localDef.Name, @var, type));
+        LLVMValueRef llvmVariable = Builder.BuildAlloca(type.LLVMType, localDef.Name); //TODO: crashes with a func type, if on stack
+        scope.Variables.Add(localDef.Name, new Variable(localDef.Name, type, llvmVariable));
 
         if (value != null)
         {
-            Builder.BuildStore(SafeLoad(value).LLVMValue, @var);
+            Builder.BuildStore(SafeLoad(value).LLVMValue, llvmVariable);
         }
 
-        return new Value(WrapAsRef(type), @var);
+        return new Value(WrapAsRef(type), llvmVariable);
     }
 
     public Value CompileRef(Scope scope, RefNode? refNode)
@@ -1187,8 +1187,7 @@ public class LLVMCompiler
 
                 if (CurrentFunction.Type.Name == Reserved.Init)
                 {
-                    Variable self = scope.Variables[Reserved.Self];
-                    context = new Value(WrapAsRef(self.Type), self.LLVMVariable);
+                    context = scope.Variables[Reserved.Self];
                 }
                 else
                 {
@@ -1264,13 +1263,14 @@ public class LLVMCompiler
         }
         else
         {
-            CompilerData data = scope.GetData(refNode.Name);
-
-            return data is Variable @var
-                ? new Value(WrapAsRef(@var.Type), @var.LLVMVariable)
-                : data is Constant @const
-                    ? new Value(WrapAsRef(@const.Type), @const.LLVMValue)
-                    : throw new Exception($"Reference \"{refNode.Name}\" does not exist.");
+            if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
+            {
+                return @var;
+            }
+            else
+            {
+                throw new Exception($"Variable \"{refNode.Name}\" does not exist.");
+            }
         }
     }
 

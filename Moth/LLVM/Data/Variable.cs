@@ -1,15 +1,11 @@
 ﻿namespace Moth.LLVM.Data;
 
-public class Variable : CompilerData
+public class Variable : Value
 {
     public string Name { get; set; }
-    public LLVMValueRef LLVMVariable { get; set; }
-    public Type Type { get; set; }
 
-    public Variable(string name, LLVMValueRef llvmVariable, Type type)
+    public Variable(string name, Type type, LLVMValueRef llvmVariable) : base(type, llvmVariable)
     {
         Name = name;
-        LLVMVariable = llvmVariable;
-        Type = type;
     }
 }

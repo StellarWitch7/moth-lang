@@ -189,7 +189,7 @@ public static class ASTGenerator
                     case TokenType.Static:
                     case TokenType.Public:
                     case TokenType.Private:
-                        var newDef = (MemberDefNode)ProcessDefinition(context, attributes);
+                        var newDef = (DefNode)ProcessDefinition(context, attributes);
                         attributes = new List<AttributeNode>();
                         statements.Add(newDef);
                         break;
