@@ -75,14 +75,20 @@ public class LLVMCompiler
     {
         Namespace value = null;
         string[] names = str.Split('.');
-
+        uint index = 0;
+        
+        foreach (var name in names) //TODO: is this unnecessary?
+        {
+            names[index] = name.Replace(".", "");
+            index++;
+        }
         foreach (var name in names)
         {
             if (value != null)
             {
-                if (value.Namespaces.TryGetValue(name, out Namespace o))
+                if (value.Namespaces.TryGetValue(name, out Namespace nmspace))
                 {
-                    value = o;
+                    value = nmspace;
                 }
                 else
                 {
@@ -208,12 +214,39 @@ public class LLVMCompiler
 
     public void DefineClass(ClassNode classNode)
     {
-        var newClass = new Class(CurrentNamespace,
-            classNode.Name,
-            Context.CreateNamedStruct(classNode.Name),
-            classNode.Privacy);
-        CurrentNamespace.Structs.Add(classNode.Name, newClass);
-        newClass.AddBuiltins(this);
+        Struct newStruct;
+        
+        if (classNode.IsStruct)
+        {
+            if (classNode.Scope == null)
+            {
+                newStruct = new OpaqueStruct(this,
+                    classNode.Name,
+                    classNode.Privacy);
+            }
+            else
+            {
+                newStruct = new Struct(CurrentNamespace,
+                    classNode.Name,
+                    Context.CreateNamedStruct(classNode.Name),
+                    classNode.Privacy);
+            }
+        }
+        else
+        {
+            if (classNode.Scope == null)
+            {
+                throw new Exception($"Class \"{classNode.Name}\" cannot be foreign.");
+            }
+            
+            newStruct = new Class(CurrentNamespace,
+                classNode.Name,
+                Context.CreateNamedStruct(classNode.Name),
+                classNode.Privacy);
+        }
+        
+        CurrentNamespace.Structs.Add(classNode.Name, newStruct);
+        newStruct.AddBuiltins(this);
     }
 
     public void CompileClass(ClassNode classNode)

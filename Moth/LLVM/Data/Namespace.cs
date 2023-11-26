@@ -105,7 +105,7 @@ public class Namespace : CompilerData, IContainer
         {
             return ParentNamespace != null
                 ? ParentNamespace.GetStruct(name)
-                : throw new Exception($"Type \"{name}\" was not found.");
+                : throw new Exception($"Type \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
     
