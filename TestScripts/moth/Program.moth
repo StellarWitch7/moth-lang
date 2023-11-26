@@ -1,6 +1,6 @@
 namespace Test;
 
-with MothStd;
+//with MothStd;
 
 private func main() #i32 {
     // writeLine("Welcome!");
