@@ -1,6 +1,5 @@
 ﻿using Moth.AST.Node;
 using Moth.Tokens;
-using System.Diagnostics;
 
 namespace Moth.AST; //TODO: allow calling functions on expressions
 
@@ -32,6 +31,10 @@ public static class ASTGenerator
             {
                 case TokenType.AttributeMarker:
                     attributes.Add(ProcessAttribute(context));
+                    break;
+                case TokenType.Import:
+                    context.MoveNext();
+                    imports.Add(ProcessNamespace(context));
                     break;
                 case TokenType.Public:
                 case TokenType.Private:
