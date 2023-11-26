@@ -31,10 +31,10 @@ public func write(string #char*, end #char) #void {
     return;
 }
 
-public func writeLine(string #char*) #void [
+public func writeLine(string #char*) #void {
     stdout().WriteLine(string);
     return;
-]
+}
 
 public func input(string #char*) #char* {
     return input(string, stdout(), stdin());

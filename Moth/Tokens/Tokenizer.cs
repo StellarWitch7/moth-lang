@@ -116,6 +116,7 @@ public static class Tokenizer
                                 "or" => TokenType.Or,
                                 "and" => TokenType.And,
                                 "func" => TokenType.Function,
+                                "struct" => TokenType.Struct,
                                 "class" => TokenType.Class,
                                 "with" => TokenType.Import,
                                 "public" => TokenType.Public,

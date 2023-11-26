@@ -94,9 +94,9 @@ public static class ASTGenerator
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static ClassNode ProcessClass(ParseContext context, PrivacyType privacy)
+    public static ClassNode ProcessClass(ParseContext context, PrivacyType privacy, bool isForeign, bool isStruct = false)
     {
-        if (context.Current?.Type != TokenType.Class)
+        if ((isStruct && context.Current?.Type != TokenType.Struct) || (!isStruct && context.Current?.Type != TokenType.Class))
         {
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Class);
         }
@@ -106,7 +106,7 @@ public static class ASTGenerator
             string name = context.Current.Value.Text.ToString();
             context.MoveNext();
             
-            if (context.Current?.Type == TokenType.OpeningGenericBracket)
+            if (!isStruct && !isForeign && context.Current?.Type == TokenType.OpeningGenericBracket)
             {
                 var @params = new List<GenericParameterNode>();
                 context.MoveNext();
@@ -133,9 +133,22 @@ public static class ASTGenerator
             }
             else
             {
-                return context.Current?.Type == TokenType.OpeningCurlyBraces
-                    ? new ClassNode(name, privacy, ProcessScope(context, true))
-                    : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                if (isForeign)
+                {
+                    if (context.Current?.Type == TokenType.Semicolon)
+                    {
+                        context.MoveNext();
+                        return new ClassNode(name, privacy, null, isStruct);
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                    }
+                }
+                else
+                {
+                    return new ClassNode(name, privacy, ProcessScope(context, true), isStruct);
+                }
             }
         }
         else
@@ -322,9 +335,11 @@ public static class ASTGenerator
             switch (context.Current?.Type)
             {
                 case TokenType.Foreign:
+                    if (isForeign) throw new UnexpectedTokenException(context.Current.Value);
                     isForeign = true;
                     break;
                 case TokenType.Static:
+                    if (isStatic) throw new UnexpectedTokenException(context.Current.Value);
                     isStatic = true;
                     break;
                 default:
@@ -333,10 +348,14 @@ public static class ASTGenerator
 
             context.MoveNext();
         }
-        
-        if (context.MoveNext()?.Type == TokenType.Class)
+
+        if (context.Current?.Type == TokenType.Struct)
         {
-            return ProcessClass(context, privacy);
+            return ProcessClass(context, privacy, isForeign, true);
+        }
+        else if (context.Current?.Type == TokenType.Class)
+        {
+            return ProcessClass(context, privacy, isForeign);
         }
         else if (context.Current?.Type == TokenType.Function)
         {

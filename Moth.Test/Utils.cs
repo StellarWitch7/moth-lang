@@ -19,9 +19,9 @@ internal class Utils
 
     public static string PrependNamespace(string code) => $"namespace unit.test; {code}";
 
-    public static string WrapInMainFunc(string code) => $"func main() #i32 {{ {code} }}";
+    public static string WrapInMainFunc(string code) => $"public func main() #i32 {{ {code} }}";
 
     public static string BasicWrap(string code) => PrependNamespace(WrapInMainFunc(code));
 
-    public static object WrapInInit(string code, string type) => $"static init() #{type} {{ {code} }}";
+    public static object WrapInInit(string code, string type) => $"public static init() #{type} {{ {code} }}";
 }

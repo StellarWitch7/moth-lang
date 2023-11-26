@@ -58,6 +58,7 @@ public enum TokenType
     Equal,
     NotEqual,
     Class,
+    Struct,
     If,
     Local,
     Else,

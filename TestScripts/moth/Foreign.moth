@@ -16,4 +16,4 @@ private foreign func strcpy(destination #char*, source #char*) #char*;
 private foreign struct FILE;
 
 @CallingConvention("cdecl")
-private foreign __acrt_iob_func(n #u32) #FILE*;
+private foreign func __acrt_iob_func(n #u32) #FILE*;
