@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth", "Moth\Moth.csproj", "{B9C4933B-08ED-44C0-98FC-CD379CFD98C8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.CLI", "Moth.CLI\Moth.CLI.csproj", "{5B886CA2-39A0-46B2-B0EA-1DE6F19906C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Test", "Moth.Test\Moth.Test.csproj", "{83745018-15D3-4704-93BA-6B2862C89B39}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B9C4933B-08ED-44C0-98FC-CD379CFD98C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9C4933B-08ED-44C0-98FC-CD379CFD98C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9C4933B-08ED-44C0-98FC-CD379CFD98C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9C4933B-08ED-44C0-98FC-CD379CFD98C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B886CA2-39A0-46B2-B0EA-1DE6F19906C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B886CA2-39A0-46B2-B0EA-1DE6F19906C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B886CA2-39A0-46B2-B0EA-1DE6F19906C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B886CA2-39A0-46B2-B0EA-1DE6F19906C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83745018-15D3-4704-93BA-6B2862C89B39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83745018-15D3-4704-93BA-6B2862C89B39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83745018-15D3-4704-93BA-6B2862C89B39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83745018-15D3-4704-93BA-6B2862C89B39}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
