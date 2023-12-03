@@ -14,7 +14,7 @@ public class LLVMCompiler
     public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
 
-    private readonly Logger _logger = new Logger("moth");
+    private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
@@ -162,6 +162,18 @@ public class LLVMCompiler
         {
             OpenFile(script.Namespace, script.Imports.ToArray());
 
+            foreach (ClassNode classNode in script.ClassNodes)
+            {
+                if (classNode is GenericClassNode genericClass)
+                {
+                    CurrentNamespace.GenericClassTemplates.Add(genericClass.Name, genericClass);
+                }
+                else
+                {
+                    DefineClass(classNode);
+                }
+            }
+            
             foreach (FieldDefNode constDefNode in script.GlobalConstants)
             {
                 DefineConstant(constDefNode);
@@ -172,27 +184,18 @@ public class LLVMCompiler
                 DefineFunction(funcDefNode);
             }
 
-            foreach (ClassNode @class in script.ClassNodes)
-            {
-                if (@class is GenericClassNode genericClass)
-                {
-                    CurrentNamespace.GenericClassTemplates.Add(genericClass.Name, genericClass);
-                }
-                else
-                {
-                    DefineClass(@class);
-                }
-            }
-
             foreach (ClassNode classNode in script.ClassNodes)
             {
                 if (classNode is not GenericClassNode)
                 {
                     Struct @struct = GetStruct(classNode.Name);
 
-                    foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+                    if (classNode.Scope != null)
                     {
-                        DefineFunction(funcDefNode, @struct);
+                        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+                        {
+                            DefineFunction(funcDefNode, @struct);
+                        }
                     }
                 }
             }
@@ -271,13 +274,23 @@ public class LLVMCompiler
         }
         
         CurrentNamespace.Structs.Add(classNode.Name, newStruct);
-        newStruct.AddBuiltins(this);
+        
+        if (newStruct is not OpaqueStruct)
+        {
+            newStruct.AddBuiltins(this);
+        }
     }
 
     public void CompileClass(ClassNode classNode)
     {
         var llvmTypes = new List<LLVMTypeRef>();
         Struct @struct = GetStruct(classNode.Name);
+
+        if (@struct is OpaqueStruct)
+        {
+            return;
+        }
+        
         uint index = 0;
 
         foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())

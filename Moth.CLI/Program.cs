@@ -16,7 +16,7 @@ internal class Program
         try
         {
             string dir = Environment.CurrentDirectory;
-            var logger = new Logger("moth-cmd");
+            var logger = new Logger("moth/CLI");
 
             Parser.Default.ParseArguments<Options>(args).WithParsed(options =>
             {
