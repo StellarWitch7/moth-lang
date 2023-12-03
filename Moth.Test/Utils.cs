@@ -7,17 +7,27 @@ namespace Moth.Test;
 
 internal class Utils
 {
+    private static bool hasInit = false;
+    
     public static unsafe LLVMExecutionEngineRef InitJIT(LLVMCompiler compiler)
     {
-        LLVMSharp.Interop.LLVM.LinkInMCJIT();
-        LLVMSharp.Interop.LLVM.InitializeX86TargetInfo();
-        LLVMSharp.Interop.LLVM.InitializeX86Target();
-        LLVMSharp.Interop.LLVM.InitializeX86TargetMC();
-        LLVMSharp.Interop.LLVM.InitializeX86AsmParser();
-        LLVMSharp.Interop.LLVM.InitializeX86AsmPrinter();
+        Console.WriteLine("(unsafe) Initializing JIT...");
         
-        LLVMMCJITCompilerOptions options = new LLVMMCJITCompilerOptions { NoFramePointerElim = 1 };
-        LLVMSharp.Interop.LLVM.InitializeMCJITCompilerOptions(&options, (nuint)UIntPtr.Size);
+        if (!hasInit)
+        {
+            LLVMSharp.Interop.LLVM.LinkInMCJIT();
+            LLVMSharp.Interop.LLVM.InitializeX86TargetInfo();
+            LLVMSharp.Interop.LLVM.InitializeX86Target();
+            LLVMSharp.Interop.LLVM.InitializeX86TargetMC();
+            LLVMSharp.Interop.LLVM.InitializeX86AsmParser();
+            LLVMSharp.Interop.LLVM.InitializeX86AsmPrinter();
+        
+            LLVMMCJITCompilerOptions options = new LLVMMCJITCompilerOptions { NoFramePointerElim = 1 };
+            LLVMSharp.Interop.LLVM.InitializeMCJITCompilerOptions(&options, (nuint)UIntPtr.Size);
+
+            hasInit = true;
+        }
+        
         return compiler.Module.CreateExecutionEngine();
     }
     

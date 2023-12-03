@@ -4,24 +4,42 @@ namespace Moth.CLI;
 
 internal class Options
 {
-    [Option('v', "verbose", Required = false, HelpText = "Whether to include extensive logging.")]
+    [Option('v',
+        "verbose",
+        Required = false,
+        HelpText = "Whether to include extensive logging.")]
     public bool Verbose { get; set; }
 
-    [Option("msvc", Required = false, HelpText = "Whether to use MSVC instead of Clang on Windows. Requires '--windows-sdk' if used.")]
-    public bool UseMSVC { get; set; }
-
-    [Option("debug-test", Required = false, HelpText = "Whether to run the output on success.")]
+    [Option("debug-test",
+        Required = false,
+        HelpText = "Whether to run the output on success.")]
     public bool RunTest { get; set; }
 
-    [Option('o', "output", Required = true, HelpText = "The name of the file to output. Please forego the extension.")]
+    [Option("advanced-ir-opt",
+        Required = false,
+        HelpText = "Whether to apply advanced optimizations to the IR. True by default. ",
+        Default = true)]
+    public bool OptimizeIR { get; set; }
+
+    [Option('o',
+        "output",
+        Required = true,
+        HelpText = "The name of the file to output. Please forego the extension.")]
     public string? OutputFile { get; set; }
 
-    [Option("windows-sdk", Required = false, HelpText = "The path to the Windows SDK. Required if --msvc is set, useless otherwise.")]
-    public string? WindowsSDKPath { get; set; }
-
-    [Option('i', "input", Required = true, HelpText = "The files to compile.")]
+    [Option('i',
+        "input",
+        Required = true,
+        HelpText = "The files to compile.")]
     public IEnumerable<string>? InputFiles { get; set; }
 
-    [Option("moth-libs", Required = false, HelpText = "External LLVM IR files to include in the compiled program.")]
+    [Option("moth-libs",
+        Required = false,
+        HelpText = "External Moth library files to include in the compiled program.")]
     public IEnumerable<string>? MothLibraryFiles { get; set; }
+    
+    [Option("c-libs",
+        Required = false,
+        HelpText = "External C library files to include in the compiled program.")]
+    public IEnumerable<string>? CLibraryFiles { get; set; }
 }

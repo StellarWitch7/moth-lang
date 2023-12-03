@@ -14,7 +14,7 @@ public class LLVMCompiler
     public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
 
-    private readonly Logger _logger = new Logger("moth/compiler");
+    private readonly Logger _logger = new Logger("moth");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
@@ -29,6 +29,8 @@ public class LLVMCompiler
         Module = Context.CreateModuleWithName(ModuleName);
         GlobalNamespace = InitGlobalNamespace();
 
+        Log("(unsafe) Creating function optimization pass manager...");
+        
         unsafe
         {
             FunctionPassManager = LLVMSharp.Interop.LLVM.CreateFunctionPassManagerForModule(Module);
@@ -460,9 +462,14 @@ public class LLVMCompiler
         
         if (CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
         {
-            unsafe
+            if (DoOptimize)
             {
-                LLVMSharp.Interop.LLVM.RunFunctionPassManager(FunctionPassManager, func.LLVMValue);
+                Log($"(unsafe) Running optimization pass on function \"{funcDefNode.Name}\".");
+            
+                unsafe
+                {
+                    LLVMSharp.Interop.LLVM.RunFunctionPassManager(FunctionPassManager, func.LLVMValue);
+                }
             }
         }
         else

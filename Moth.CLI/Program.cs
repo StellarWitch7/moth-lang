@@ -2,6 +2,7 @@
 using Moth.AST;
 using Moth.LLVM;
 using Moth.Tokens;
+using LLVMSharp.Interop;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,19 +11,19 @@ namespace Moth.CLI;
 
 internal class Program
 {
-    private static unsafe void Main(string[] args)
+    private static void Main(string[] args)
     {
         try
         {
             string dir = Environment.CurrentDirectory;
-            var logger = new Logger("moth");
+            var logger = new Logger("moth-cmd");
 
             Parser.Default.ParseArguments<Options>(args).WithParsed(options =>
             {
                 _ = options.InputFiles ?? throw new Exception("No input files provided.");
                 _ = options.OutputFile ?? throw new Exception("No output file name provided.");
                 
-                var compiler = new LLVMCompiler(options.OutputFile);
+                var compiler = new LLVMCompiler(options.OutputFile, options.OptimizeIR);
                 var scripts = new List<ScriptAST>();
 
                 logger.WriteLine($"Building {options.OutputFile}...");
@@ -105,7 +106,7 @@ internal class Program
                     }
 
                     logger.WriteLine("Verifying IR validity...");
-                    compiler.Module.Verify(LLVMSharp.Interop.LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                    compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
                     string? linkerName = null;
 
                     //Send to linker
@@ -115,41 +116,34 @@ internal class Program
                         string path = Path.Join(dir, @out);
                         var arguments = new StringBuilder($"{path}");
 
-                        string cpu = new string(LLVMSharp.Interop.LLVM.GetHostCPUName());
-                        string features = new string(LLVMSharp.Interop.LLVM.GetHostCPUFeatures());
+                        logger.WriteLine("(unsafe) Retrieving host machine info...");
+                        
+                        unsafe
+                        {
+                            string cpu = new string(LLVMSharp.Interop.LLVM.GetHostCPUName());
+                            string features = new string(LLVMSharp.Interop.LLVM.GetHostCPUFeatures());
 
-                        LLVMSharp.Interop.LLVMCodeGenOptLevel optLevel //TODO: add argument to configure this level
-                            = LLVMSharp.Interop.LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault;
-                        var target
-                            = LLVMSharp.Interop.LLVMTargetRef.GetTargetFromTriple(LLVMSharp.Interop.LLVMTargetRef.DefaultTriple);
-                        LLVMSharp.Interop.LLVMTargetMachineRef machine
-                            = target.CreateTargetMachine(LLVMSharp.Interop.LLVMTargetRef.DefaultTriple,
+                            //TODO: add argument to configure this level
+                            LLVMCodeGenOptLevel optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault;
+                            var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
+                            LLVMTargetMachineRef machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple,
                                 cpu,
                                 features,
-                                optLevel,LLVMSharp.Interop.LLVMRelocMode.LLVMRelocDefault,
-                                LLVMSharp.Interop.LLVMCodeModel.LLVMCodeModelDefault);
+                                optLevel,LLVMRelocMode.LLVMRelocDefault,
+                                LLVMCodeModel.LLVMCodeModelDefault);
 
-                        logger.WriteLine($"Writing to object file \"{path}\"");
-                        machine.EmitToFile(compiler.Module, path, LLVMSharp.Interop.LLVMCodeGenFileType.LLVMObjectFile);
-                        logger.WriteLine($"Compiling final product...");
-
-                        if (options.UseMSVC && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                        {
-                            throw new NotImplementedException();
+                            logger.WriteLine($"Writing to object file \"{path}\"");
+                            machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMObjectFile);
                         }
-                        // else if (options.UseGCC && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                        // {
-                        //     throw new NotImplementedException();
-                        // }
-                        else
-                        {
-                            linkerName = "clang";
-                            arguments.Append($" -o {options.OutputFile}.exe -llegacy_stdio_definitions");
+                        
+                        logger.WriteLine($"Compiling final product...");
+                        
+                        linkerName = "clang";
+                        arguments.Append($" -o {options.OutputFile}.exe -llegacy_stdio_definitions");
 
-                            if (options.Verbose)
-                            {
-                                arguments.Append(" -v");
-                            }
+                        if (options.Verbose)
+                        {
+                            arguments.Append(" -v");
                         }
 
                         logger.WriteLine($"Attempting to call {linkerName} with arguments <{arguments}>");
@@ -221,12 +215,12 @@ internal class Program
                 }
                 catch (Exception e)
                 {
-                    logger.WriteEmptyLine();
+                    //logger.WriteEmptyLine();
 
                     if (options.Verbose)
                     {
                         logger.WriteSeparator();
-                        logger.WriteLine(compiler.Module.PrintToString());
+                        logger.WriteUnsignedLine(compiler.Module.PrintToString());
                         logger.WriteSeparator();
                         logger.WriteLine("Dumped LLVM IR for reviewal.");
                     }
