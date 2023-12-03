@@ -1235,7 +1235,7 @@ public class LLVMCompiler
         {
             type = ResolveType(localDef.TypeRef);
         }
-
+        
         LLVMValueRef llvmVariable = Builder.BuildAlloca(type.LLVMType, localDef.Name); //TODO: crashes with a func type, if on stack
         scope.Variables.Add(localDef.Name, new Variable(localDef.Name, type, llvmVariable));
 

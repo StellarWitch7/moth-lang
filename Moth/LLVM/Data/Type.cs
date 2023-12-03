@@ -11,11 +11,10 @@ public enum TypeKind
     Reference,
 }
 
-public abstract class Type : CompilerData
+public class Type : CompilerData
 {
     public readonly LLVMTypeRef LLVMType;
     public readonly TypeKind Kind;
-
 
     public Type(LLVMTypeRef llvmType, TypeKind kind)
     {
@@ -23,7 +22,9 @@ public abstract class Type : CompilerData
         Kind = kind;
     }
 
-    public abstract override string ToString();
-    public abstract override bool Equals(object? obj);
-    public abstract override int GetHashCode();
+    public override string ToString() => throw new NotImplementedException();
+
+    public override bool Equals(object? obj) => throw new NotImplementedException();
+
+    public override int GetHashCode() => throw new NotImplementedException();
 }

@@ -1,13 +1,13 @@
 namespace Moth.LLVM.Data;
 
-public abstract class FuncType : Type
+public class FuncType : PtrType
 {
     public readonly string Name;
     public Type ReturnType { get; }
     public Type[] ParameterTypes { get; }
 
     public FuncType(string name, Type retType, Type[] paramTypes)
-        : base(LLVMTypeRef.CreateFunction(retType.LLVMType, paramTypes.AsLLVMTypes()), TypeKind.Function)
+        : base(new Type(LLVMTypeRef.CreateFunction(retType.LLVMType, paramTypes.AsLLVMTypes()), TypeKind.Function))
     {
         Name = name;
         ReturnType = retType;
@@ -55,7 +55,11 @@ public abstract class FuncType : Type
             : "");
     }
 
-    public abstract Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args, string name);
+    public virtual Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args, string name)
+        => new Value(ReturnType, compiler.Builder.BuildCall2(BaseType.LLVMType,
+            func,
+            args.AsLLVMValues(),
+            name));
 }
 
 public class LLVMFuncType : FuncType
@@ -77,12 +81,6 @@ public class LLVMFuncType : FuncType
                 : null;
         }
     }
-
-    public override Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args, string name)
-        => new Value(ReturnType, compiler.Builder.BuildCall2(LLVMType,
-            func,
-            args.AsLLVMValues(),
-            name));
 
     public override string ToString() => throw new NotImplementedException();
 }

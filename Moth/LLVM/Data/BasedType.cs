@@ -28,14 +28,14 @@ public class BasedType : Type
     public override int GetHashCode() => BaseType.GetHashCode();
 }
 
+public class PtrType : BasedType
+{
+    public PtrType(Type baseType)
+        : base(baseType, TypeKind.Pointer) { }
+}
+
 public sealed class RefType : BasedType
 {
     public RefType(Type baseType)
         : base(baseType, TypeKind.Reference) { }
-}
-
-public sealed class PtrType : BasedType
-{
-    public PtrType(Type baseType)
-        : base(baseType, TypeKind.Pointer) { }
 }
