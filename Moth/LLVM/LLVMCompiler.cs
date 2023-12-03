@@ -7,9 +7,11 @@ namespace Moth.LLVM;
 public class LLVMCompiler
 {
     public string ModuleName { get; }
+    public bool DoOptimize { get; }
     public LLVMContextRef Context { get; }
     public LLVMModuleRef Module { get; }
     public LLVMBuilderRef Builder { get; }
+    public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
 
     private readonly Logger _logger = new Logger("moth/compiler");
@@ -18,13 +20,26 @@ public class LLVMCompiler
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
 
-    public LLVMCompiler(string moduleName)
+    public LLVMCompiler(string moduleName, bool doOptimize = true)
     {
         ModuleName = moduleName;
+        DoOptimize = doOptimize;
         Context = LLVMContextRef.Global;
         Builder = Context.CreateBuilder();
         Module = Context.CreateModuleWithName(ModuleName);
         GlobalNamespace = InitGlobalNamespace();
+
+        unsafe
+        {
+            FunctionPassManager = LLVMSharp.Interop.LLVM.CreateFunctionPassManagerForModule(Module);
+            
+            LLVMSharp.Interop.LLVM.AddInstructionCombiningPass(FunctionPassManager);
+            LLVMSharp.Interop.LLVM.AddReassociatePass(FunctionPassManager);
+            LLVMSharp.Interop.LLVM.AddGVNPass(FunctionPassManager);
+            LLVMSharp.Interop.LLVM.AddCFGSimplificationPass(FunctionPassManager);
+
+            LLVMSharp.Interop.LLVM.InitializeFunctionPassManager(FunctionPassManager);
+        }
     }
 
     public LLVMCompiler(string moduleName, IReadOnlyCollection<ScriptAST> scripts) : this(moduleName) => Compile(scripts);
@@ -54,15 +69,23 @@ public class LLVMCompiler
     {
         get
         {
-            return _currentFunction ?? throw new Exception("Current function is null.");
+            return _currentFunction ?? throw new Exception("Current function is null. " +
+                "This is a CRITICAL ERROR. Report ASAP.");
         }
         
         set
         {
-            _currentFunction = value.Type is LLVMFuncType
-                ? _currentFunction
-                : throw new Exception("Cannot assign function value as it is not of a valid type. " +
-                    "This is a CRITICAL ERROR. Report ASAP.");
+            if (value == null)
+            {
+                _currentFunction = null;
+            }
+            else
+            {
+                _currentFunction = value.Type is LLVMFuncType
+                    ? value
+                    : throw new Exception("Cannot assign function value as it is not of a valid type. " +
+                        "This is a CRITICAL ERROR. Report ASAP.");
+            }
         }
     }
 
@@ -382,24 +405,21 @@ public class LLVMCompiler
         {
             throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
         }
-
-        if (func.Type is not MethodType funcType)
-        {
-            throw new Exception($"{func.Type.Name} cannot be compiled.");
-        }
-
+        
+        CurrentFunction = func;
         func.OpeningScope = new Scope(func.LLVMValue.AppendBasicBlock("entry"));
         Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
-        CurrentFunction = func;
 
-        if (funcDefNode.Name == Reserved.Init && funcDefNode.IsStatic)
+        LLVMFuncType funcType = (LLVMFuncType)func.Type;
+
+        if (funcType is MethodType methodType && funcDefNode.Name == Reserved.Init && funcDefNode.IsStatic)
         {
             if (funcType.ReturnType is Class retType)
             {
-                if (retType != funcType.OwnerStruct)
+                if (retType != methodType.OwnerStruct)
                 {
                     throw new Exception($"Init method does not return the same type as its owner class " +
-                        $"(\"{funcType.OwnerStruct.Name}\").");
+                        $"(\"{methodType.OwnerStruct.Name}\").");
                 }
             }
             else
@@ -408,8 +428,8 @@ public class LLVMCompiler
             }
 
             var @new = new Variable(Reserved.Self,
-                new RefType(funcType.OwnerStruct),
-                Builder.BuildMalloc(funcType.OwnerStruct.LLVMType, Reserved.Self));
+                new RefType(methodType.OwnerStruct),
+                Builder.BuildMalloc(methodType.OwnerStruct.LLVMType, Reserved.Self));
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
@@ -427,9 +447,9 @@ public class LLVMCompiler
             }
         }
 
-        foreach (Parameter param in CurrentFunction.Params)
+        foreach (Parameter param in func.Params)
         {
-            LLVMValueRef paramAsVar = Builder.BuildAlloca(CurrentFunction.Type.ParameterTypes[param.ParamIndex].LLVMType,
+            LLVMValueRef paramAsVar = Builder.BuildAlloca(func.Type.ParameterTypes[param.ParamIndex].LLVMType,
                 param.Name);
             Builder.BuildStore(func.LLVMValue.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
@@ -437,8 +457,15 @@ public class LLVMCompiler
                     new RefType(CurrentFunction.Type.ParameterTypes[param.ParamIndex]),
                     paramAsVar));
         }
-
-        if (!CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
+        
+        if (CompileScope(func.OpeningScope, funcDefNode.ExecutionBlock))
+        {
+            unsafe
+            {
+                LLVMSharp.Interop.LLVM.RunFunctionPassManager(FunctionPassManager, func.LLVMValue);
+            }
+        }
+        else
         {
             throw new Exception("Function is not guaranteed to return.");
         }
@@ -476,11 +503,6 @@ public class LLVMCompiler
         {
             if (statement is ReturnNode @return)
             {
-                if (CurrentFunction == null)
-                {
-                    throw new Exception("Return is not within a function!");
-                }
-
                 if (@return.ReturnValue != null)
                 {
                     Value expr = SafeLoad(CompileExpression(scope, @return.ReturnValue));
