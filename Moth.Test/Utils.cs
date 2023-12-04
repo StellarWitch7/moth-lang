@@ -50,9 +50,9 @@ internal class Utils
             .ToString();
     }
     
-    public static string RunFunction(LLVMCompiler compiler, LLVMExecutionEngineRef engine)
+    public static LLVMGenericValueRef RunFunction(LLVMCompiler compiler, LLVMExecutionEngineRef engine)
     {
-        return engine.RunFunction(compiler.Module.GetNamedFunction("fn"), new LLVMGenericValueRef[0]).ToString();
+        return engine.RunFunction(compiler.Module.GetNamedFunction("fn"), new LLVMGenericValueRef[0]);
     }
 
     public static string PrependNamespace(string code) => $"namespace unit.test; {code}";

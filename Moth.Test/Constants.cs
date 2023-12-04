@@ -12,7 +12,7 @@ public class Constants
         string code = Utils.TypedFuncWrap("return true;", "bool");
         (var compiler, var engine) = Utils.FullCompile(code);
         var ret = Utils.RunFunction(compiler, engine);
-        Assert.AreEqual("i1 1", ret);
+        Assert.AreEqual(/*unknown*/);
     }
 
     [TestMethod]
