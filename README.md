@@ -13,7 +13,9 @@ Moth's official compiler, written in C#. It takes Moth code and converts it to L
 ```
 -v, --verbose => Logs extra info to console. 
 -o, --output => The name of the output file. Please forego the extension.
--i, --input => The files to compile. 
+-i, --input => The files to compile.
+--debug-test => Whether to run the output program once done compiling.
+--no-advanced-ir-opt => Whether to skip IR optimization passes. 
 ```
 
 ### Tools
