@@ -6,6 +6,9 @@
 
 Moth's official compiler, written in C#. It takes Moth code and converts it to LLVM IR, which is then passed to a C compiler. Currently only compatible with the Clang compiler. Read the [wiki](https://github.com/StellarWitch7/Moth/wiki) for Moth's documentation. Please report any bugs to the [issue tracker](https://github.com/StellarWitch7/Moth/issues), as it helps to improve Moth's compiler. 
 
+### Dependencies
+1. The Clang compiler. (Tested with version 16.)
+
 ### Arguments
 ```
 -v, --verbose => Logs extra info to console. 
@@ -17,4 +20,4 @@ Moth's official compiler, written in C#. It takes Moth code and converts it to L
 Currently the only aid for coding in Moth is the official [VS Code extension](https://github.com/StellarWitch7/moth-dev). It serves only to provide syntax highlighting. 
 
 # !!WARNING!!
-Moth is currently **unfinished**. Many things are unlikely to function well, and for the time being, only Windows is supported. 
+Moth is currently **unfinished**. Many things are unlikely to function well. 
