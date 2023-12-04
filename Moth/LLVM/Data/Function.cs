@@ -8,17 +8,10 @@ public class Function : Value
     public Parameter[] Params { get; }
     public Scope? OpeningScope { get; set; }
 
-    public Function(FuncType type, LLVMValueRef value, Parameter[] @params) : this(type, value, @params, false) {}
-    
-    protected Function(FuncType type, LLVMValueRef value, Parameter[] @params, bool isIntrinsic) : base(type, value)
+    public Function(FuncType type, LLVMValueRef value, Parameter[] @params) : base(type, value)
     {
         Type = type;
         Params = @params;
-
-        if (!isIntrinsic && value.Kind != LLVMValueKind.LLVMFunctionValueKind) //TODO: or is it ptr value?
-        {
-            throw new Exception("Value of a function must be an LLVM function.");
-        }
     }
 
     public Struct OwnerStruct
@@ -49,7 +42,7 @@ public abstract class IntrinsicFunction : Function
 {
     private LLVMValueRef _internalValue;
     
-    public IntrinsicFunction(FuncType type) : base(type, default, new Parameter[0], true) { }
+    public IntrinsicFunction(FuncType type) : base(type, default, new Parameter[0]) { }
 
     public override LLVMValueRef LLVMValue
     {

@@ -3,9 +3,11 @@
 public class Variable : Value
 {
     public string Name { get; set; }
+    public override RefType Type { get; }
 
-    public Variable(string name, Type type, LLVMValueRef llvmVariable) : base(type, llvmVariable)
+    public Variable(string name, RefType type, LLVMValueRef llvmVariable) : base(null, llvmVariable)
     {
         Name = name;
+        Type = type;
     }
 }

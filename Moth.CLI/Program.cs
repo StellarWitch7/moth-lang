@@ -23,16 +23,9 @@ internal class Program
                 _ = options.InputFiles ?? throw new Exception("No input files provided.");
                 _ = options.OutputFile ?? throw new Exception("No output file name provided.");
                 
-                var compiler = new LLVMCompiler(options.OutputFile, options.OptimizeIR);
                 var scripts = new List<ScriptAST>();
 
                 logger.WriteLine($"Building {options.OutputFile}...");
-                LLVMSharp.Interop.LLVM.LinkInMCJIT();
-                LLVMSharp.Interop.LLVM.InitializeAllTargetInfos();
-                LLVMSharp.Interop.LLVM.InitializeAllTargets();
-                LLVMSharp.Interop.LLVM.InitializeAllTargetMCs();
-                LLVMSharp.Interop.LLVM.InitializeAllAsmParsers();
-                LLVMSharp.Interop.LLVM.InitializeAllAsmPrinters();
 
                 foreach (string filePath in options.InputFiles)
                 {
@@ -92,6 +85,14 @@ internal class Program
                     }
                 }
 
+                LLVMSharp.Interop.LLVM.LinkInMCJIT();
+                LLVMSharp.Interop.LLVM.InitializeAllTargetInfos();
+                LLVMSharp.Interop.LLVM.InitializeAllTargets();
+                LLVMSharp.Interop.LLVM.InitializeAllTargetMCs();
+                LLVMSharp.Interop.LLVM.InitializeAllAsmParsers();
+                LLVMSharp.Interop.LLVM.InitializeAllAsmPrinters();
+                var compiler = new LLVMCompiler(options.OutputFile, options.OptimizeIR);
+                
                 //Compile
                 try
                 {
@@ -215,8 +216,6 @@ internal class Program
                 }
                 catch (Exception e)
                 {
-                    //logger.WriteEmptyLine();
-
                     if (options.Verbose)
                     {
                         logger.WriteSeparator();

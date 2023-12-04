@@ -346,10 +346,12 @@ public class LLVMCompiler
                 ? CurrentNamespace
                 : @struct,
             funcType,
-            Module.AddFunction(funcName, llvmFuncType),
+            Module.GetNamedFunction(funcName) != null //TODO: is this necessary?
+                ? Module.GetNamedFunction(funcName)
+                : Module.AddFunction(funcName, llvmFuncType),
             @params.ToArray(),
             funcDefNode.Privacy);
-
+        
         if (@struct != null)
         {
             if (funcDefNode.IsStatic)
@@ -398,9 +400,20 @@ public class LLVMCompiler
             paramTypes.Add(ResolveParameter(param));
         }
 
+        if (!funcDefNode.IsStatic && @struct != null)
+        {
+            var newParamTypes = new List<Type>()
+            {
+                new PtrType(@struct)
+            };
+            
+            newParamTypes.AddRange(paramTypes);
+            paramTypes = newParamTypes;
+        }
+        
         var sig = new Signature(funcDefNode.Name, paramTypes);
 
-        if (funcDefNode.IsForeign && funcDefNode.ExecutionBlock == null)
+        if (funcDefNode.IsForeign || funcDefNode.ExecutionBlock == null)
         {
             return;
         }
@@ -448,7 +461,7 @@ public class LLVMCompiler
 
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
-            if (@new.Type is not Class classOfNew)
+            if (@new.Type.BaseType is not Class classOfNew)
             {
                 throw new Exception();
             }
@@ -481,7 +494,7 @@ public class LLVMCompiler
             
                 unsafe
                 {
-                    LLVMSharp.Interop.LLVM.RunFunctionPassManager(FunctionPassManager, func.LLVMValue);
+                    //LLVMSharp.Interop.LLVM.RunFunctionPassManager(FunctionPassManager, func.LLVMValue);
                 }
             }
         }
@@ -738,7 +751,7 @@ public class LLVMCompiler
             }
 
             var funcType = new LocalFuncType(retType, paramTypes.ToArray());
-            LLVMValueRef llvmFunc = Module.AddFunction(funcType.Name, funcType.LLVMType);
+            LLVMValueRef llvmFunc = Module.AddFunction(funcType.Name, funcType.BaseType.LLVMType);
 
             Function? parentFunction = CurrentFunction;
             var func = new Function(funcType, llvmFunc, @params.ToArray())
@@ -749,9 +762,10 @@ public class LLVMCompiler
             CurrentFunction = func;
             Value ret = !CompileScope(func.OpeningScope, localFuncDef.ExecutionBlock)
                 ? throw new Exception("Local function is not guaranteed to return.")
-                : new Value(funcType, llvmFunc);
+                : func;
             CurrentFunction = parentFunction;
-
+            
+            Builder.PositionAtEnd(scope.LLVMBlock);
             return ret;
         }
         else if (expr is InlineIfNode @if)
@@ -788,7 +802,7 @@ public class LLVMCompiler
             Builder.PositionAtEnd(@continue);
             scope.LLVMBlock = @continue;
 
-            return thenVal.Type.Equals(elseVal.Type)
+            return SafeLoad(thenVal).Type.Equals(SafeLoad(elseVal).Type)
                 ? new Value(WrapAsRef(thenVal.Type), result)
                 : throw new Exception("Then and else statements of inline if are not of the same type.");
         }
@@ -1236,8 +1250,8 @@ public class LLVMCompiler
             type = ResolveType(localDef.TypeRef);
         }
         
-        LLVMValueRef llvmVariable = Builder.BuildAlloca(type.LLVMType, localDef.Name); //TODO: crashes with a func type, if on stack
-        scope.Variables.Add(localDef.Name, new Variable(localDef.Name, type, llvmVariable));
+        LLVMValueRef llvmVariable = Builder.BuildAlloca(type.LLVMType, localDef.Name);
+        scope.Variables.Add(localDef.Name, new Variable(localDef.Name, WrapAsRef(type), llvmVariable));
 
         if (value != null)
         {
@@ -1323,6 +1337,8 @@ public class LLVMCompiler
     {
         if (context != null)
         {
+            context = SafeLoad(context);
+            
             if (context.Type is not Class classType)
             {
                 throw new Exception(); //TODO
@@ -1350,19 +1366,10 @@ public class LLVMCompiler
     }
 
     public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Struct? sourceStruct = null)
-    { //TODO: needs to be reworked
+    {
         Function? func;
         var argTypes = new List<Type>();
         var args = new List<Value>();
-        bool contextWasNull = context == null;
-
-        if (context == null)
-        {
-            if (CurrentFunction.OwnerStruct != null)
-            {
-                context = new Value(CurrentFunction.OwnerStruct, CurrentFunction.LLVMValue.FirstParam);
-            }
-        }
 
         foreach (ExpressionNode arg in funcCall.Arguments)
         {
@@ -1373,8 +1380,16 @@ public class LLVMCompiler
 
         var sig = new Signature(funcCall.Name, argTypes);
 
-        if (context != null && context.Type is Class classType && classType.Methods.TryGetValue(sig, out func))
+        if (scope.Variables.TryGetValue(funcCall.Name, out Variable funcVar) && funcVar.Type.BaseType is FuncType funcVarType)
         {
+            func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
+        }
+        else if (context != null
+            && context.Type == CurrentFunction.OwnerStruct
+            && context.Type is Class @class)
+        {
+            func = @class.GetMethod(sig, CurrentFunction.OwnerStruct);
+            
             if (context.Type.LLVMType == func.Type.LLVMType.ParamTypes[0])
             {
                 var newArgs = new List<Value> { context };
@@ -1387,13 +1402,15 @@ public class LLVMCompiler
                     "!!THIS IS NOT A USER ERROR. REPORT ASAP!!");
             }
         }
-        else if (contextWasNull && CurrentNamespace.Functions.TryGetValue(sig, out func))
+        else if (context == null
+            && sourceStruct != null
+            && sourceStruct.TryGetFunction(sig, CurrentFunction.OwnerStruct, false, out func))
         {
             // Keep empty
         }
-        else if (sourceStruct != null && sourceStruct.StaticMethods.TryGetValue(sig, out func))
+        else if (context == null)
         {
-            // Keep empty
+            func = GetFunction(sig);
         }
         else
         {
@@ -1477,7 +1494,13 @@ public class LLVMCompiler
 
     public Function GetFunction(Signature sig)
     {
-        if (CurrentNamespace.TryGetFunction(sig, out Function func))
+        if (CurrentFunction != null
+            && CurrentFunction.OwnerStruct != null
+            && CurrentFunction.OwnerStruct.TryGetFunction(sig, CurrentFunction.OwnerStruct, true, out Function func))
+        {
+            return func;
+        }
+        else if (CurrentNamespace.TryGetFunction(sig, out func))
         {
             return func;
         }

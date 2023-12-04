@@ -2,6 +2,8 @@ namespace Test;
 
 with MothStd;
 
+private foreign func malloc(size #u64) #void*;
+
 private func main() #i32 {
     // writeLine("Welcome!");
     // writeLine(#Sys.Input("Enter something to be repeated: "));
@@ -12,7 +14,7 @@ private func main() #i32 {
     // local result ?= if array.GetIndex(#u64 <- 0, ref val) then val else load test;
     // return result;
 
-    local fn #(#i32, #char*)* #bool = ref func (num #i32, str #char*) #bool {
+    local fn ?= func (num #i32, str #char*) #bool {
         return true;
     };
     
