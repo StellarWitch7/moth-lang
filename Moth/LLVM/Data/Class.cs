@@ -26,4 +26,13 @@ public class Class : Struct
             throw new Exception($"Method \"{sig}\" does not exist on type \"{Name}\".");
         }
     }
+
+    public override Variable Init(LLVMCompiler compiler)
+    {
+        var @new = new Variable(Reserved.Self,
+            compiler.WrapAsRef(this),
+            compiler.Builder.BuildAlloca(LLVMTypeRef.CreatePointer(LLVMType, 0)));
+        @new.Store(compiler, new Value(this, compiler.Builder.BuildMalloc(this.LLVMType)));
+        return @new;
+    }
 }

@@ -9,7 +9,7 @@ private foreign func sprintf(destination #char*, format #char*, ~~) #i32;
 private foreign func fflush(stream #FILE*) #i32;
 private foreign func fputs(string #char*, stream #FILE*) #i32;
 private foreign func fgets(str #char*, n #i32, stream #FILE*) #char*;
-private foreign func fgetc(file #void*) #i32;
+private foreign func fgetc(file #FILE*) #i32;
 private foreign func fopen(path #char*, mode #char*) #FILE*;
 private foreign func strcpy(destination #char*, source #char*) #char*;
 

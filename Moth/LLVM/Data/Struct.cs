@@ -154,6 +154,13 @@ public class Struct : Type, IContainer
             return false;
         }
     }
+
+    public virtual Variable Init(LLVMCompiler compiler)
+    {
+        return new Variable(Reserved.Self,
+            compiler.WrapAsRef(this),
+            compiler.Builder.BuildAlloca(LLVMType));
+    }
     
     public override string ToString() => Name;
 

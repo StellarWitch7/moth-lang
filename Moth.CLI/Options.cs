@@ -15,11 +15,10 @@ internal class Options
         HelpText = "Whether to run the output on success.")]
     public bool RunTest { get; set; }
 
-    [Option("advanced-ir-opt",
+    [Option("no-advanced-ir-opt",
         Required = false,
-        HelpText = "Whether to apply advanced optimizations to the IR. True by default. ",
-        Default = true)]
-    public bool OptimizeIR { get; set; }
+        HelpText = "Whether to forego advanced optimizations to the IR.")]
+    public bool DoNotOptimizeIR { get; set; }
 
     [Option('o',
         "output",

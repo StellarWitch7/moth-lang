@@ -40,13 +40,13 @@ public func input(string #char*) #char* {
     return input(string, stdout(), stdin());
 }
 
-public func input(string #char*, ouput #File, input #File) #char* {
-    ouput.Write(string, '\0');
+public func input(string #char*, output #File, input #File) #char* {
+    output.Write(string, '\0');
     return input.ReadLine();
 }
 
 public func openFile(path #char*, mode #char*) #File {
-    return File.init(fopen(path, mode));
+    return #File.init(fopen(path, mode));
 }
 
 public class File {
@@ -58,13 +58,15 @@ public class File {
     }
 
     public func Write(string #char*) #void {
-        CFile.fputs(string);
-        CFile.fflush(file);
+        fputs(string, self.CFile);
+        fflush(self.CFile);
         return;
     }
 
     public func Write(char #char) #void {
-        self.Write(ref char);
+        local str #char* = malloc(#u64 <- 1);
+        sprintf(str, "%c", char);
+        self.Write(str);
         return;
     }
 

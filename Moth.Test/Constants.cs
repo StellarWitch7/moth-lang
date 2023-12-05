@@ -12,7 +12,11 @@ public class Constants
         string code = Utils.TypedFuncWrap("return true;", "bool");
         (var compiler, var engine) = Utils.FullCompile(code);
         var ret = Utils.RunFunction(compiler, engine);
-        Assert.AreEqual(/*unknown*/);
+        
+        unsafe
+        {
+            Assert.AreEqual((ulong)1, LLVMSharp.Interop.LLVM.GenericValueToInt(ret, 0));
+        }
     }
 
     [TestMethod]
@@ -21,7 +25,11 @@ public class Constants
         string code = Utils.TypedFuncWrap("return false;", "bool");
         (var compiler, var engine) = Utils.FullCompile(code);
         var ret = Utils.RunFunction(compiler, engine);
-        Assert.AreEqual("i1 0", ret);
+        
+        unsafe
+        {
+            Assert.AreEqual((ulong)0, LLVMSharp.Interop.LLVM.GenericValueToInt(ret, 0));
+        }
     }
 
     [TestMethod]
@@ -33,9 +41,6 @@ public class Constants
     [TestMethod]
     public void ScientificNotation()
     {
-        string code = Utils.TypedFuncWrap("return 2e+5;", "i32");
-        (var compiler, var engine) = Utils.FullCompile(code);
-        var ret = Utils.RunFunction(compiler, engine);
-        Assert.AreEqual("i32 200000", ret);
+        throw new NotImplementedException();
     }
 }

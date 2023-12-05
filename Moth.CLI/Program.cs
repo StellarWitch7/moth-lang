@@ -91,7 +91,7 @@ internal class Program
                 LLVMSharp.Interop.LLVM.InitializeAllTargetMCs();
                 LLVMSharp.Interop.LLVM.InitializeAllAsmParsers();
                 LLVMSharp.Interop.LLVM.InitializeAllAsmPrinters();
-                var compiler = new LLVMCompiler(options.OutputFile, options.OptimizeIR);
+                var compiler = new LLVMCompiler(options.OutputFile, !options.DoNotOptimizeIR);
                 
                 //Compile
                 try

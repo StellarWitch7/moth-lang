@@ -21,12 +21,12 @@ public class Pointer : Value
     }
 }
 
-public class Pointer : Pointer
+public class Variable : Pointer
 {
     public string Name { get; set; }
     public override RefType Type { get; }
 
-    public Pointer(string name, RefType type, LLVMValueRef llvmVariable) : base(null, llvmVariable)
+    public Variable(string name, RefType type, LLVMValueRef llvmVariable) : base(null, llvmVariable)
     {
         Name = name;
         Type = type;

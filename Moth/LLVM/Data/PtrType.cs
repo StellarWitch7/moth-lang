@@ -4,8 +4,10 @@ public class PtrType : Type
 {
     public readonly Type BaseType;
 
-    public PtrType(Type baseType, TypeKind kind)
+    protected PtrType(Type baseType, TypeKind kind)
         : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind) => BaseType = baseType;
+    
+    public PtrType(Type baseType) : this(baseType, TypeKind.Pointer) { }
 
     public uint GetDepth()
     {
@@ -30,6 +32,5 @@ public class PtrType : Type
 
 public sealed class RefType : PtrType
 {
-    public RefType(Type baseType)
-        : base(baseType, TypeKind.Reference) { }
+    public RefType(Type baseType) : base(baseType, TypeKind.Reference) { }
 }

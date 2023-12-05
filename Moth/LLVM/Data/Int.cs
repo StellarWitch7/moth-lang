@@ -2,7 +2,7 @@
 
 namespace Moth.LLVM.Data;
 
-public abstract class Int : Class
+public abstract class Int : Struct
 {
     protected Int(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(null, name, llvmType, privacy) { }
 }
