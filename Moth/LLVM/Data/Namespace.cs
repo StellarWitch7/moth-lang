@@ -9,7 +9,7 @@ public class Namespace : CompilerData, IContainer
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
     public Dictionary<Signature, Function> Functions { get; } = new Dictionary<Signature, Function>();
     public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
-    public Dictionary<string, Constant> Constants { get; } = new Dictionary<string, Constant>();
+    public Dictionary<string, GlobalConstant> Constants { get; } = new Dictionary<string, GlobalConstant>();
     public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
     public GenericDictionary GenericClasses { get; } = new GenericDictionary();
 

@@ -1,4 +1,6 @@
-﻿namespace Moth.LLVM.Data;
+﻿using Moth.AST.Node;
+
+namespace Moth.LLVM.Data;
 
 public class Pointer : Value
 {
@@ -9,27 +11,53 @@ public class Pointer : Value
         Type = type;
     }
 
-    public Value Store(LLVMCompiler compiler, Value value)
+    public virtual Pointer Store(LLVMCompiler compiler, Value value)
     {
         if (!Type.BaseType.Equals(value.Type))
         {
-            throw new Exception($"Tried to assign value of type \"{value.Type}\" to variable of type \"{Type.BaseType}\".");
+            throw new Exception(GetInvalidTypeErrorMsg(value));
         }
         
         compiler.Builder.BuildStore(value.LLVMValue, LLVMValue);
         return this;
     }
-}
 
-public class Variable : Pointer
-{
-    public string Name { get; set; }
-    public override RefType Type { get; }
-
-    public Variable(string name, RefType type, LLVMValueRef llvmVariable) : base(null, llvmVariable)
+    public override Value SafeLoad(LLVMCompiler compiler)
     {
-        Name = name;
-        Type = type;
+        try {
+            if (Type is RefType) {
+                return Load(compiler);
+            }
+        }
+        catch { }
+
+        return this;
     }
 
+    public Value Load(LLVMCompiler compiler)
+    {
+        if (Type.BaseType is FuncType fnT)
+        {
+            return new Function(fnT,
+                compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue),
+                new Parameter[0]);
+        }
+        else if (Type.BaseType is PtrType ptrType)
+        {
+            return new Pointer(ptrType, compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue));
+        }
+        else if (!Type.BaseType.Equals(Primitives.Void))
+        {
+            return new Value(Type.BaseType, compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue));
+        }
+        else
+        {
+            throw new Exception("Failed to load pointer!");
+        }
+    }
+
+    protected virtual string GetInvalidTypeErrorMsg(Value value)
+    {
+        return $"Tried to assign value of type \"{value.Type}\" to pointer of type \"{Type.BaseType}\".";
+    }
 }

@@ -524,14 +524,7 @@ public class LLVMCompiler
         Type constType = ResolveType(constDef.TypeRef);
         LLVMValueRef constVal = Module.AddGlobal(constType.LLVMType, constDef.Name);
 
-        if (@class != null)
-        {
-            @class.Constants.Add(constDef.Name, new Constant(constType, constVal));
-        }
-        else
-        {
-            CurrentNamespace.Constants.Add(constDef.Name, new Constant(constType, constVal));
-        }
+        throw new NotImplementedException("Constants are not yet available!");
     }
 
     public bool CompileScope(Scope scope, ScopeNode scopeNode)
@@ -854,16 +847,14 @@ public class LLVMCompiler
         else if (expr is AsReferenceNode asReference)
         {
             Value value = CompileExpression(scope, asReference.Value);
-            LLVMValueRef newVal = Builder.BuildAlloca(value.Type.LLVMType);
-            Builder.BuildStore(value.LLVMValue, newVal);
-            return new Value(new PtrType(value.Type), newVal);
+            return value.GetAddr(this);
         }
         else if (expr is DeReferenceNode deReference)
         {
             Value value = SafeLoad(CompileExpression(scope, deReference.Value));
 
-            return value.Type is PtrType ptrType
-                ? new Value(ptrType.BaseType, Builder.BuildLoad2(ptrType.BaseType.LLVMType, value.LLVMValue))
+            return value is Pointer ptr
+                ? ptr.Load(this)
                 : throw new Exception("Attempted to load a non-pointer.");
         }
         else
@@ -1232,7 +1223,7 @@ public class LLVMCompiler
         return ptrAssigned.Store(this, right);
     }
 
-    public Value CompileLocal(Scope scope, LocalDefNode localDef)
+    public Variable CompileLocal(Scope scope, LocalDefNode localDef)
     {
         Value? value = null;
         Type type;
@@ -1248,14 +1239,15 @@ public class LLVMCompiler
         }
         
         LLVMValueRef llvmVariable = Builder.BuildAlloca(type.LLVMType, localDef.Name);
-        scope.Variables.Add(localDef.Name, new Variable(localDef.Name, WrapAsRef(type), llvmVariable));
+        Variable ret = new Variable(localDef.Name, WrapAsRef(type), llvmVariable);
+        scope.Variables.Add(localDef.Name, ret);
 
         if (value != null)
         {
             Builder.BuildStore(SafeLoad(value).LLVMValue, llvmVariable);
         }
 
-        return new Value(WrapAsRef(type), llvmVariable);
+        return ret;
     }
 
     public Value CompileRef(Scope scope, RefNode? refNode)
@@ -1330,7 +1322,7 @@ public class LLVMCompiler
         return context ?? throw new Exception($"Failed to compile \"{refNode}\".");
     }
 
-    public Value CompileVarRef(Value? context, Scope scope, RefNode refNode)
+    public Pointer CompileVarRef(Value? context, Scope scope, RefNode refNode)
     {
         if (context != null)
         {
@@ -1339,9 +1331,9 @@ public class LLVMCompiler
                 throw new Exception($"Cannot do field access on non-class type \"{context.Type}\".");
             }
             
-            Field field = classType.Fields[refNode.Name]; //TODO: use the GetField() method on the class instead
+            Field field = classType.GetField(refNode.Name, CurrentFunction.OwnerStruct);
             Type type = SafeLoad(context).Type;
-            return new Value(WrapAsRef(field.Type),
+            return new Pointer(WrapAsRef(field.Type),
                 Builder.BuildStructGEP2(type.LLVMType,
                     context.LLVMValue,
                     field.FieldIndex,
@@ -1518,10 +1510,8 @@ public class LLVMCompiler
         {
             return null;
         }
-        
-        return value.Type is RefType @ref && !value.Type.Equals(Primitives.Void)
-            ? new Value(@ref.BaseType, Builder.BuildLoad2(@ref.BaseType.LLVMType, value.LLVMValue))
-            : value;
+
+        return value.SafeLoad(this);
     }
 
     public RefType WrapAsRef(Type type)

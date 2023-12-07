@@ -10,6 +10,19 @@ public class Value : CompilerData
         Type = type;
         LLVMValue = value;
     }
+    
+    
+    public virtual Value SafeLoad(LLVMCompiler compiler)
+    {
+        return this;
+    }
+
+    public virtual Pointer GetAddr(LLVMCompiler compiler)
+    {
+        LLVMValueRef newVal = compiler.Builder.BuildAlloca(Type.LLVMType);
+        compiler.Builder.BuildStore(LLVMValue, newVal);
+        return new Pointer(new PtrType(Type), newVal);
+    }
 }
 
 public class ClassValue : Value
@@ -17,7 +30,7 @@ public class ClassValue : Value
     public ClassValue(Class type, LLVMValueRef value) : base(type, value) { }
 }
 
-public class FieldValue : Value
+public class FieldValue : Value //TODO: owo, what's this?
 {
     public FieldValue(LLVMCompiler compiler, Field field, ClassValue owner)
         : base(field.Type,
