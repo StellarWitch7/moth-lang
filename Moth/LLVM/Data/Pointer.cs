@@ -42,13 +42,9 @@ public class Pointer : Value
                 compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue),
                 new Parameter[0]);
         }
-        else if (Type.BaseType is PtrType ptrType)
-        {
-            return new Pointer(ptrType, compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue));
-        }
         else if (!Type.BaseType.Equals(Primitives.Void))
         {
-            return new Value(Type.BaseType, compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue));
+            return Value.Create(Type.BaseType, compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue));
         }
         else
         {

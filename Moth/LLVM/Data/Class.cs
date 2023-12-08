@@ -31,7 +31,7 @@ public class Class : Struct
         var @new = new Variable(Reserved.Self,
             compiler.WrapAsRef(this),
             compiler.Builder.BuildAlloca(LLVMTypeRef.CreatePointer(LLVMType, 0)));
-        @new.Store(compiler, new Value(this, compiler.Builder.BuildMalloc(this.LLVMType)));
+        @new.Store(compiler, Value.Create(this, compiler.Builder.BuildMalloc(this.LLVMType)));
         return @new;
     }
 }

@@ -14,11 +14,51 @@ public class Function : Value
         Params = @params;
     }
 
-    public Struct OwnerStruct
+    public string Name
     {
         get
         {
-            return Type is LLVMFuncType llvmFuncType ? llvmFuncType.OwnerClass : null;
+            return Type.Name;
+        }
+    }
+    
+    public Type ReturnType
+    {
+        get
+        {
+            return Type.ReturnType;
+        }
+    }
+
+    public Type[] ParameterTypes
+    {
+        get
+        {
+            return Type.ParameterTypes;
+        }
+    }
+
+    public bool IsVariadic
+    {
+        get
+        {
+            return Type.IsVariadic;
+        }
+    }
+    
+    public Struct? OwnerStruct
+    {
+        get
+        {
+            return Type.OwnerStruct;
+        }
+    }
+
+    public bool IsStatic
+    {
+        get
+        {
+            return Type is MethodType methodType ? methodType.IsStatic : true;
         }
     }
 

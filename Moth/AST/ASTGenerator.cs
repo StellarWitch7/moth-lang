@@ -473,14 +473,7 @@ public static class ASTGenerator
     public static ParameterNode? ProcessParameter(ParseContext context, out bool isVariadic)
     {
         string name;
-        bool requireRefType = false;
         isVariadic = false;
-
-        if (context.Current?.Type == TokenType.AddressOf)
-        {
-            requireRefType = true;
-            context.MoveNext();
-        }
 
         if (context.Current?.Type == TokenType.Name)
         {
@@ -498,7 +491,7 @@ public static class ASTGenerator
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
 
-        return new ParameterNode(name, ProcessTypeRef(context), requireRefType);
+        return new ParameterNode(name, ProcessTypeRef(context));
     }
 
     public static IfNode ProcessIf(ParseContext context)

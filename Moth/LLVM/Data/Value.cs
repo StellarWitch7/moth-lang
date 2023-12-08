@@ -5,12 +5,11 @@ public class Value : CompilerData
     public virtual Type Type { get; }
     public virtual LLVMValueRef LLVMValue { get; }
 
-    public Value(Type type, LLVMValueRef value)
+    protected Value(Type type, LLVMValueRef value)
     {
         Type = type;
         LLVMValue = value;
     }
-    
     
     public virtual Value SafeLoad(LLVMCompiler compiler)
     {
@@ -22,6 +21,18 @@ public class Value : CompilerData
         LLVMValueRef newVal = compiler.Builder.BuildAlloca(Type.LLVMType);
         compiler.Builder.BuildStore(LLVMValue, newVal);
         return new Pointer(new PtrType(Type), newVal);
+    }
+
+    public static Value Create(Type type, LLVMValueRef value)
+    {
+        if (type is PtrType ptrType)
+        {
+            return new Pointer(ptrType, value);
+        }
+        else
+        {
+            return new Value(type, value);
+        }
     }
 }
 

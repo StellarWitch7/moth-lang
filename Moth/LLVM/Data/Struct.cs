@@ -43,7 +43,7 @@ public class Struct : Type, IContainer
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
                 : LLVMType.SizeOf;
 
-            var value = new Value(Primitives.UInt64, retValue);
+            var value = Value.Create(Primitives.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
@@ -54,7 +54,7 @@ public class Struct : Type, IContainer
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
                 : LLVMType.AlignOf;
 
-            var value = new Value(Primitives.UInt64, retValue);
+            var value = Value.Create(Primitives.UInt64, retValue);
             var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }

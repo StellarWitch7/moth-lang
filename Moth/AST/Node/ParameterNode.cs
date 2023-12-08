@@ -4,12 +4,10 @@ public class ParameterNode : ASTNode
 {
     public string Name { get; set; }
     public TypeRefNode TypeRef { get; set; }
-    public bool RequireRefType { get; set; }
 
-    public ParameterNode(string name, TypeRefNode typeRef, bool requireRefType)
+    public ParameterNode(string name, TypeRefNode typeRef)
     {
         Name = name;
         TypeRef = typeRef;
-        RequireRefType = requireRefType;
     }
 }

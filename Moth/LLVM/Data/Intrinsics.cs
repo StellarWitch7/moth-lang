@@ -6,7 +6,7 @@ public sealed class ConstRetFn : IntrinsicFunction
     private LLVMModuleRef _module { get; }
     
     public ConstRetFn(string name, Value value, LLVMModuleRef module)
-        : base(new LLVMFuncType(name, value.Type, new Type[]{}, false))
+        : base(new FuncType(name, value.Type, new Type[]{}, false, null))
     {
         if (!value.LLVMValue.IsConstant)
         {
@@ -36,7 +36,7 @@ public sealed class Pow : IntrinsicFunction
     private LLVMModuleRef _module { get; }
 
     public Pow(string name, LLVMModuleRef module, Type retType, Type left, Type right)
-        : base(new LLVMFuncType(name, retType, new Type[] { left, right }, false))
+        : base(new FuncType(name, retType, new Type[] { left, right }, false, null))
     {
         _module = module;
     }

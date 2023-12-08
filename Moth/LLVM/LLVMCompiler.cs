@@ -16,6 +16,7 @@ public class LLVMCompiler
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
+    private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>(); //TODO: remove?
     private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
@@ -29,18 +30,21 @@ public class LLVMCompiler
         Module = Context.CreateModuleWithName(ModuleName);
         GlobalNamespace = InitGlobalNamespace();
 
-        Log("(unsafe) Creating function optimization pass manager...");
-        
-        unsafe
+        if (doOptimize)
         {
-            FunctionPassManager = LLVMSharp.Interop.LLVM.CreateFunctionPassManagerForModule(Module);
+            Log("(unsafe) Creating function optimization pass manager...");
+        
+            unsafe
+            {
+                FunctionPassManager = LLVMSharp.Interop.LLVM.CreateFunctionPassManagerForModule(Module);
             
-            LLVMSharp.Interop.LLVM.AddInstructionCombiningPass(FunctionPassManager);
-            LLVMSharp.Interop.LLVM.AddReassociatePass(FunctionPassManager);
-            LLVMSharp.Interop.LLVM.AddGVNPass(FunctionPassManager);
-            LLVMSharp.Interop.LLVM.AddCFGSimplificationPass(FunctionPassManager);
+                LLVMSharp.Interop.LLVM.AddInstructionCombiningPass(FunctionPassManager);
+                LLVMSharp.Interop.LLVM.AddReassociatePass(FunctionPassManager);
+                LLVMSharp.Interop.LLVM.AddGVNPass(FunctionPassManager);
+                LLVMSharp.Interop.LLVM.AddCFGSimplificationPass(FunctionPassManager);
 
-            LLVMSharp.Interop.LLVM.InitializeFunctionPassManager(FunctionPassManager);
+                LLVMSharp.Interop.LLVM.InitializeFunctionPassManager(FunctionPassManager);
+            }
         }
     }
 
@@ -83,7 +87,7 @@ public class LLVMCompiler
             }
             else
             {
-                _currentFunction = value.Type is LLVMFuncType
+                _currentFunction = value.Type is FuncType
                     ? value
                     : throw new Exception("Cannot assign function value as it is not of a valid type. " +
                         "This is a CRITICAL ERROR. Report ASAP.");
@@ -342,15 +346,15 @@ public class LLVMCompiler
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
-        LLVMFuncType funcType = @struct == null
-            ? new LLVMFuncType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic)
-            : new MethodType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic, @struct);
+        FuncType funcType = !funcDefNode.IsStatic
+            ? new FuncType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic, @struct)
+            : new MethodType(funcName, returnType, paramTypes.ToArray(), @struct, funcDefNode.IsStatic);
         DefinedFunction func = new DefinedFunction(@struct == null
                 ? CurrentNamespace
                 : @struct,
             funcType,
-            Module.GetNamedFunction(funcName) != null //TODO: is this necessary?
-                ? Module.GetNamedFunction(funcName)
+            funcDefNode.IsForeign
+                ? HandleForeign(funcName, funcType)
                 : Module.AddFunction(funcName, llvmFuncType),
             @params.ToArray(),
             funcDefNode.Privacy);
@@ -435,21 +439,15 @@ public class LLVMCompiler
         func.OpeningScope = new Scope(func.LLVMValue.AppendBasicBlock("entry"));
         Builder.PositionAtEnd(func.OpeningScope.LLVMBlock);
 
-        LLVMFuncType funcType = (LLVMFuncType)func.Type;
-
-        if (funcType is MethodType methodType && funcDefNode.Name == Reserved.Init && funcDefNode.IsStatic)
+        if (funcDefNode.Name == Reserved.Init && func.IsStatic && func.Type is MethodType methodType)
         {
-            if (funcType.ReturnType is Class retType)
+            if (func.Type.ReturnType is Class retType)
             {
                 if (retType != methodType.OwnerStruct)
                 {
                     throw new Exception($"Init method does not return the same type as its owner class " +
                         $"(\"{methodType.OwnerStruct.Name}\").");
                 }
-            }
-            else
-            {
-                //TODO: what is this
             }
 
             var @new = methodType.OwnerStruct.Init(this);
@@ -498,13 +496,27 @@ public class LLVMCompiler
         }
     }
 
+    public LLVMValueRef HandleForeign(string funcName, FuncType funcType)
+    {
+        if (_foreigns.TryGetValue(funcName, out FuncType prevType))
+        {
+            if (!prevType.Equals(funcType))
+            {
+                throw new Exception($"Foreign function \"{funcType}\" cannot overload other definition \"{prevType}\".");
+            }
+
+            return Module.GetNamedFunction(funcName);
+        }
+        else
+        {
+            _foreigns.Add(funcName, funcType);
+            return Module.AddFunction(funcName, funcType.BaseType.LLVMType);
+        }
+    }
+    
     public Type ResolveParameter(ParameterNode param)
     {
-        Type type = ResolveType(param.TypeRef);
-
-        return param.RequireRefType
-            ? new PtrType(new RefType(type))
-            : type;
+        return ResolveType(param.TypeRef);
     }
 
     public void DefineConstant(FieldDefNode constDef, Class? @class = null)
@@ -791,7 +803,7 @@ public class LLVMCompiler
             scope.LLVMBlock = @continue;
 
             return SafeLoad(thenVal).Type.Equals(SafeLoad(elseVal).Type)
-                ? new Value(WrapAsRef(thenVal.Type), result)
+                ? Value.Create(WrapAsRef(thenVal.Type), result)
                 : throw new Exception("Then and else statements of inline if are not of the same type.");
         }
         else if (expr is ConstantNode constNode)
@@ -801,7 +813,7 @@ public class LLVMCompiler
         else if (expr is InverseNode inverse)
         {
             Value @ref = CompileRef(scope, inverse.Value);
-            return new Value(@ref.Type,
+            return Value.Create(@ref.Type,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
                     SafeLoad(@ref).LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)));
@@ -816,7 +828,7 @@ public class LLVMCompiler
             }
             
             var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, new Value(ptr.Type.BaseType, Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd)));
+            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd)));
             return new Pointer(WrapAsRef(@ref.Type), @ref.LLVMValue);
         }
         else if (expr is DecrementVarNode decrementVar)
@@ -829,7 +841,7 @@ public class LLVMCompiler
             }
             
             var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, new Value(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToAdd)));
+            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToAdd)));
             return new Pointer(WrapAsRef(@ref.Type), @ref.LLVMValue);
         }
         else if (expr is AddressOfNode addrofNode)
@@ -863,32 +875,32 @@ public class LLVMCompiler
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
             global.Initializer = constStr;
-            return new Value(new PtrType(@struct), global);
+            return Value.Create(new PtrType(@struct), global);
         }
         else if (constNode.Value is bool @bool)
         {
             Struct @struct = Primitives.Bool;
-            return new Value(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
+            return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
         }
         else if (constNode.Value is int i32)
         {
             Struct @struct = Primitives.Int32;
-            return new Value(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
+            return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
         }
         else if (constNode.Value is float f32)
         {
             Struct @struct = Primitives.Float32;
-            return new Value(@struct, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
+            return Value.Create(@struct, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
         }
         else if (constNode.Value is char ch)
         {
             Struct @struct = Primitives.Char;
-            return new Value(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
+            return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
         }
         else if (constNode.Value == null)
         {
             Struct @struct = Primitives.Char;
-            return new Value(@struct, LLVMValueRef.CreateConstNull(@struct.LLVMType));
+            return Value.Create(@struct, LLVMValueRef.CreateConstNull(@struct.LLVMType));
         }
         else
         {
@@ -1029,7 +1041,7 @@ public class LLVMCompiler
                     throw new NotImplementedException();
             }
 
-            return new Value(builtType, builtVal);
+            return Value.Create(builtType, builtVal);
         }
         else
         {
@@ -1086,7 +1098,7 @@ public class LLVMCompiler
                         destType.LLVMType);
         }
         
-        return new Value(destType, builtVal);
+        return Value.Create(destType, builtVal);
     }
 
     public Value CompilePow(Value left, Value right)
@@ -1115,7 +1127,7 @@ public class LLVMCompiler
                 : left.Type is UnsignedInt
                     ? Builder.BuildUIToFP(SafeLoad(left).LLVMValue, destType)
                     : throw new NotImplementedException();
-            left = new Value(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+            left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
                     ? f64
                     : f32,
                 val);
@@ -1124,7 +1136,7 @@ public class LLVMCompiler
             && !left.Type.Equals(Primitives.Float64))
         {
             val = Builder.BuildFPCast(SafeLoad(left).LLVMValue, destType);
-            left = new Value(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+            left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
                     ? f64
                     : f32,
                 val);
@@ -1141,7 +1153,7 @@ public class LLVMCompiler
                 if (right.Type.Equals(Primitives.Float64))
                 {
                     val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
-                    right = new Value(f64, val);
+                    right = Value.Create(f64, val);
                 }
 
                 intrinsic = "llvm.pow.f64";
@@ -1151,7 +1163,7 @@ public class LLVMCompiler
                 if (right.Type.Equals(Primitives.Float32))
                 {
                     val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
-                    right = new Value(f32, val);
+                    right = Value.Create(f32, val);
                 }
 
                 intrinsic = "llvm.pow.f32";
@@ -1165,7 +1177,7 @@ public class LLVMCompiler
                     && !right.Type.Equals(Primitives.Int16))
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
-                    right = new Value(i16, val);
+                    right = Value.Create(i16, val);
                 }
 
                 intrinsic = "llvm.powi.f64.i16";
@@ -1176,7 +1188,7 @@ public class LLVMCompiler
                     || right.Type.Equals(Primitives.Int32))
                 {
                     val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
-                    right = new Value(i32, val);
+                    right = Value.Create(i32, val);
                 }
 
                 intrinsic = "llvm.powi.f32.i32";
@@ -1198,10 +1210,10 @@ public class LLVMCompiler
         if (returnInt)
         {
             result = result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                ? new Value(i64,
+                ? Value.Create(i64,
                     Builder.BuildFPToSI(result.LLVMValue,
                         LLVMTypeRef.Int64))
-                : new Value(i32,
+                : Value.Create(i32,
                     Builder.BuildFPToSI(result.LLVMValue,
                         LLVMTypeRef.Int32));
         }
@@ -1268,7 +1280,7 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    context = new Value(CurrentFunction.OwnerStruct, CurrentFunction.LLVMValue.FirstParam);
+                    context = Value.Create(CurrentFunction.OwnerStruct, CurrentFunction.LLVMValue.FirstParam);
                 }
 
                 refNode = refNode.Child;
