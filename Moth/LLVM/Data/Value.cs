@@ -25,7 +25,7 @@ public class Value : CompilerData
     }
 }
 
-public class ClassValue : Value
+public class ClassValue : Value //TODO: does this need to exist
 {
     public ClassValue(Class type, LLVMValueRef value) : base(type, value) { }
 }

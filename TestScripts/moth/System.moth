@@ -64,7 +64,7 @@ public class File {
     }
 
     public func Write(char #char) #void {
-        local str #char* = malloc(#u64 <- 1);
+        local str #char* = #char* <- malloc(#u64 <- 1);
         sprintf(str, "%c", char);
         self.Write(str);
         return;
@@ -93,7 +93,7 @@ public class File {
 
     public func ReadLine() #char* {
         local size #u64 = #u64 <- 512;
-        local string #char* = malloc(size);
+        local string ?= #char* <- malloc(size);
         local ch #char;
         local len ?= -1;
 
@@ -105,7 +105,7 @@ public class File {
             string[++len] = ch;
             
             if len >= (#i32 <- size) {
-                string = realloc(string, size += (#u64 <- 512));
+                string = #char* <- realloc(string, size += (#u64 <- 512));
 
                 if string == null {
                     return string;
@@ -114,7 +114,7 @@ public class File {
         }
 
         string[++len] = '\0';
-        string = realloc(string, #u64 <- ++len);
+        string = #char* <- realloc(string, #u64 <- ++len);
         return string;
     }
 }

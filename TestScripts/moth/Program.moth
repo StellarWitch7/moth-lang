@@ -21,37 +21,37 @@ private func main() #i32 {
     return #i32 <- fn(5, "");
 }
 
-public class TestArray {
-    private value #i32*;
-    private size #u64;
+// public class TestArray {
+//     private value #i32*;
+//     private size #u64;
 
-    public static func init(size #u64) #TestArray {
-        self.value = #i32* <- malloc(size * #i32.sizeof());
-        self.size = size;
-        return self;
-    }
+//     public static func init(size #u64) #TestArray {
+//         self.value = #i32* <- malloc(size * #i32.sizeof());
+//         self.size = size;
+//         return self;
+//     }
 
-    public func GetIndex(index #u64, ref val #i32) #bool {
-        (load val) = if (index >= (#u64 <- 0))
-            and index < self.size
-            then self.value[index]
-            else 0;
-        return if (index >= (#u64 <- 0))
-            and index < self.size
-            then true
-            else false;
-    }
+//     public func GetIndex(index #u64, ref val #i32) #bool {
+//         (load val) = if (index >= (#u64 <- 0))
+//             and index < self.size
+//             then self.value[index]
+//             else 0;
+//         return if (index >= (#u64 <- 0))
+//             and index < self.size
+//             then true
+//             else false;
+//     }
 
-    public func SetIndex(index #u64, item #i32) #bool {
-        if (index < (#u64 <- 0)) or index >= self.size {
-            return false;
-        }
+//     public func SetIndex(index #u64, item #i32) #bool {
+//         if (index < #u64 <- 0) or index >= self.size {
+//             return false;
+//         }
 
-        self.value[index] = item;
-        return true;
-    }
+//         self.value[index] = item;
+//         return true;
+//     }
 
-    public func AsPointer() #i32* {
-        return self.value;
-    }
-}
+//     public func AsPointer() #i32* {
+//         return self.value;
+//     }
+// }

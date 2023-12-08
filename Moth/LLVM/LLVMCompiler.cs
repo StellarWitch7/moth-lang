@@ -152,18 +152,6 @@ public class LLVMCompiler
         return result.ToArray();
     }
     
-    public string UnVoid(TypeRefNode typeRef)
-    {
-        string typeName = typeRef.Name;
-
-        if (typeRef.Name == Reserved.Void && typeRef.PointerDepth > 0)
-        {
-            typeName = Reserved.Char;
-        }
-
-        return typeName;
-    }
-    
     public void Warn(string message) => Log($"Warning: {message}");
 
     public void Log(string message) => _logger.WriteLine(message);
@@ -334,7 +322,7 @@ public class LLVMCompiler
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
             Type paramType = ResolveParameter(paramNode);
-            paramNode.TypeRef.Name = UnVoid(paramNode.TypeRef);
+            paramNode.TypeRef.Name = paramNode.TypeRef.Name;
             @params.Add(new Parameter(index, paramNode.Name));
             paramTypes.Add(paramType);
             index++;
@@ -706,7 +694,7 @@ public class LLVMCompiler
         }
         else
         {
-            Struct @struct = GetStruct(UnVoid(typeRef));
+            Struct @struct = GetStruct(typeRef.Name);
             type = @struct;
         }
 
@@ -1276,7 +1264,7 @@ public class LLVMCompiler
             }
             else if (refNode is TypeRefNode typeRef)
             {
-                Struct @struct = GetStruct(UnVoid(typeRef));
+                Struct @struct = GetStruct(typeRef.Name);
                 refNode = refNode.Child;
 
                 if (refNode is FuncCallNode funcCall)
@@ -1302,7 +1290,7 @@ public class LLVMCompiler
                     ? ptrType.BaseType
                     : throw new Exception($"Tried to use an index access on non-pointer \"{context.Type.LLVMType}\".");
 
-                context = new Value(new RefType(resultType),
+                context = new Pointer(new RefType(resultType),
                     Builder.BuildInBoundsGEP2(resultType.LLVMType,
                         context.LLVMValue,
                         new LLVMValueRef[1]
