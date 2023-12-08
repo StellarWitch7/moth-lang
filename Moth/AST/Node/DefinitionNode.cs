@@ -2,13 +2,13 @@
 
 public class DefinitionNode : StatementNode
 {
+    public List<AttributeNode> Attributes { get; set; }
+
+    public DefinitionNode(List<AttributeNode> attributes) => Attributes = attributes;
 }
 
 public enum PrivacyType
 {
     Private,
     Public,
-    Static,
-    Global,
-    Foreign
 }

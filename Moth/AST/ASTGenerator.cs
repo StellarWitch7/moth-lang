@@ -32,47 +32,30 @@ public static class ASTGenerator
                 case TokenType.AttributeMarker:
                     attributes.Add(ProcessAttribute(context));
                     break;
-                case TokenType.Foreign:
-                //case TokenType.Constant:
-                case TokenType.Function:
-                    StatementNode result = ProcessDefinition(context, attributes);
-                    attributes = new List<AttributeNode>();
-
-                    if (result is FuncDefNode func)
-                    {
-                        funcs.Add(func);
-                    }
-                    else if (result is FieldDefNode @const)
-                    {
-                        consts.Add(@const);
-                    }
-                    else
-                    {
-                        throw new Exception("Result of foreign/func was not a function.");
-                    }
-
+                case TokenType.Import:
+                    context.MoveNext();
+                    imports.Add(ProcessNamespace(context));
                     break;
                 case TokenType.Public:
                 case TokenType.Private:
-                    PrivacyType privacyType = PrivacyType.Public;
+                    StatementNode result = ProcessDefinition(context, attributes);
+                    attributes = new List<AttributeNode>();
 
-                    if (context.Current?.Type == TokenType.Private)
+                    if (result is ClassNode @class)
                     {
-                        privacyType = PrivacyType.Private;
+                        classes.Add(@class);
                     }
-
-                    if (context.MoveNext()?.Type == TokenType.Class)
+                    else if (result is FuncDefNode func)
                     {
-                        if (context.MoveNext()?.Type == TokenType.Name)
-                        {
-                            string className = context.Current.Value.Text.ToString();
-                            context.MoveNext();
-                            classes.Add(ProcessClass(context, privacyType, className));
-                        }
+                        funcs.Add(func);
                     }
+                    // else if (result is FieldDefNode @const)
+                    // {
+                    //     consts.Add(@const);
+                    // }
                     else
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Class);
+                        throw new NotImplementedException();
                     }
 
                     break;
@@ -111,38 +94,66 @@ public static class ASTGenerator
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static ClassNode ProcessClass(ParseContext context, PrivacyType privacy, string name)
+    public static ClassNode ProcessClass(ParseContext context, PrivacyType privacy, bool isForeign, bool isStruct = false)
     {
-        if (context.Current?.Type == TokenType.OpeningGenericBracket)
+        if ((isStruct && context.Current?.Type != TokenType.Struct) || (!isStruct && context.Current?.Type != TokenType.Class))
         {
-            var @params = new List<GenericParameterNode>();
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Class);
+        }
+        
+        if (context.MoveNext()?.Type == TokenType.Name)
+        {
+            string name = context.Current.Value.Text.ToString();
             context.MoveNext();
-
-            while (context.Current != null)
+            
+            if (!isStruct && !isForeign && context.Current?.Type == TokenType.OpeningGenericBracket)
             {
-                @params.Add(ProcessGenericParam(context));
+                var @params = new List<GenericParameterNode>();
+                context.MoveNext();
 
-                if (context.Current?.Type == TokenType.Comma)
+                while (context.Current != null)
                 {
-                    context.MoveNext();
+                    @params.Add(ProcessGenericParam(context));
+
+                    if (context.Current?.Type == TokenType.Comma)
+                    {
+                        context.MoveNext();
+                    }
+                    else
+                    {
+                        return context.Current?.Type == TokenType.ClosingGenericBracket
+                            ? context.MoveNext()?.Type == TokenType.OpeningCurlyBraces
+                                ? (ClassNode)new GenericClassNode(name, privacy, @params, ProcessScope(context, true))
+                                : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces)
+                            : throw new UnexpectedTokenException(context.Current.Value);
+                    }
+                }
+
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingGenericBracket);
+            }
+            else
+            {
+                if (isForeign)
+                {
+                    if (context.Current?.Type == TokenType.Semicolon)
+                    {
+                        context.MoveNext();
+                        return new ClassNode(name, privacy, null, isStruct);
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                    }
                 }
                 else
                 {
-                    return context.Current?.Type == TokenType.ClosingGenericBracket
-                        ? context.MoveNext()?.Type == TokenType.OpeningCurlyBraces
-                            ? (ClassNode)new GenericClassNode(name, privacy, @params, ProcessScope(context, true))
-                            : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces)
-                        : throw new UnexpectedTokenException(context.Current.Value);
+                    return new ClassNode(name, privacy, ProcessScope(context, true), isStruct);
                 }
             }
-
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingGenericBracket);
         }
         else
         {
-            return context.Current?.Type == TokenType.OpeningCurlyBraces
-                ? new ClassNode(name, privacy, ProcessScope(context, true))
-                : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
     }
 
@@ -186,15 +197,14 @@ public static class ASTGenerator
                     case TokenType.ClosingCurlyBraces:
                         context.MoveNext();
                         return new ScopeNode(statements);
-                    case TokenType.Static:
-                    case TokenType.Public:
-                    case TokenType.Private:
-                        var newDef = (MemberDefNode)ProcessDefinition(context, attributes);
-                        attributes = new List<AttributeNode>();
-                        statements.Add(newDef);
-                        break;
                     case TokenType.AttributeMarker:
                         attributes.Add(ProcessAttribute(context));
+                        break;
+                    case TokenType.Public:
+                    case TokenType.Private:
+                        StatementNode newDef = ProcessDefinition(context, attributes);
+                        attributes = new List<AttributeNode>();
+                        statements.Add(newDef);
                         break;
                     default:
                         throw new UnexpectedTokenException(context.Current.Value);
@@ -310,59 +320,114 @@ public static class ASTGenerator
 
     public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode>? attributes = null)
     {
-        PrivacyType privacy = context.Current?.Type == TokenType.Foreign
-            ? PrivacyType.Foreign
-            : context.Current?.Type == TokenType.Function
-                ? PrivacyType.Global
-                : context.Current?.Type == TokenType.Static
-                    ? PrivacyType.Static
-                    : context.Current?.Type == TokenType.Public
-                        ? PrivacyType.Public
-                        : context.Current?.Type == TokenType.Private
-                            ? PrivacyType.Private
-                            : throw new UnexpectedTokenException(context.Current.Value);
-        if (context.MoveNext()?.Type == TokenType.Name)
+        PrivacyType privacy = context.Current?.Type == TokenType.Public
+            ? PrivacyType.Public
+            : context.Current?.Type == TokenType.Private
+                ? PrivacyType.Private
+                : throw new UnexpectedTokenException(context.Current.Value);
+        bool isForeign = false;
+        bool isStatic = false;
+
+        context.MoveNext();
+        
+        while (context.Current?.Type == TokenType.Foreign || context.Current?.Type == TokenType.Static)
         {
-            string name = context.Current.Value.Text.ToString();
-
-            if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
+            switch (context.Current?.Type)
             {
-                context.MoveNext();
-                List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
-                TypeRefNode retTypeRef = ProcessTypeRef(context);
+                case TokenType.Foreign:
+                    if (isForeign) throw new UnexpectedTokenException(context.Current.Value);
+                    isForeign = true;
+                    break;
+                case TokenType.Static:
+                    if (isStatic) throw new UnexpectedTokenException(context.Current.Value);
+                    isStatic = true;
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
 
-                if (privacy != PrivacyType.Foreign && context.Current?.Type == TokenType.OpeningCurlyBraces)
-                {
-                    return new FuncDefNode(name, privacy, retTypeRef, @params, ProcessScope(context), isVariadic, attributes);
-                }
-                else if (privacy == PrivacyType.Foreign && context.Current?.Type == TokenType.Semicolon)
+            context.MoveNext();
+        }
+
+        if (context.Current?.Type == TokenType.Struct)
+        {
+            return ProcessClass(context, privacy, isForeign, true);
+        }
+        else if (context.Current?.Type == TokenType.Class)
+        {
+            return ProcessClass(context, privacy, isForeign);
+        }
+        else if (context.Current?.Type == TokenType.Function)
+        {
+            if (context.MoveNext()?.Type == TokenType.Name)
+            {
+                string name = context.Current.Value.Text.ToString();
+                
+                if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                 {
                     context.MoveNext();
-                    return new FuncDefNode(name, privacy, retTypeRef, @params, null, isVariadic, attributes);
+                    List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
+                    TypeRefNode retTypeRef = ProcessTypeRef(context);
+
+                    if (!isForeign && context.Current?.Type == TokenType.OpeningCurlyBraces)
+                    {
+                        return new FuncDefNode(name,
+                            privacy,
+                            retTypeRef,
+                            @params,
+                            ProcessScope(context),
+                            isVariadic,
+                            isStatic,
+                            isForeign,
+                            attributes);
+                    }
+                    else if (isForeign && context.Current?.Type == TokenType.Semicolon)
+                    {
+                        context.MoveNext();
+                        return new FuncDefNode(name,
+                            privacy,
+                            retTypeRef,
+                            @params,
+                            null,
+                            isVariadic,
+                            isStatic,
+                            isForeign,
+                            attributes);
+                    }
+                    else
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                    }
                 }
                 else
                 {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
                 }
             }
             else
             {
-                TypeRefNode typeRef = ProcessTypeRef(context);
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            }
+        }
+        else if (context.Current?.Type == TokenType.Name)
+        {
+            string name = context.Current.Value.Text.ToString();
+            context.MoveNext();
+            TypeRefNode typeRef = ProcessTypeRef(context);
 
-                if (context.Current?.Type == TokenType.Semicolon)
-                {
-                    context.MoveNext();
-                    return new FieldDefNode(name, privacy, typeRef, attributes);
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
-                }
+            if (context.Current?.Type == TokenType.Semicolon)
+            {
+                context.MoveNext();
+                return new FieldDefNode(name, privacy, typeRef, attributes);
+            }
+            else
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
             }
         }
         else
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            throw new UnexpectedTokenException(context.Current.Value);
         }
     }
 
@@ -408,14 +473,7 @@ public static class ASTGenerator
     public static ParameterNode? ProcessParameter(ParseContext context, out bool isVariadic)
     {
         string name;
-        bool requireRefType = false;
         isVariadic = false;
-
-        if (context.Current?.Type == TokenType.Ref)
-        {
-            requireRefType = true;
-            context.MoveNext();
-        }
 
         if (context.Current?.Type == TokenType.Name)
         {
@@ -433,7 +491,7 @@ public static class ASTGenerator
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
 
-        return new ParameterNode(name, ProcessTypeRef(context), requireRefType);
+        return new ParameterNode(name, ProcessTypeRef(context));
     }
 
     public static IfNode ProcessIf(ParseContext context)
@@ -651,13 +709,13 @@ public static class ASTGenerator
                     lastCreatedNode = new ConstantNode(3.14159265358979323846264f);
                     context.MoveNext();
                     break;
-                case TokenType.Ref:
+                case TokenType.AddressOf:
                     context.MoveNext();
-                    lastCreatedNode = new AsReferenceNode(ProcessExpression(context, null));
+                    lastCreatedNode = new AddressOfNode(ProcessExpression(context, null));
                     break;
                 case TokenType.DeRef:
                     context.MoveNext();
-                    lastCreatedNode = new DeReferenceNode(ProcessExpression(context, null));
+                    lastCreatedNode = new LoadNode(ProcessExpression(context, null));
                     break;
                 case TokenType.Function:
                     if (context.MoveNext()?.Type == TokenType.OpeningParentheses)

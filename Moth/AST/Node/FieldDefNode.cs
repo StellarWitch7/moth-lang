@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class FieldDefNode : MemberDefNode
+public class FieldDefNode : DefinitionNode
 {
     public string Name { get; set; }
     public PrivacyType Privacy { get; set; }

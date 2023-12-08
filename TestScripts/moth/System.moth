@@ -1,63 +1,88 @@
 namespace MothStd; // part of the standard libs
 
-public class Sys {
+public func stdin() #File* {
+    return #File.init(__acrt_iob_func(#u32 <- 0));
+}
 
-    static Write(char #char) #void {
-        #Sys.Write(char, stdout());
+public func stdout() #File* {
+    return #File.init(__acrt_iob_func(#u32 <- 1));
+}
+
+public func stderr() #File* {
+    return #File.init(__acrt_iob_func(#u32 <- 2));
+}
+
+public func eof(ch #i32) #bool {
+    return ch < 0;
+}
+
+public func write(char #char) #void {
+    stdout().Write(char);
+    return;
+}
+
+public func write(string #char*) #void {
+    stdout().Write(string);
+    return;
+}
+
+public func write(string #char*, end #char) #void {
+    stdout().Write(string, end);
+    return;
+}
+
+public func writeLine(string #char*) #void {
+    stdout().WriteLine(string);
+    return;
+}
+
+public func input(string #char*) #char* {
+    return input(string, stdout(), stdin());
+}
+
+public func input(string #char*, output #File*, input #File*) #char* {
+    output.Write(string, '\0');
+    return input.ReadLine();
+}
+
+public func openFile(path #char*, mode #char*) #File* {
+    return #File.init(fopen(path, mode));
+}
+
+public class File {
+    public CFile #FILE*;
+
+    public static func init(cfile #FILE*) #File* {
+        self.CFile = cfile;
+        return self;
+    }
+
+    public func Write(string #char*) #void {
+        fputs(string, self.CFile);
+        fflush(self.CFile);
         return;
     }
 
-    static Write(char #char, file #void*) #void {
-        #Sys.Write("", char, file);
+    public func Write(char #char) #void {
+        local str #char* = #char* <- malloc(#u64 <- 1);
+        sprintf(str, "%c", char);
+        self.Write(str);
         return;
     }
 
-    static Write(string #char*, end #char) #void {
-        #Sys.Write(string, end, stdout());
+    public func Write(string #char*, end #char) #void {
+        self.Write(string)
+        self.Write(end);
         return;
     }
 
-    static Write(string #char*, end #char, file #void*) #void {
-        local size #u64 = #u64 <- 10000;
-        local toPrint #char* = malloc(size); //TODO: terrible
-
-        while toPrint == null {
-            if size > (#u64 <- 0) {
-                toPrint = malloc(--size);
-            } else {
-                return;
-            }
-        }
-
-        sprintf(toPrint, "%s%c", string, end);
-        #Sys.Write(toPrint);
-        free(toPrint);
+    public func WriteLine(string #char*) #void {
+        self.Write(string, '\n');
         return;
     }
 
-    static Write(string #char*) #void {
-        #Sys.Write(string, stdout());
-        return;
-    }
-
-    static Write(string #char*, file #void*) #void {
-        fputs(string, file);
-        fflush(file);
-        return;
-    }
-
-    static WriteLine(string #char*) #void {
-        #Sys.WriteLine(string, stdout());
-        return;
-    }
-
-    static WriteLine(string #char*, file #void*) #void {
-        #Sys.Write(string, '\n', file);
-        return;
-    }
-
-    static GetChar(file #void*) #char {
-        local ch #i32 = fgetc(file);
+    public func GetChar() #char {
+        local ch #i32 = fgetc(self.CFile);
 
         if !eof(ch) {
             return #char <- ch;
@@ -66,9 +91,9 @@ public class Sys {
         }
     }
 
-    static ReadLine(file #void*) #char* {
+    public func ReadLine() #char* {
         local size #u64 = #u64 <- 512;
-        local string #char* = malloc(size);
+        local string ?= #char* <- malloc(size);
         local ch #char;
         local len ?= -1;
 
@@ -76,11 +101,11 @@ public class Sys {
             return string;
         }
 
-        while (ch = #Sys.GetChar(file)) != '\0' and ch != '\n' {
+        while (ch = self.GetChar()) != '\0' and ch != '\n' {
             string[++len] = ch;
             
             if len >= (#i32 <- size) {
-                string = realloc(string, size += (#u64 <- 512));
+                string = #char* <- realloc(#void* <- string, size += (#u64 <- 512));
 
                 if string == null {
                     return string;
@@ -89,30 +114,21 @@ public class Sys {
         }
 
         string[++len] = '\0';
-        string = realloc(string, #u64 <- ++len);
+        string = #char* <- realloc(#void* <- string, #u64 <- ++len);
         return string;
-    }
-
-    static Input(string #char*) #char* {
-        return #Sys.Input(string, stdout(), stdin());
-    }
-
-    static Input(string #char*, ouput #void*, input #void*) #char* {
-        #Sys.Write(string, '\0', ouput);
-        return #Sys.ReadLine(input);
     }
 }
 
 //public class Array<\T, SIZE #i32\> {
 //    private value ?T*;
 //
-//    static init() #Array<\?T, SIZE\> {
+//    public static func init() #Array<\?T, SIZE\> {
 //        self.value = malloc(SIZE * ?T.sizeof());
 //        return self;
 //    }
 //
-//    public GetIndex(index #u32, ref val ?T) #bool {
-//        ref val = if index > 0
+//    public func GetIndex(index #u32, val ?T**) #bool {
+//        (load val) = if index > 0
 //            and index < SIZE - 1
 //            then self.value[index]
 //            else null;
@@ -122,7 +138,7 @@ public class Sys {
 //            else false;
 //    }
 //
-//    public SetIndex(index #u32, item ?T) #bool {
+//    public func SetIndex(index #u32, item ?T) #bool {
 //
 //        if index < 0 or index > SIZE - 1 {
 //            return false;
@@ -132,7 +148,7 @@ public class Sys {
 //        return true;
 //    }
 //
-//    public AsPointer() ?T* {
+//    public func AsPointer() ?T* {
 //        return value;
 //    }
 //}

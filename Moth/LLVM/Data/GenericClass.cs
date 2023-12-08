@@ -6,7 +6,8 @@ public class GenericClass : Class
 {
     public Dictionary<string, Type> TypeParams { get; set; } = new Dictionary<string, Type>();
 
-    public GenericClass(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(name, llvmType, privacy)
+    public GenericClass(Namespace? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
+        : base(parent, name, llvmType, privacy)
     {
     }
 }

@@ -2,42 +2,57 @@
 
 public sealed class ConstRetFn : IntrinsicFunction
 {
-    private LLVMModuleRef _module;
-    public readonly LLVMValueRef Value;
-
-    public ConstRetFn(string name, LLVMModuleRef module, Value value) : base(name, value.Type)
+    private Value _value { get; }
+    private LLVMModuleRef _module { get; }
+    
+    public ConstRetFn(string name, Value value, LLVMModuleRef module)
+        : base(new FuncType(name, value.Type, new Type[]{}, false, null))
     {
         if (!value.LLVMValue.IsConstant)
         {
             throw new ArgumentException("Value needs to be constant.");
         }
 
+        _value = value;
         _module = module;
-        Value = value.LLVMValue;
     }
 
-    public override LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters) => Value;
+    public override Value Call(LLVMCompiler compiler, Value[] args) => _value;
 
-    protected override (LLVMValueRef, LLVMTypeRef) GenerateLLVMData()
+    protected override LLVMValueRef GenerateLLVMData()
     {
-        var type = LLVMTypeRef.CreateFunction(Value.TypeOf, new ReadOnlySpan<LLVMTypeRef>(), false);
-        LLVMValueRef func = _module.AddFunction(Name, type);
+        LLVMValueRef func = _module.AddFunction(Type.Name, _value.Type.LLVMType);
 
         using LLVMBuilderRef builder = _module.Context.CreateBuilder();
         builder.PositionAtEnd(func.AppendBasicBlock(""));
-        builder.BuildRet(Value);
+        builder.BuildRet(_value.LLVMValue);
 
-        return (func, type);
+        return func;
     }
 }
 
 public sealed class Pow : IntrinsicFunction
 {
-    public Pow(string name, LLVMModuleRef module, Type ret, LLVMTypeRef p1, LLVMTypeRef p2) : base(name, ret)
+    private LLVMModuleRef _module { get; }
+
+    public Pow(string name, LLVMModuleRef module, Type retType, Type left, Type right)
+        : base(new FuncType(name, retType, new Type[] { left, right }, false, null))
     {
-        InternalLLVMFuncType = LLVMTypeRef.CreateFunction(ret.LLVMType, stackalloc LLVMTypeRef[] { p1, p2 }, false);
-        InternalLLVMFunc = module.AddFunction(name, InternalLLVMFuncType);
+        _module = module;
     }
 
-    public override LLVMValueRef Call(LLVMBuilderRef builder, ReadOnlySpan<LLVMValueRef> parameters) => builder.BuildCall2(LLVMFuncType, LLVMFunc, parameters, "pow");
+    public override Value Call(LLVMCompiler compiler, Value[] args)
+        => Type.Call(compiler, LLVMValue, args, "pow");
+    
+    protected override LLVMValueRef GenerateLLVMData()
+    {
+        try
+        {
+            return _module.GetNamedFunction(Type.Name);
+        }
+        catch
+        {
+            return _module.AddFunction(Type.Name, Type.LLVMType);
+        }
+    }
 }

@@ -5,9 +5,17 @@ public static class Reserved
     public const string Main = "main";
     public const string Self = "self";
     public const string Init = "init";
+    public const string LocalFunc = "localfunc";
+    public const string Malloc = "malloc";
+    public const string Realloc = "realloc";
+    public const string Free = "free";
     public const string SizeOf = "sizeof";
     public const string AlignOf = "alignof";
 
+    public const string Local = "local";
+    public const string Private = "private";
+    public const string Public = "public";
+    
     public const string Void = "void";
     public const string Float16 = "f16";
     public const string Float32 = "f32";

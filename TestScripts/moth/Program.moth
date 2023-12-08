@@ -1,53 +1,57 @@
 namespace Test;
 
-func main() #i32 {
-    // #Sys.WriteLine("Welcome!");
-    // #Sys.WriteLine(#Sys.Input("Enter something to be repeated: "));
+with MothStd;
+
+private foreign func malloc(size #u64) #void*;
+
+private func main() #i32 {
+    // writeLine("Welcome!");
+    // writeLine(#Sys.Input("Enter something to be repeated: "));
     // local array #TestArray = #TestArray.init(#u64 <- 10);
     // array.SetIndex(#u64 <- 1, 2);
     // local val ?= 6;
-    // local test #i32* = ref -1;
-    // local result ?= if array.GetIndex(#u64 <- 0, ref val) then val else load test;
+    // local test #i32* = addrof -1;
+    // local result ?= if array.GetIndex(#u64 <- 0, addrof val) then val else load test;
     // return result;
 
-    local fn #(#i32, #char*) #bool = func (num #i32, str #char*) #bool {
+    local fn ?= func (num #i32, str #char*) #bool {
         return true;
     };
     
     return #i32 <- fn(5, "");
 }
 
-public class TestArray {
-    private value #i32*;
-    private size #u64;
+// public class TestArray {
+//     private value #i32*;
+//     private size #u64;
 
-    static init(size #u64) #TestArray {
-        self.value = #i32* <- malloc(size * #i32.sizeof());
-        self.size = size;
-        return self;
-    }
+//     public static func init(size #u64) #TestArray {
+//         self.value = #i32* <- malloc(size * #i32.sizeof());
+//         self.size = size;
+//         return self;
+//     }
 
-    public GetIndex(index #u64, ref val #i32) #bool {
-        (load val) = if (index >= (#u64 <- 0))
-            and index < self.size
-            then self.value[index]
-            else 0;
-        return if (index >= (#u64 <- 0))
-            and index < self.size
-            then true
-            else false;
-    }
+//     public func GetIndex(index #u64, val #i32**) #bool {
+//         (load val) = if (index >= (#u64 <- 0))
+//             and index < self.size
+//             then self.value[index]
+//             else 0;
+//         return if (index >= (#u64 <- 0))
+//             and index < self.size
+//             then true
+//             else false;
+//     }
 
-    public SetIndex(index #u64, item #i32) #bool {
-        if (index < (#u64 <- 0)) or index >= self.size {
-            return false;
-        }
+//     public func SetIndex(index #u64, item #i32) #bool {
+//         if (index < #u64 <- 0) or index >= self.size {
+//             return false;
+//         }
 
-        self.value[index] = item;
-        return true;
-    }
+//         self.value[index] = item;
+//         return true;
+//     }
 
-    public AsPointer() #i32* {
-        return self.value;
-    }
-}
+//     public func AsPointer() #i32* {
+//         return self.value;
+//     }
+// }

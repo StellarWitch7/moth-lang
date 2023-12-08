@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.CLI", "Moth.CLI\Moth.CLI.csproj", "{DDDB3929-2183-4826-BDDC-81D5457D87F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth", "Moth\Moth.csproj", "{57B748C4-8AA2-4F75-AF94-F648BB717818}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Test", "Moth.Test\Moth.Test.csproj", "{081AA64B-BC12-4259-81CA-35CD7EB12D5F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DDDB3929-2183-4826-BDDC-81D5457D87F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDDB3929-2183-4826-BDDC-81D5457D87F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDDB3929-2183-4826-BDDC-81D5457D87F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDDB3929-2183-4826-BDDC-81D5457D87F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57B748C4-8AA2-4F75-AF94-F648BB717818}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57B748C4-8AA2-4F75-AF94-F648BB717818}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57B748C4-8AA2-4F75-AF94-F648BB717818}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57B748C4-8AA2-4F75-AF94-F648BB717818}.Release|Any CPU.Build.0 = Release|Any CPU
+		{081AA64B-BC12-4259-81CA-35CD7EB12D5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{081AA64B-BC12-4259-81CA-35CD7EB12D5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{081AA64B-BC12-4259-81CA-35CD7EB12D5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{081AA64B-BC12-4259-81CA-35CD7EB12D5F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
