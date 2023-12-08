@@ -28,4 +28,9 @@ public class Variable : Pointer
             // throw new Exception($"Failed to load variable \"{Name}\"");
         }
     }
+
+    public override Pointer GetAddr(LLVMCompiler compiler)
+    {
+        return new Pointer(new PtrType(Type.BaseType), LLVMValue);
+    }
 }

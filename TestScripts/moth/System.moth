@@ -105,7 +105,7 @@ public class File {
             string[++len] = ch;
             
             if len >= (#i32 <- size) {
-                string = #char* <- realloc(string, size += (#u64 <- 512));
+                string = #char* <- realloc(#void* <- string, size += (#u64 <- 512));
 
                 if string == null {
                     return string;
@@ -114,7 +114,7 @@ public class File {
         }
 
         string[++len] = '\0';
-        string = #char* <- realloc(string, #u64 <- ++len);
+        string = #char* <- realloc(#void* <- string, #u64 <- ++len);
         return string;
     }
 }
@@ -127,8 +127,8 @@ public class File {
 //        return self;
 //    }
 //
-//    public func GetIndex(index #u32, ref val ?T) #bool {
-//        ref val = if index > 0
+//    public func GetIndex(index #u32, val ?T**) #bool {
+//        (load val) = if index > 0
 //            and index < SIZE - 1
 //            then self.value[index]
 //            else null;

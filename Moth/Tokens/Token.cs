@@ -98,7 +98,7 @@ public enum TokenType
     OpeningGenericBracket,
     Then,
     GenericTypeRef,
-    Ref,
+    AddressOf,
     AddAssign,
     SubAssign,
     MulAssign,

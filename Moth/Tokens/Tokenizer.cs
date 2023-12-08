@@ -98,7 +98,7 @@ public static class Tokenizer
                             {
                                 "if" => TokenType.If,
                                 "invoke" => TokenType.Invoke,
-                                "ref" => TokenType.Ref,
+                                "addrof" => TokenType.AddressOf,
                                 "load" => TokenType.DeRef,
                                 "null" => TokenType.Null,
                                 "local" => TokenType.Local,

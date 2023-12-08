@@ -810,36 +810,36 @@ public class LLVMCompiler
         {
             Value @ref = CompileRef(scope, incrementVar.RefNode);
 
-            if (@ref.Type is not RefType || SafeLoad(@ref).Type is PtrType or FuncType)
+            if (@ref is not Pointer ptr || @ref.Type is not RefType || SafeLoad(@ref).Type is PtrType or FuncType)
             {
                 throw new Exception(); //TODO
             }
             
             var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
-            Builder.BuildStore(Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd), @ref.LLVMValue);
-            return new Value(WrapAsRef(@ref.Type), @ref.LLVMValue);
+            ptr.Store(this, new Value(ptr.Type.BaseType, Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd)));
+            return new Pointer(WrapAsRef(@ref.Type), @ref.LLVMValue);
         }
         else if (expr is DecrementVarNode decrementVar)
         {
             Value @ref = CompileRef(scope, decrementVar.RefNode);
 
-            if (@ref.Type is not RefType || SafeLoad(@ref).Type is PtrType or FuncType)
+            if (@ref is not Pointer ptr || @ref.Type is not RefType || SafeLoad(@ref).Type is PtrType or FuncType)
             {
                 throw new Exception(); //TODO
             }
             
-            var valToSub = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
-            Builder.BuildStore(Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToSub), @ref.LLVMValue);
-            return new Value(WrapAsRef(@ref.Type), @ref.LLVMValue);
+            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
+            ptr.Store(this, new Value(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToAdd)));
+            return new Pointer(WrapAsRef(@ref.Type), @ref.LLVMValue);
         }
-        else if (expr is AsReferenceNode asReference)
+        else if (expr is AddressOfNode addrofNode)
         {
-            Value value = CompileExpression(scope, asReference.Value);
+            Value value = CompileExpression(scope, addrofNode.Value);
             return value.GetAddr(this);
         }
-        else if (expr is DeReferenceNode deReference)
+        else if (expr is LoadNode loadNode)
         {
-            Value value = SafeLoad(CompileExpression(scope, deReference.Value));
+            Value value = SafeLoad(CompileExpression(scope, loadNode.Value));
 
             return value is Pointer ptr
                 ? ptr.Load(this)
@@ -1047,34 +1047,45 @@ public class LLVMCompiler
 
         Value right = SafeLoad(CompileExpression(scope, binaryOp.Right));
         Type destType = ResolveType(left);
-        LLVMValueRef builtVal = destType is Int
-            ? right.Type is Int
-                ? destType.Equals(Primitives.Bool)
-                    ? Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
-                        LLVMValueRef.CreateConstInt(right.Type.LLVMType, 0), right.LLVMValue)
-                    : right.Type.Equals(Primitives.Bool)
-                        ? Builder.BuildZExt(right.LLVMValue, destType.LLVMType)
-                        : Builder.BuildIntCast(right.LLVMValue, destType.LLVMType)
-                : right.Type is Float
-                    ? destType is UnsignedInt
-                        ? Builder.BuildFPToUI(right.LLVMValue, destType.LLVMType)
-                        : destType is SignedInt
-                            ? Builder.BuildFPToSI(right.LLVMValue, destType.LLVMType)
-                            : throw new NotImplementedException()
-                    : throw new NotImplementedException()
-            : destType is Float
-                ? right.Type is Float
-                    ? Builder.BuildFPCast(right.LLVMValue, destType.LLVMType)
-                    : right.Type is Int
-                        ? right.Type is UnsignedInt
-                            ? Builder.BuildUIToFP(right.LLVMValue, destType.LLVMType)
-                            : right.Type is SignedInt
-                                ? Builder.BuildSIToFP(right.LLVMValue, destType.LLVMType)
+        LLVMValueRef builtVal;
+
+        if ((destType is PtrType destPtrType && destPtrType.Equals(Primitives.Void))
+            || (right.Type is PtrType rPtrType && rPtrType.BaseType.Equals(Primitives.Void)))
+        {
+            builtVal = right.LLVMValue;
+        }
+        else
+        {
+            builtVal = destType is Int
+                ? right.Type is Int
+                    ? destType.Equals(Primitives.Bool)
+                        ? Builder.BuildICmp(LLVMIntPredicate.LLVMIntNE,
+                            LLVMValueRef.CreateConstInt(right.Type.LLVMType, 0), right.LLVMValue)
+                        : right.Type.Equals(Primitives.Bool)
+                            ? Builder.BuildZExt(right.LLVMValue, destType.LLVMType)
+                            : Builder.BuildIntCast(right.LLVMValue, destType.LLVMType)
+                    : right.Type is Float
+                        ? destType is UnsignedInt
+                            ? Builder.BuildFPToUI(right.LLVMValue, destType.LLVMType)
+                            : destType is SignedInt
+                                ? Builder.BuildFPToSI(right.LLVMValue, destType.LLVMType)
                                 : throw new NotImplementedException()
                         : throw new NotImplementedException()
-                : Builder.BuildCast(LLVMOpcode.LLVMBitCast,
-                    right.LLVMValue,
-                    destType.LLVMType);
+                : destType is Float
+                    ? right.Type is Float
+                        ? Builder.BuildFPCast(right.LLVMValue, destType.LLVMType)
+                        : right.Type is Int
+                            ? right.Type is UnsignedInt
+                                ? Builder.BuildUIToFP(right.LLVMValue, destType.LLVMType)
+                                : right.Type is SignedInt
+                                    ? Builder.BuildSIToFP(right.LLVMValue, destType.LLVMType)
+                                    : throw new NotImplementedException()
+                            : throw new NotImplementedException()
+                    : Builder.BuildCast(LLVMOpcode.LLVMBitCast,
+                        right.LLVMValue,
+                        destType.LLVMType);
+        }
+        
         return new Value(destType, builtVal);
     }
 

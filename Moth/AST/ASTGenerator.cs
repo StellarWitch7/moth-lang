@@ -476,7 +476,7 @@ public static class ASTGenerator
         bool requireRefType = false;
         isVariadic = false;
 
-        if (context.Current?.Type == TokenType.Ref)
+        if (context.Current?.Type == TokenType.AddressOf)
         {
             requireRefType = true;
             context.MoveNext();
@@ -716,13 +716,13 @@ public static class ASTGenerator
                     lastCreatedNode = new ConstantNode(3.14159265358979323846264f);
                     context.MoveNext();
                     break;
-                case TokenType.Ref:
+                case TokenType.AddressOf:
                     context.MoveNext();
-                    lastCreatedNode = new AsReferenceNode(ProcessExpression(context, null));
+                    lastCreatedNode = new AddressOfNode(ProcessExpression(context, null));
                     break;
                 case TokenType.DeRef:
                     context.MoveNext();
-                    lastCreatedNode = new DeReferenceNode(ProcessExpression(context, null));
+                    lastCreatedNode = new LoadNode(ProcessExpression(context, null));
                     break;
                 case TokenType.Function:
                     if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
