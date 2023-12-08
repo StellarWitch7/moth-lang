@@ -1,4 +1,4 @@
-namespace MothStd; // part of the standard libs
+namespace std; // part of the standard libs
 
 private foreign func malloc(size #u64) #void*;
 private foreign func realloc(ptr #void*, size #u64) #void*;

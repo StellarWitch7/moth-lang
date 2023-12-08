@@ -1,12 +1,12 @@
-namespace Test;
+namespace test;
 
-with MothStd;
+with std;
 
 private foreign func malloc(size #u64) #void*;
 
 private func main() #i32 {
-    // writeLine("Welcome!");
-    // writeLine(#Sys.Input("Enter something to be repeated: "));
+    // WriteLine("Welcome!");
+    // WriteLine(Input("Enter something to be repeated: "));
     // local array #TestArray = #TestArray.init(#u64 <- 10);
     // array.SetIndex(#u64 <- 1, 2);
     // local val ?= 6;

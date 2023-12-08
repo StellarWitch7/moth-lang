@@ -1,8 +1,8 @@
 namespace syntax::example;
 
-private foreign printf(string #str, ~~) #i32; // This is a comment talking about this foreign function definition.
+private foreign printf(string #char*, ~~) #i32; // This is a comment talking about this foreign function definition.
 
-public func add(left #i32, right #i32) #i32 {
+public func Add(left #i32, right #i32) #i32 {
     local result ?= if left != null and right != null then left + right else null;
     return result;
 }
@@ -11,7 +11,7 @@ public class TestClass {
     public Value #i32;
     private incrementBonus #i32;
     
-    public static func init() {
+    public static func init() #TestClass* {
         self.Value = 10;
         self.incrementBonus = 1;
         return self;
@@ -23,7 +23,7 @@ public class TestClass {
         return;
     }
 
-    public func ToString() #str {
+    public func ToString() #char* {
         return "Value: " + self.Value.ToString();
     }
 }
