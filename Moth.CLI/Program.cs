@@ -97,7 +97,23 @@ internal class Program
                 try
                 {
                     logger.WriteLine("Compiling to LLVM IR...");
-                    compiler.Compile(scripts);
+
+                    try
+                    {
+                        compiler.Compile(scripts);
+                    }
+                    catch (Exception e)
+                    {
+                        if (options.Verbose)
+                        {
+                            logger.WriteSeparator();
+                            logger.WriteUnsignedLine(compiler.Module.PrintToString());
+                            logger.WriteSeparator();
+                            logger.WriteLine("Dumped LLVM IR for reviewal.");
+                        }
+
+                        throw e;
+                    }
 
                     if (options.Verbose)
                     {
@@ -216,14 +232,6 @@ internal class Program
                 }
                 catch (Exception e)
                 {
-                    if (options.Verbose)
-                    {
-                        logger.WriteSeparator();
-                        logger.WriteUnsignedLine(compiler.Module.PrintToString());
-                        logger.WriteSeparator();
-                        logger.WriteLine("Dumped LLVM IR for reviewal.");
-                    }
-
                     logger.WriteLine($"Failed to compile due to: {e}");
                 }
             });
