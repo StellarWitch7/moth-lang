@@ -6,6 +6,9 @@ public static class Reserved
     public const string Self = "self";
     public const string Init = "init";
     public const string LocalFunc = "localfunc";
+    public const string Malloc = "malloc";
+    public const string Realloc = "realloc";
+    public const string Free = "free";
     public const string SizeOf = "sizeof";
     public const string AlignOf = "alignof";
 

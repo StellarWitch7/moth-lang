@@ -16,14 +16,15 @@ public class Signature
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.Append($"{Name}:");
+        builder.Append($"{Name}(");
 
         foreach (Type param in Params)
         {
-            builder.Append($"{param.ToString()}.");
+            builder.Append($"{param.ToString()}, ");
         }
 
-        builder.Remove(builder.Length - 1, 1);
+        builder.Remove(builder.Length - 2, 2);
+        builder.Append(')');
         return builder.ToString();
     }
 

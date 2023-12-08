@@ -2,9 +2,9 @@
 
 namespace Moth.LLVM.Data;
 
-public class Float : Struct
+public class Float : PrimitiveType
 {
-    public Float(string name, LLVMTypeRef llvmType, PrivacyType privacy) : base(null, name, llvmType, privacy)
+    public Float(string name, LLVMTypeRef llvmType) : base(name, llvmType)
     {
     }
 }

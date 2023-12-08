@@ -29,6 +29,7 @@ public class LLVMCompiler
         Builder = Context.CreateBuilder();
         Module = Context.CreateModuleWithName(ModuleName);
         GlobalNamespace = InitGlobalNamespace();
+        AddDefaultForeigns();
 
         if (doOptimize)
         {
@@ -319,7 +320,7 @@ public class LLVMCompiler
 
         if (@struct != null && !funcDefNode.IsStatic)
         {
-            paramTypes.Add(@struct);
+            paramTypes.Add(new PtrType(@struct));
             index++;
         }
 
@@ -399,7 +400,7 @@ public class LLVMCompiler
         {
             var newParamTypes = new List<Type>()
             {
-                @struct
+                new PtrType(@struct)
             };
             
             newParamTypes.AddRange(paramTypes);
@@ -453,14 +454,14 @@ public class LLVMCompiler
             var @new = methodType.OwnerStruct.Init(this);
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
-            if (@new.Type.BaseType is not Class classOfNew)
+            if (!(@new.Type.BaseType is PtrType ptrType && ptrType.BaseType is Class classOfNew))
             {
-                throw new Exception();
+                throw new Exception($"Critical failure in the init of class \"{methodType.OwnerStruct}\".");
             }
             
             foreach (Field field in classOfNew.Fields.Values)
             {
-                LLVMValueRef llvmField = Builder.BuildStructGEP2(@new.Type.LLVMType, @new.LLVMValue, field.FieldIndex);
+                LLVMValueRef llvmField = Builder.BuildStructGEP2(methodType.OwnerStruct.LLVMType, @new.LLVMValue, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
 
                 Builder.BuildStore(zeroedVal, llvmField);
@@ -1280,7 +1281,7 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    context = Value.Create(CurrentFunction.OwnerStruct, CurrentFunction.LLVMValue.FirstParam);
+                    context = Value.Create(new PtrType(CurrentFunction.OwnerStruct), CurrentFunction.LLVMValue.FirstParam);
                 }
 
                 refNode = refNode.Child;
@@ -1337,15 +1338,16 @@ public class LLVMCompiler
     {
         if (context != null)
         {
-            if (SafeLoad(context).Type is not Class classType)
+            context = SafeLoad(context);
+            
+            if (!(context.Type is PtrType ptrType && ptrType.BaseType is Struct structType)) //TODO: why are they not pointers?
             {
-                throw new Exception($"Cannot do field access on non-class type \"{context.Type}\".");
+                throw new Exception($"Cannot do field access on value of type \"{context.Type}\".");
             }
             
-            Field field = classType.GetField(refNode.Name, CurrentFunction.OwnerStruct);
-            Type type = SafeLoad(context).Type;
+            Field field = structType.GetField(refNode.Name, CurrentFunction.OwnerStruct);
             return new Pointer(WrapAsRef(field.Type),
-                Builder.BuildStructGEP2(type.LLVMType,
+                Builder.BuildStructGEP2(structType.LLVMType,
                     context.LLVMValue,
                     field.FieldIndex,
                     field.Name));
@@ -1383,11 +1385,11 @@ public class LLVMCompiler
         {
             func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
         }
-        else if (context != null && context.Type is Class @class)
+        else if (context != null && context.Type is PtrType ptrType && ptrType.BaseType is Class @class)
         {
             var newArgTypes = new List<Type>
             {
-                @class
+                new PtrType(@class)
             };
             
             newArgTypes.AddRange(argTypes);
@@ -1397,7 +1399,7 @@ public class LLVMCompiler
             
             var newArgs = new List<Value>
             {
-                context
+                context.GetAddr(this) //TODO: is this correct?
             };
             
             newArgs.AddRange(args);
@@ -1532,7 +1534,7 @@ public class LLVMCompiler
 
     private Namespace InitGlobalNamespace()
     {
-        var @namespace = new Namespace(null, "global_compiler");
+        var @namespace = new Namespace(null, "root");
 
         @namespace.Structs.Add(Reserved.Void, Primitives.Void);
         @namespace.Structs.Add(Reserved.Float16, Primitives.Float16);
@@ -1555,6 +1557,45 @@ public class LLVMCompiler
         }
 
         return @namespace;
+    }
+
+    private void AddDefaultForeigns()
+    {
+        List<FuncType> funcTypes = new List<FuncType>();
+
+        {
+            funcTypes.Add(new FuncType(Reserved.Malloc,
+                new PtrType(Primitives.Void),
+                new Type[1]
+                {
+                    Primitives.UInt64
+                },
+                false,
+                null));
+            funcTypes.Add(new FuncType(Reserved.Realloc,
+                new PtrType(Primitives.Void),
+                new Type[2]
+                {
+                    new PtrType(Primitives.Void),
+                    Primitives.UInt64
+                },
+                false,
+                null));
+            funcTypes.Add(new FuncType(Reserved.Free,
+                Primitives.Void,
+                new Type[1]
+                {
+                    new PtrType(Primitives.Void)
+                },
+                false,
+                null));
+        }
+
+        foreach (var funcType in funcTypes)
+        {
+            _foreigns.Add(funcType.Name, funcType);
+            Module.AddFunction(funcType.Name, funcType.BaseType.LLVMType);
+        }
     }
 
     private IntrinsicFunction CreateIntrinsic(string name)

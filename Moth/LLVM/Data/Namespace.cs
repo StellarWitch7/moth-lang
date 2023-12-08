@@ -27,6 +27,21 @@ public class Namespace : CompilerData, IContainer
         }
     }
 
+    public string FullName
+    {
+        get
+        {
+            if (ParentNamespace == null)
+            {
+                return Name;
+            }
+            else
+            {
+                return $"{ParentNamespace.FullName}::{Name}";
+            }
+        }
+    }
+
     public Namespace GetNamespace(string name)
     {
         if (Namespaces.TryGetValue(name, out Namespace nmspace))

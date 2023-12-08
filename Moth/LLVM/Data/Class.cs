@@ -29,9 +29,9 @@ public class Class : Struct
     public override Variable Init(LLVMCompiler compiler)
     {
         var @new = new Variable(Reserved.Self,
-            compiler.WrapAsRef(this),
+            compiler.WrapAsRef(new PtrType(this)),
             compiler.Builder.BuildAlloca(LLVMTypeRef.CreatePointer(LLVMType, 0)));
-        @new.Store(compiler, Value.Create(this, compiler.Builder.BuildMalloc(this.LLVMType)));
+        @new.Store(compiler, Value.Create(new PtrType(this), compiler.Builder.BuildMalloc(this.LLVMType)));
         return @new;
     }
 }

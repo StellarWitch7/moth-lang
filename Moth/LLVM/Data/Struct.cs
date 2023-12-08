@@ -35,6 +35,14 @@ public class Struct : Type, IContainer
         }
     }
 
+    public virtual string FullName
+    {
+        get
+        {
+            return $"{ParentNamespace.FullName}#{Name}";
+        }
+    }
+
     public virtual void AddBuiltins(LLVMCompiler compiler)
     {
         // sizeof()
@@ -44,7 +52,7 @@ public class Struct : Type, IContainer
                 : LLVMType.SizeOf;
 
             var value = Value.Create(Primitives.UInt64, retValue);
-            var func = new ConstRetFn($"{Name}.{Reserved.SizeOf}", value, compiler.Module);
+            var func = new ConstRetFn($"{FullName}.{Reserved.SizeOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
         }
 
@@ -55,7 +63,7 @@ public class Struct : Type, IContainer
                 : LLVMType.AlignOf;
 
             var value = Value.Create(Primitives.UInt64, retValue);
-            var func = new ConstRetFn($"{Name}.{Reserved.AlignOf}", value, compiler.Module);
+            var func = new ConstRetFn($"{FullName}.{Reserved.AlignOf}", value, compiler.Module);
             StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
         }
 
@@ -162,7 +170,7 @@ public class Struct : Type, IContainer
             compiler.Builder.BuildAlloca(LLVMType));
     }
     
-    public override string ToString() => Name;
+    public override string ToString() => FullName;
 
     public override bool Equals(object? obj)
         => obj is Struct type
@@ -179,4 +187,6 @@ public class OpaqueStruct : Struct
         : base(null, name, compiler.Context.CreateNamedStruct(name), privacy) { }
 
     public override void AddBuiltins(LLVMCompiler compiler) => throw new Exception("Cannot add builtins to opaque struct.");
+
+    public override string ToString() => $"#{Name}";
 }

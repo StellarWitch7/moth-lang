@@ -1,14 +1,14 @@
 namespace MothStd; // part of the standard libs
 
-public func stdin() #File {
+public func stdin() #File* {
     return #File.init(__acrt_iob_func(#u32 <- 0));
 }
 
-public func stdout() #File {
+public func stdout() #File* {
     return #File.init(__acrt_iob_func(#u32 <- 1));
 }
 
-public func stderr() #File {
+public func stderr() #File* {
     return #File.init(__acrt_iob_func(#u32 <- 2));
 }
 
@@ -40,19 +40,19 @@ public func input(string #char*) #char* {
     return input(string, stdout(), stdin());
 }
 
-public func input(string #char*, output #File, input #File) #char* {
+public func input(string #char*, output #File*, input #File*) #char* {
     output.Write(string, '\0');
     return input.ReadLine();
 }
 
-public func openFile(path #char*, mode #char*) #File {
+public func openFile(path #char*, mode #char*) #File* {
     return #File.init(fopen(path, mode));
 }
 
 public class File {
     public CFile #FILE*;
 
-    public static func init(cfile #FILE*) #File {
+    public static func init(cfile #FILE*) #File* {
         self.CFile = cfile;
         return self;
     }

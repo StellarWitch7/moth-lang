@@ -11,7 +11,7 @@ namespace Moth.CLI;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static int Main(string[] args)
     {
         try
         {
@@ -112,7 +112,8 @@ internal class Program
                             logger.WriteLine("Dumped LLVM IR for reviewal.");
                         }
 
-                        throw e;
+                        Console.WriteLine(e);
+                        return;
                     }
 
                     if (options.Verbose)
@@ -156,7 +157,12 @@ internal class Program
                         logger.WriteLine($"Compiling final product...");
                         
                         linkerName = "clang";
-                        arguments.Append($" -o {options.OutputFile}.exe -llegacy_stdio_definitions");
+                        arguments.Append($" -o {options.OutputFile}.exe");
+
+                        if (OperatingSystem.IsWindows())
+                        {
+                            arguments.Append(" --llegacy_stdio_definitions");
+                        }
 
                         if (options.Verbose)
                         {
@@ -239,6 +245,9 @@ internal class Program
         catch (Exception e)
         {
             Console.WriteLine($"Exited due to: {e}");
+            return -1;
         }
+
+        return 0;
     }
 }
