@@ -2,8 +2,9 @@ namespace test;
 
 with std;
 
-private func main() #i32 {
-    return 0;
+private func main(something #Thing) #Thing {
+    local thing #Thing;
+    return thing;
 }
 
 public class Thing {

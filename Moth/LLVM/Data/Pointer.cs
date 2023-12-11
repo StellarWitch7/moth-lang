@@ -52,7 +52,7 @@ public class Pointer : Value
         }
     }
 
-    protected virtual string GetInvalidTypeErrorMsg(Value value)
+    public virtual string GetInvalidTypeErrorMsg(Value value)
     {
         return $"Tried to assign value of type \"{value.Type}\" to pointer of type \"{Type.BaseType}\".";
     }

@@ -2,7 +2,7 @@ namespace Moth.LLVM.Data;
 
 public class Variable : Pointer
 {
-    public string Name { get; set; }
+    public virtual string Name { get; }
     public override RefType Type { get; }
     
     public Variable(string name, RefType type, LLVMValueRef llvmVariable) : base(null, llvmVariable)
@@ -11,7 +11,7 @@ public class Variable : Pointer
         Type = type;
     }
     
-    protected override string GetInvalidTypeErrorMsg(Value value)
+    public override string GetInvalidTypeErrorMsg(Value value)
     {
         return $"Tried to assign value of type \"{value.Type}\" to variable of type \"{Type.BaseType}\".";
     }

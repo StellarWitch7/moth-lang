@@ -16,7 +16,7 @@ public class LLVMCompiler
 
     public List<Struct> Types { get; } = new List<Struct>();
     public List<DefinedFunction> Functions { get; } = new List<DefinedFunction>();
-    public List<Variable> Globals { get; } = new List<Variable>();
+    public List<IGlobal> Globals { get; } = new List<IGlobal>();
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
@@ -234,7 +234,7 @@ public class LLVMCompiler
             {
                 if (@class is not GenericClassNode)
                 {
-                    CompileClass(@class);
+                    CompileType(@class);
                 }
             }
         }
@@ -311,7 +311,7 @@ public class LLVMCompiler
         Types.Add(newStruct);
     }
 
-    public void CompileClass(ClassNode classNode)
+    public void CompileType(ClassNode classNode)
     {
         var llvmTypes = new List<LLVMTypeRef>();
         Struct @struct = GetStruct(classNode.Name);
@@ -567,7 +567,7 @@ public class LLVMCompiler
     {
         Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
-        Variable global = new Variable(globalDef.Name, WrapAsRef(globalType), globalVal);
+        GlobalVariable global = new GlobalVariable(globalDef.Name, WrapAsRef(globalType), globalVal, globalDef.Privacy);
         CurrentNamespace.GlobalVariables.Add(globalDef.Name, global);
         Globals.Add(global);
         //TODO: add const support to globals
@@ -1403,9 +1403,9 @@ public class LLVMCompiler
             {
                 return @var;
             }
-            else if (CurrentNamespace.TryGetGlobal(refNode.Name, out Variable globalVar))
+            else if (CurrentNamespace.TryGetGlobal(refNode.Name, out IGlobal globalVar))
             {
-                return globalVar;
+                return (Variable)globalVar;
             }
             else
             {

@@ -2,12 +2,13 @@ using Moth.AST.Node;
 
 namespace Moth.LLVM.Reflection;
 
-public struct Type
+public struct Function
 {
-    public bool is_struct;
     public PrivacyType privacy;
+    public bool is_variadic;
+    public ulong type_table_index;
     public ulong name_table_index;
     public ulong name_table_length;
-    public ulong field_table_index;
-    public ulong field_table_length;
+    public ulong param_table_index;
+    public ulong param_table_length;
 }

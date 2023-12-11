@@ -9,7 +9,7 @@ public class Namespace : CompilerData, IContainer
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
     public Dictionary<Signature, Function> Functions { get; } = new Dictionary<Signature, Function>();
     public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
-    public Dictionary<string, Variable> GlobalVariables { get; } = new Dictionary<string, Variable>();
+    public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
     public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
     public GenericDictionary GenericClasses { get; } = new GenericDictionary();
 
@@ -144,9 +144,9 @@ public class Namespace : CompilerData, IContainer
         }
     }
     
-    public Variable GetGlobal(string name)
+    public IGlobal GetGlobal(string name)
     {
-        if (GlobalVariables.TryGetValue(name, out Variable global))
+        if (GlobalVariables.TryGetValue(name, out IGlobal global))
         {
             return global;
         }
@@ -158,7 +158,7 @@ public class Namespace : CompilerData, IContainer
         }
     }
     
-    public bool TryGetGlobal(string name, out Variable globalVar)
+    public bool TryGetGlobal(string name, out IGlobal globalVar)
     {
         try
         {
