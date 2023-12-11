@@ -2,57 +2,65 @@ namespace test;
 
 with std;
 
-private foreign func malloc(size #u64) #void*;
-private foreign func printf(text #char*, ~~) #i32;
-
 private func main() #i32 {
-    // WriteLine("Welcome!");
-    // WriteLine(Input("Enter something to be repeated: "));
-    // local array #TestArray = #TestArray.init(#u64 <- 10);
-    // array.SetIndex(#u64 <- 1, 2);
-    // local val ?= 6;
-    // local test #i32* = addrof -1;
-    // local result ?= if array.GetIndex(#u64 <- 0, addrof val) then val else load test;
-    // return result;
-
-    local fn ?= func (num #i32, str #char*) #bool {
-        return true;
-    };
-    
-    return printf("%d", fn(5, ""));
+    return 0;
 }
 
-// public class TestArray {
-//     private value #i32*;
-//     private size #u64;
+public class Thing {
+    public otherThing #Thing;
+}
 
-//     public static func init(size #u64) #TestArray {
-//         self.value = #i32* <- malloc(size * #i32.sizeof());
-//         self.size = size;
-//         return self;
-//     }
+// private foreign func malloc(size #u64) #void*;
+// private foreign func printf(text #char*, ~~) #i32;
 
-//     public func GetIndex(index #u64, val #i32**) #bool {
-//         (load val) = if (index >= (#u64 <- 0))
-//             and index < self.size
-//             then self.value[index]
-//             else 0;
-//         return if (index >= (#u64 <- 0))
-//             and index < self.size
-//             then true
-//             else false;
-//     }
+// private func main() #i32 {
+//     // WriteLine("Welcome!");
+//     // WriteLine(Input("Enter something to be repeated: "));
+//     // local array #TestArray = #TestArray.init(#u64 <- 10);
+//     // array.SetIndex(#u64 <- 1, 2);
+//     // local val ?= 6;
+//     // local test #i32* = addrof -1;
+//     // local result ?= if array.GetIndex(#u64 <- 0, addrof val) then val else load test;
+//     // return result;
 
-//     public func SetIndex(index #u64, item #i32) #bool {
-//         if (index < #u64 <- 0) or index >= self.size {
-//             return false;
-//         }
-
-//         self.value[index] = item;
+//     local fn ?= func (num #i32, str #char*) #bool {
 //         return true;
-//     }
-
-//     public func AsPointer() #i32* {
-//         return self.value;
-//     }
+//     };
+    
+//     return printf("%d", fn(5, ""));
 // }
+
+// // public class TestArray {
+// //     private value #i32*;
+// //     private size #u64;
+
+// //     public static func init(size #u64) #TestArray {
+// //         self.value = #i32* <- malloc(size * #i32.sizeof());
+// //         self.size = size;
+// //         return self;
+// //     }
+
+// //     public func GetIndex(index #u64, val #i32**) #bool {
+// //         (load val) = if (index >= (#u64 <- 0))
+// //             and index < self.size
+// //             then self.value[index]
+// //             else 0;
+// //         return if (index >= (#u64 <- 0))
+// //             and index < self.size
+// //             then true
+// //             else false;
+// //     }
+
+// //     public func SetIndex(index #u64, item #i32) #bool {
+// //         if (index < #u64 <- 0) or index >= self.size {
+// //             return false;
+// //         }
+
+// //         self.value[index] = item;
+// //         return true;
+// //     }
+
+// //     public func AsPointer() #i32* {
+// //         return self.value;
+// //     }
+// // }

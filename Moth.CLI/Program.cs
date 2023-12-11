@@ -96,11 +96,23 @@ internal class Program
                 //Compile
                 try
                 {
+                    if (options.MothLibraryFiles.LongCount() > 0)
+                    {
+                        logger.WriteLine("Loading external Moth libraries...");
+
+                        foreach (var path in options.MothLibraryFiles)
+                        {
+                            compiler.LoadLibrary(path);
+                        }
+                    }
+                    
                     logger.WriteLine("Compiling to LLVM IR...");
 
                     try
                     {
                         compiler.Compile(scripts);
+                        logger.WriteLine("(unsafe) Generating assembly metadata...");
+                        compiler.GenerateMetadata(options.OutputFile);
                     }
                     catch (Exception e)
                     {
@@ -118,9 +130,6 @@ internal class Program
 
                     if (options.Verbose)
                     {
-                        logger.WriteSeparator();
-                        logger.WriteUnsignedLine(new HeaderSerializer().Serialize(compiler));
-                        logger.WriteSeparator();
                         logger.WriteSeparator();
                         logger.WriteUnsignedLine(compiler.Module.PrintToString());
                         logger.WriteSeparator();
@@ -160,7 +169,12 @@ internal class Program
                         logger.WriteLine($"Compiling final product...");
                         
                         linkerName = "clang";
-                        arguments.Append($" -o {options.OutputFile}.exe");
+                        arguments.Append($" -o {options.OutputFile}");
+
+                        if (OperatingSystem.IsWindows())
+                        {
+                            arguments.Append(".exe");
+                        }
 
                         if (OperatingSystem.IsWindows())
                         {
@@ -172,7 +186,7 @@ internal class Program
                             arguments.Append(" -v");
                         }
 
-                        logger.WriteLine($"Attempting to call {linkerName} with arguments <{arguments}>");
+                        logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
                         logger.WriteSeparator();
                         var linker = Process.Start(new ProcessStartInfo
                         {

@@ -186,7 +186,13 @@ public class OpaqueStruct : Struct
     public OpaqueStruct(LLVMCompiler compiler, string name, PrivacyType privacy)
         : base(null, name, compiler.Context.CreateNamedStruct(name), privacy) { }
 
-    public override void AddBuiltins(LLVMCompiler compiler) => throw new Exception("Cannot add builtins to opaque struct.");
+    public override string FullName
+    {
+        get
+        {
+            return $"#{Name}";
+        }
+    }
 
-    public override string ToString() => $"#{Name}";
+    public override void AddBuiltins(LLVMCompiler compiler) => throw new Exception("Cannot add builtins to opaque struct.");
 }

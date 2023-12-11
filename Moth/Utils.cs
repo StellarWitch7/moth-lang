@@ -28,6 +28,20 @@ public static class ListExtensions
 
 public static class ArrayExtensions
 {
+    public static LLVMValueRef[] AsLLVMValues(this byte[] bytes)
+    {
+        var result = new LLVMValueRef[bytes.Length];
+        uint index = 0;
+
+        foreach (var @byte in bytes)
+        {
+            result[index] = LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, @byte);
+            index++;
+        }
+
+        return result;
+    }
+    
     public static LLVMValueRef[] AsLLVMValues(this Value[] values)
     {
         var result = new LLVMValueRef[values.Length];

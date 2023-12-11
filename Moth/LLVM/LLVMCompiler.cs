@@ -14,6 +14,10 @@ public class LLVMCompiler
     public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
 
+    public List<Struct> Types { get; } = new List<Struct>();
+    public List<DefinedFunction> Functions { get; } = new List<DefinedFunction>();
+    public List<Variable> Globals { get; } = new List<Variable>();
+
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>(); //TODO: remove?
@@ -161,6 +165,22 @@ public class LLVMCompiler
 
     public void Log(string message) => _logger.WriteLine(message);
 
+    public void LoadLibrary(string path)
+    {
+        throw new NotImplementedException(); //TODO
+    }
+
+    public unsafe void GenerateMetadata(string assemblyName)
+    {
+        MetadataSerializer serializer = new MetadataSerializer(this);
+        MemoryStream bytes = serializer.Process();
+        var global = Module.AddGlobal(LLVMTypeRef.CreateArray(LLVMTypeRef.Int8,
+                (uint)bytes.Length),
+            $"<{assemblyName}/metadata>");
+        global.Initializer = LLVMValueRef.CreateConstArray(LLVMTypeRef.Int8,
+            bytes.ToArray().AsLLVMValues());
+    }
+    
     public LLVMCompiler Compile(IReadOnlyCollection<ScriptAST> scripts)
     {
         foreach (ScriptAST script in scripts)
@@ -175,13 +195,13 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    DefineClass(classNode);
+                    DefineType(classNode);
                 }
             }
             
             foreach (FieldDefNode global in script.GlobalVariables)
             {
-                DefineConstant(global);
+                DefineGlobal(global);
             }
 
             foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
@@ -248,7 +268,7 @@ public class LLVMCompiler
         return this;
     }
 
-    public void DefineClass(ClassNode classNode)
+    public void DefineType(ClassNode classNode)
     {
         Struct newStruct;
         
@@ -287,6 +307,8 @@ public class LLVMCompiler
         {
             newStruct.AddBuiltins(this);
         }
+
+        Types.Add(newStruct);
     }
 
     public void CompileClass(ClassNode classNode)
@@ -379,6 +401,11 @@ public class LLVMCompiler
             @params.ToArray(),
             funcDefNode.Privacy);
         
+        foreach (AttributeNode attribute in funcDefNode.Attributes)
+        {
+            ResolveAttribute(func, attribute);
+        }
+        
         if (@struct != null)
         {
             if (funcDefNode.IsStatic)
@@ -398,11 +425,8 @@ public class LLVMCompiler
         {
             CurrentNamespace.Functions.Add(sig, func);
         }
-
-        foreach (AttributeNode attribute in funcDefNode.Attributes)
-        {
-            ResolveAttribute(func, attribute);
-        }
+        
+        Functions.Add(func);
     }
 
     public void CompileFunction(FuncDefNode funcDefNode, Struct? @struct = null)
@@ -539,11 +563,13 @@ public class LLVMCompiler
         return ResolveType(param.TypeRef);
     }
 
-    public void DefineConstant(FieldDefNode globalDef, Class? @class = null)
+    public void DefineGlobal(FieldDefNode globalDef, Class? @class = null)
     {
         Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
-        CurrentNamespace.GlobalVariables.Add(globalDef.Name, new Variable(globalDef.Name, WrapAsRef(globalType), globalVal));
+        Variable global = new Variable(globalDef.Name, WrapAsRef(globalType), globalVal);
+        CurrentNamespace.GlobalVariables.Add(globalDef.Name, global);
+        Globals.Add(global);
         //TODO: add const support to globals
     }
 
