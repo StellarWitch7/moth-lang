@@ -9,7 +9,7 @@ public class Namespace : CompilerData, IContainer
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
     public Dictionary<Signature, Function> Functions { get; } = new Dictionary<Signature, Function>();
     public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
-    public Dictionary<string, GlobalConstant> Constants { get; } = new Dictionary<string, GlobalConstant>();
+    public Dictionary<string, Variable> GlobalVariables { get; } = new Dictionary<string, Variable>();
     public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
     public GenericDictionary GenericClasses { get; } = new GenericDictionary();
 
@@ -140,6 +140,40 @@ public class Namespace : CompilerData, IContainer
         catch
         {
             @struct = null;
+            return false;
+        }
+    }
+    
+    public Variable GetGlobal(string name)
+    {
+        if (GlobalVariables.TryGetValue(name, out Variable global))
+        {
+            return global;
+        }
+        else
+        {
+            return ParentNamespace != null
+                ? ParentNamespace.GetGlobal(name)
+                : throw new Exception($"Global variable \"{name}\" was not found in namespace \"{Name}\"");
+        }
+    }
+    
+    public bool TryGetGlobal(string name, out Variable globalVar)
+    {
+        try
+        {
+            globalVar = GetGlobal(name);
+
+            if (globalVar == null)
+            {
+                throw new Exception();
+            }
+            
+            return true;
+        }
+        catch
+        {
+            globalVar = null;
             return false;
         }
     }

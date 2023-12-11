@@ -1,5 +1,6 @@
 ﻿using Moth.AST.Node;
 using Moth.Tokens;
+using System.Runtime.CompilerServices;
 
 namespace Moth.AST; //TODO: allow calling functions on expressions
 
@@ -10,7 +11,7 @@ public static class ASTGenerator
         string @namespace;
         var imports = new List<string>();
         var funcs = new List<FuncDefNode>();
-        var consts = new List<FieldDefNode>();
+        var globals = new List<FieldDefNode>();
         var classes = new List<ClassNode>();
 
         if (context.Current?.Type == TokenType.Namespace)
@@ -49,10 +50,10 @@ public static class ASTGenerator
                     {
                         funcs.Add(func);
                     }
-                    // else if (result is FieldDefNode @const)
-                    // {
-                    //     consts.Add(@const);
-                    // }
+                    else if (result is FieldDefNode global)
+                    {
+                        globals.Add(global);
+                    }
                     else
                     {
                         throw new NotImplementedException();
@@ -64,7 +65,7 @@ public static class ASTGenerator
             }
         }
 
-        return new ScriptAST(@namespace, imports, classes, funcs, consts);
+        return new ScriptAST(@namespace, imports, classes, funcs, globals);
     }
 
     public static string ProcessNamespace(ParseContext context)
@@ -678,35 +679,35 @@ public static class ASTGenerator
                     context.MoveNext();
                     break;
                 case TokenType.LiteralFloat:
-                    lastCreatedNode = new ConstantNode(float.Parse(context.Current.Value.Text.Span));
+                    lastCreatedNode = new LiteralNode(float.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
                     break;
                 case TokenType.LiteralInt:
-                    lastCreatedNode = new ConstantNode(int.Parse(context.Current.Value.Text.Span));
+                    lastCreatedNode = new LiteralNode(int.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
                     break;
                 case TokenType.LiteralString:
-                    lastCreatedNode = new ConstantNode(context.Current.Value.Text.ToString());
+                    lastCreatedNode = new LiteralNode(context.Current.Value.Text.ToString());
                     context.MoveNext();
                     break;
                 case TokenType.LiteralChar:
-                    lastCreatedNode = new ConstantNode(context.Current.Value.Text.ToString()[0]);
+                    lastCreatedNode = new LiteralNode(context.Current.Value.Text.ToString()[0]);
                     context.MoveNext();
                     break;
                 case TokenType.True:
-                    lastCreatedNode = new ConstantNode(true);
+                    lastCreatedNode = new LiteralNode(true);
                     context.MoveNext();
                     break;
                 case TokenType.False:
-                    lastCreatedNode = new ConstantNode(false);
+                    lastCreatedNode = new LiteralNode(false);
                     context.MoveNext();
                     break;
                 case TokenType.Null:
-                    lastCreatedNode = new ConstantNode(null);
+                    lastCreatedNode = new LiteralNode(null);
                     context.MoveNext();
                     break;
                 case TokenType.Pi:
-                    lastCreatedNode = new ConstantNode(3.14159265358979323846264f);
+                    lastCreatedNode = new LiteralNode(3.14159265358979323846264f);
                     context.MoveNext();
                     break;
                 case TokenType.AddressOf:
@@ -800,7 +801,7 @@ public static class ASTGenerator
                     else
                     {
                         context.MoveNext();
-                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, new ConstantNode(-1));
+                        lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, new LiteralNode(-1));
                         break;
                     }
                 case TokenType.Cast:
@@ -859,7 +860,7 @@ public static class ASTGenerator
                 case TokenType.ScientificNotation:
                     context.MoveNext();
                     lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
-                        ProcessBinaryOp(context, OperationType.Exponential, new ConstantNode(10)),
+                        ProcessBinaryOp(context, OperationType.Exponential, new LiteralNode(10)),
                         OperationType.Multiplication);
                     break;
                 case TokenType.Not:

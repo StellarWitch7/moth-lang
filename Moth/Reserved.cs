@@ -6,6 +6,7 @@ public static class Reserved
     public const string Self = "self";
     public const string Init = "init";
     public const string LocalFunc = "localfunc";
+    
     public const string Malloc = "malloc";
     public const string Realloc = "realloc";
     public const string Free = "free";
@@ -30,4 +31,7 @@ public static class Reserved
     public const string SignedInt16 = "i16";
     public const string SignedInt32 = "i32";
     public const string SignedInt64 = "i64";
+
+    public const string CallingConvention = "CallingConvention";
+    public const string TargetOS = "TargetOS";
 }

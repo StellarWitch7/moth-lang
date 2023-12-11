@@ -119,6 +119,9 @@ internal class Program
                     if (options.Verbose)
                     {
                         logger.WriteSeparator();
+                        logger.WriteUnsignedLine(new HeaderSerializer().Serialize(compiler));
+                        logger.WriteSeparator();
+                        logger.WriteSeparator();
                         logger.WriteUnsignedLine(compiler.Module.PrintToString());
                         logger.WriteSeparator();
                     }

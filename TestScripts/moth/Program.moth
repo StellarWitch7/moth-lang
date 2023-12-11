@@ -3,6 +3,7 @@ namespace test;
 with std;
 
 private foreign func malloc(size #u64) #void*;
+private foreign func printf(text #char*, ~~) #i32;
 
 private func main() #i32 {
     // WriteLine("Welcome!");
@@ -18,7 +19,7 @@ private func main() #i32 {
         return true;
     };
     
-    return #i32 <- fn(5, "");
+    return printf("%d", fn(5, ""));
 }
 
 // public class TestArray {

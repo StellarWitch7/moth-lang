@@ -2,15 +2,15 @@
 
 namespace Moth.AST.Node;
 
-public class ConstantNode : ExpressionNode
+public class LiteralNode : ExpressionNode
 {
     public object? Value { get; set; }
 
-    public ConstantNode(object? value) => Value = value;
+    public LiteralNode(object? value) => Value = value;
 
     public override void WriteDebugString(IndentedTextWriter writer, bool indent = false)
     {
-        writer.Write(nameof(ConstantNode));
+        writer.Write(nameof(LiteralNode));
         writer.Write(" { ");
         writer.Write(nameof(Value));
         writer.Write(" = ");

@@ -1,4 +1,4 @@
-namespace std; // part of the standard libs
+namespace std;
 
 private foreign func malloc(size #u64) #void*;
 private foreign func realloc(ptr #void*, size #u64) #void*;
@@ -15,5 +15,15 @@ private foreign func strcpy(destination #char*, source #char*) #char*;
 
 private foreign struct FILE;
 
-@CallingConvention("cdecl")
-private foreign func __acrt_iob_func(n #u32) #FILE*;
+// @TargetOS("windows")
+// @CallingConvention("cdecl")
+// private foreign func __acrt_iob_func(n #u32) #FILE*;
+
+@TargetOS("linux")
+private foreign stdin #FILE*;
+
+@TargetOS("linux")
+private foreign stdout #FILE*;
+
+@TargetOS("linux")
+private foreign stderr #FILE*;

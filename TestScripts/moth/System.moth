@@ -1,15 +1,33 @@
-namespace std; // part of the standard libs
+namespace std;
 
-public func Stdin() #File* {
-    return #File.init(__acrt_iob_func(#u32 <- 0));
+// @TargetOS("windows")
+// public func STDIn() #File* {
+//     return #File.init(__acrt_iob_func(#u32 <- 0));
+// }
+
+// @TargetOS("windows")
+// public func STDOut() #File* {
+//     return #File.init(__acrt_iob_func(#u32 <- 1));
+// }
+
+// @TargetOS("windows")
+// public func STDErr() #File* {
+//     return #File.init(__acrt_iob_func(#u32 <- 2));
+// }
+
+@TargetOS("linux")
+public func STDIn() #File* {
+    return #File.init(stdin);
 }
 
-public func Stdout() #File* {
-    return #File.init(__acrt_iob_func(#u32 <- 1));
+@TargetOS("linux")
+public func STDOut() #File* {
+    return #File.init(stdout);
 }
 
-public func Stderr() #File* {
-    return #File.init(__acrt_iob_func(#u32 <- 2));
+@TargetOS("linux")
+public func STDErr() #File* {
+    return #File.init(stderr);
 }
 
 public func EOF(ch #i32) #bool {
@@ -17,27 +35,27 @@ public func EOF(ch #i32) #bool {
 }
 
 public func Write(char #char) #void {
-    stdout().Write(char);
+    STDOut().Write(char);
     return;
 }
 
 public func Write(string #char*) #void {
-    stdout().Write(string);
+    STDOut().Write(string);
     return;
 }
 
 public func Write(string #char*, end #char) #void {
-    stdout().Write(string, end);
+    STDOut().Write(string, end);
     return;
 }
 
 public func WriteLine(string #char*) #void {
-    stdout().WriteLine(string);
+    STDOut().WriteLine(string);
     return;
 }
 
 public func Input(string #char*) #char* {
-    return input(string, stdout(), stdin());
+    return Input(string, STDOut(), STDIn());
 }
 
 public func Input(string #char*, output #File*, input #File*) #char* {
@@ -84,7 +102,7 @@ public class File {
     public func GetChar() #char {
         local ch #i32 = fgetc(self.CFile);
 
-        if !eof(ch) {
+        if !EOF(ch) {
             return #char <- ch;
         } else {
             return '\0';

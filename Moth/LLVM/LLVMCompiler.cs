@@ -179,9 +179,9 @@ public class LLVMCompiler
                 }
             }
             
-            foreach (FieldDefNode constDefNode in script.GlobalConstants)
+            foreach (FieldDefNode global in script.GlobalVariables)
             {
-                DefineConstant(constDefNode);
+                DefineConstant(global);
             }
 
             foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
@@ -334,15 +334,34 @@ public class LLVMCompiler
         }
 
         var sig = new Signature(funcDefNode.Name, paramTypes, funcDefNode.IsVariadic);
-        string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.IsForeign
-            ? funcDefNode.Name
-            : sig.ToString();
-
-        if (@struct != null)
+        var builder = new StringBuilder($"{funcDefNode.Name}(");
+        
+        foreach (var param in @params)
         {
-            funcName = $"{@struct.Name}.{funcName}";
+            builder.Append($"{param.Name} {paramTypes[(int)param.ParamIndex]}, ");
         }
 
+        if (@params.Count > 0)
+        {
+            builder.Remove(builder.Length - 2, 2);
+        }
+
+        builder.Append(')');
+        
+        string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.IsForeign
+            ? funcDefNode.Name
+            : builder.ToString();
+        string llvmFuncName = funcDefNode.Name;
+
+        if (!(funcDefNode.Name == Reserved.Main || funcDefNode.IsForeign))
+        {
+            llvmFuncName = $"{CurrentNamespace.FullName}.{funcName}";
+            if (@struct != null)
+            {
+                llvmFuncName = $"{@struct.FullName}.{funcName}";
+            }
+        }
+        
         Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
@@ -356,7 +375,7 @@ public class LLVMCompiler
             funcType,
             funcDefNode.IsForeign
                 ? HandleForeign(funcName, funcType)
-                : Module.AddFunction(funcName, llvmFuncType),
+                : Module.AddFunction(llvmFuncName, llvmFuncType),
             @params.ToArray(),
             funcDefNode.Privacy);
         
@@ -520,12 +539,12 @@ public class LLVMCompiler
         return ResolveType(param.TypeRef);
     }
 
-    public void DefineConstant(FieldDefNode constDef, Class? @class = null)
+    public void DefineConstant(FieldDefNode globalDef, Class? @class = null)
     {
-        Type constType = ResolveType(constDef.TypeRef);
-        LLVMValueRef constVal = Module.AddGlobal(constType.LLVMType, constDef.Name);
-
-        throw new NotImplementedException("Constants are not yet available!");
+        Type globalType = ResolveType(globalDef.TypeRef);
+        LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
+        CurrentNamespace.GlobalVariables.Add(globalDef.Name, new Variable(globalDef.Name, WrapAsRef(globalType), globalVal));
+        //TODO: add const support to globals
     }
 
     public bool CompileScope(Scope scope, ScopeNode scopeNode)
@@ -807,9 +826,9 @@ public class LLVMCompiler
                 ? Value.Create(WrapAsRef(thenVal.Type), result)
                 : throw new Exception("Then and else statements of inline if are not of the same type.");
         }
-        else if (expr is ConstantNode constNode)
+        else if (expr is LiteralNode literalNode)
         {
-            return CompileLiteral(constNode);
+            return CompileLiteral(literalNode);
         }
         else if (expr is InverseNode inverse)
         {
@@ -868,9 +887,9 @@ public class LLVMCompiler
         }
     }
 
-    public Value CompileLiteral(ConstantNode constNode)
+    public Value CompileLiteral(LiteralNode literalNode)
     {
-        if (constNode.Value is string str)
+        if (literalNode.Value is string str)
         {
             Struct @struct = GetStruct(Reserved.Char);
             LLVMValueRef constStr = Context.GetConstString(str, false);
@@ -878,27 +897,27 @@ public class LLVMCompiler
             global.Initializer = constStr;
             return Value.Create(new PtrType(@struct), global);
         }
-        else if (constNode.Value is bool @bool)
+        else if (literalNode.Value is bool @bool)
         {
             Struct @struct = Primitives.Bool;
             return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
         }
-        else if (constNode.Value is int i32)
+        else if (literalNode.Value is int i32)
         {
             Struct @struct = Primitives.Int32;
             return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
         }
-        else if (constNode.Value is float f32)
+        else if (literalNode.Value is float f32)
         {
             Struct @struct = Primitives.Float32;
             return Value.Create(@struct, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
         }
-        else if (constNode.Value is char ch)
+        else if (literalNode.Value is char ch)
         {
             Struct @struct = Primitives.Char;
             return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
         }
-        else if (constNode.Value == null)
+        else if (literalNode.Value == null)
         {
             Struct @struct = Primitives.Char;
             return Value.Create(@struct, LLVMValueRef.CreateConstNull(@struct.LLVMType));
@@ -1358,6 +1377,10 @@ public class LLVMCompiler
             {
                 return @var;
             }
+            else if (CurrentNamespace.TryGetGlobal(refNode.Name, out Variable globalVar))
+            {
+                return globalVar;
+            }
             else
             {
                 throw new Exception($"Variable \"{refNode.Name}\" does not exist.");
@@ -1425,16 +1448,16 @@ public class LLVMCompiler
 
     public void ResolveAttribute(Function func, AttributeNode attribute)
     {
-        if (attribute.Name == "CallingConvention")
+        if (attribute.Name == Reserved.CallingConvention)
         {
             if (attribute.Arguments.Count != 1)
             {
-                throw new Exception("Attribute \"CallingConvention\" has too many arguments.");
+                throw new Exception($"Attribute \"{Reserved.CallingConvention}\" has too many arguments.");
             }
 
-            if (attribute.Arguments[0] is ConstantNode constantNode)
+            if (attribute.Arguments[0] is LiteralNode literalNode)
             {
-                if (constantNode.Value is string str)
+                if (literalNode.Value is string str)
                 {
                     LLVMValueRef llvmFunc = func.LLVMValue;
                     llvmFunc.FunctionCallConv = str switch
@@ -1445,12 +1468,38 @@ public class LLVMCompiler
                 }
                 else
                 {
-                    throw new Exception("Attribute \"CallingConvention\" was passed a non-string.");
+                    throw new Exception($"Attribute \"{Reserved.CallingConvention}\" was passed a non-string.");
                 }
             }
             else
             {
-                throw new Exception("Attribute \"CallingConvention\" was passed a complex expression.");
+                throw new Exception($"Attribute \"{Reserved.CallingConvention}\" was passed a complex expression.");
+            }
+        }
+        else if (attribute.Name == Reserved.TargetOS)
+        {
+            if (attribute.Arguments.Count <= 0)
+            {
+                throw new Exception($"Attribute \"{Reserved.TargetOS}\" has too many arguments.");
+            }
+
+            foreach (var arg in attribute.Arguments)
+            {
+                if (arg is LiteralNode literalNode)
+                {
+                    if (literalNode.Value is string str)
+                    {
+                        //TODO: big one here
+                    }
+                    else
+                    {
+                        
+                    }
+                }
+                else
+                {
+                    throw new Exception($"Attribute \"{Reserved.TargetOS}\" was passed a complex expression.");
+                }
             }
         }
         else
