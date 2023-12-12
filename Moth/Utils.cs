@@ -7,9 +7,54 @@ namespace Moth;
 
 public static class Utils
 {
-    public static string Unescape(string original)
+    public static byte[] Unescape(string original)
     {
-        throw new NotImplementedException();
+        if (original.Length == 0)
+        {
+            return new byte[0];
+        }
+
+        uint index = 0;
+        var bytes = new List<byte>();
+
+        while (index < original.Length)
+        {
+            var ch = original[(int)index];
+
+            if (ch == '\\')
+            {
+                index++;
+                var hex1 = original[(int)index];
+                index++;
+                var hex2 = original[(int)index];
+
+                var byte1 = hex1 switch
+                {
+                    >= '0' and <= '9' => (byte) hex1 - (byte) '0',
+                    >= 'a' and <= 'f' => (byte) hex1 - (byte) 'a' + 10,
+                    >= 'A' and <= 'F' => (byte) hex1 - (byte) 'A' + 10,
+                    _ => throw new ArgumentOutOfRangeException(nameof(hex1)),
+                };
+            
+                var byte2 = hex2 switch
+                {
+                    >= '0' and <= '9' => (byte) hex2 - (byte) '0',
+                    >= 'a' and <= 'f' => (byte) hex2 - (byte) 'a' + 10,
+                    >= 'A' and <= 'F' => (byte) hex2 - (byte) 'A' + 10,
+                    _ => throw new ArgumentOutOfRangeException(nameof(hex2)),
+                };
+
+                bytes.Add((byte) ((byte1 << 4) | byte2));
+                index++;
+            }
+            else
+            {
+                bytes.Add((byte) ch);
+                index++;
+            }
+        }
+
+        return bytes.ToArray();
     }
 }
 

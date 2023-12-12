@@ -183,17 +183,17 @@ public class LLVMCompiler
         }
 
         var libName = match.Value;
-        match = Regex.Match(module.GetNamedGlobal($"<{libName}/metadata>").ToString(),
-            "(?<=<metadata>)(.*)(?=<\\/metadata>)");
+        var global = module.GetNamedGlobal($"<{libName}/metadata>");
+        var s = global.GetMDString(out uint len);
+        match = Regex.Match(global.ToString(), "(?<=<metadata>)(.*)(?=<\\/metadata>)");
 
         if (!match.Success)
         {
             throw new Exception($"Cannot load mothlibs, missing metadata for \"{path}\".");
         }
 
-        var metadata = Utils.Unescape(match.Value);
-        var bytes = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(metadata), false);
-        var deserializer = new MetadataDeserializer(this, bytes);
+        var metadata = new MemoryStream(Utils.Unescape(match.Value), false);
+        var deserializer = new MetadataDeserializer(this, metadata);
         deserializer.Process();
     }
 
