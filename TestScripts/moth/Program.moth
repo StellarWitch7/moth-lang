@@ -2,13 +2,13 @@ namespace test;
 
 with std;
 
-private func main(something #Thing) #Thing {
+private func main() #i32 {
     local thing #Thing;
-    return thing;
+    return 0;
 }
 
 public class Thing {
-    public otherThing #Thing;
+    public Number #u64;
 }
 
 // private foreign func malloc(size #u64) #void*;

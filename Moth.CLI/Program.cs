@@ -112,7 +112,9 @@ internal class Program
                     {
                         compiler.Compile(scripts);
                         logger.WriteLine("(unsafe) Generating assembly metadata...");
-                        compiler.GenerateMetadata(options.OutputFile);
+                        var fs = File.Create(Path.Join(Environment.CurrentDirectory, $"{options.OutputFile}.meta"));
+                        fs.Write(compiler.GenerateMetadata(options.OutputFile));
+                        fs.Close();
                     }
                     catch (Exception e)
                     {

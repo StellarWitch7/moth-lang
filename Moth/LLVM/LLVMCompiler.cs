@@ -170,7 +170,7 @@ public class LLVMCompiler
         throw new NotImplementedException(); //TODO
     }
 
-    public unsafe void GenerateMetadata(string assemblyName)
+    public unsafe byte[] GenerateMetadata(string assemblyName)
     {
         MetadataSerializer serializer = new MetadataSerializer(this);
         MemoryStream bytes = serializer.Process();
@@ -179,6 +179,7 @@ public class LLVMCompiler
             $"<{assemblyName}/metadata>");
         global.Initializer = LLVMValueRef.CreateConstArray(LLVMTypeRef.Int8,
             bytes.ToArray().AsLLVMValues());
+        return bytes.ToArray();
     }
     
     public LLVMCompiler Compile(IReadOnlyCollection<ScriptAST> scripts)
