@@ -21,7 +21,7 @@ internal class Options
     public bool DoNotOptimizeIR { get; set; }
 
     [Option('o',
-        "output",
+        "output-file",
         Required = true,
         HelpText = "The name of the file to output. Please forego the extension.")]
     public string? OutputFile { get; set; }
@@ -32,6 +32,12 @@ internal class Options
         HelpText = "The files to compile.")]
     public IEnumerable<string>? InputFiles { get; set; }
 
+    [Option('t',
+        "output-type",
+        Required = true,
+        HelpText = "The type of file to output. Options are \"exe\" and \"lib\".")]
+    public string OutputType { get; set; }
+    
     [Option("moth-libs",
         Required = false,
         HelpText = "External Moth library files to include in the compiled program.")]
@@ -41,4 +47,10 @@ internal class Options
         Required = false,
         HelpText = "External C library files to include in the compiled program.")]
     public IEnumerable<string>? CLibraryFiles { get; set; }
+}
+
+public enum OutputType
+{
+    Executable,
+    StaticLib
 }

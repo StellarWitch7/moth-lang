@@ -22,8 +22,13 @@ internal class Program
             {
                 _ = options.InputFiles ?? throw new Exception("No input files provided.");
                 _ = options.OutputFile ?? throw new Exception("No output file name provided.");
-                
+
                 var scripts = new List<ScriptAST>();
+                var outputType = options.OutputType switch
+                {
+                    "exe" => OutputType.Executable,
+                    "lib" => OutputType.StaticLib,
+                };
 
                 logger.WriteLine($"Building {options.OutputFile}...");
 
@@ -141,118 +146,145 @@ internal class Program
                     compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
                     string? linkerName = null;
 
-                    //Send to linker
-                    try
+                    if (outputType == OutputType.Executable)
                     {
-                        string @out = $"{options.OutputFile}.obj";
-                        string path = Path.Join(dir, @out);
-                        var arguments = new StringBuilder($"{path}");
-
-                        logger.WriteLine("(unsafe) Retrieving host machine info...");
-                        
-                        unsafe
+                        //Send to linker
+                        try
                         {
-                            string cpu = new string(LLVMSharp.Interop.LLVM.GetHostCPUName());
-                            string features = new string(LLVMSharp.Interop.LLVM.GetHostCPUFeatures());
+                            string @out = $"{options.OutputFile}.obj";
+                            string path = Path.Join(dir, @out);
+                            var arguments = new StringBuilder($"{path}");
 
-                            //TODO: add argument to configure this level
-                            LLVMCodeGenOptLevel optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault;
-                            var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
-                            LLVMTargetMachineRef machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple,
-                                cpu,
-                                features,
-                                optLevel,LLVMRelocMode.LLVMRelocDefault,
-                                LLVMCodeModel.LLVMCodeModelDefault);
-
-                            logger.WriteLine($"Writing to object file \"{path}\"");
-                            machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMObjectFile);
-                        }
-                        
-                        logger.WriteLine($"Compiling final product...");
-                        
-                        linkerName = "clang";
-                        arguments.Append($" -o {options.OutputFile}");
-
-                        if (OperatingSystem.IsWindows())
-                        {
-                            arguments.Append(".exe");
-                        }
-
-                        if (OperatingSystem.IsWindows())
-                        {
-                            arguments.Append(" --llegacy_stdio_definitions");
-                        }
-
-                        if (options.Verbose)
-                        {
-                            arguments.Append(" -v");
-                        }
-
-                        logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
-                        logger.WriteSeparator();
-                        var linker = Process.Start(new ProcessStartInfo
-                        {
-                            FileName = linkerName,
-                            WorkingDirectory = dir,
-                            Arguments = arguments.ToString(),
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                        });
-
-                        var linkerLogger = new Logger(linkerName);
-
-                        _ = linker ?? throw new Exception($"Linker \"{linkerName}\" failed to start.");
-
-                        while (!linker.HasExited)
-                        {
-                            linkerLogger.WriteUnsignedLine(linker.StandardOutput.ReadToEnd());
-                            linkerLogger.WriteUnsignedLine(linker.StandardError.ReadToEnd());
-                        }
-
-                        linkerLogger.WriteSeparator();
-                        linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
-
-                        if (options.RunTest && linker.ExitCode == 0)
-                        {
-                            string? testName = null;
-
-                            try
+                            foreach (var lib in options.MothLibraryFiles)
                             {
-                                logger.WriteLine($"Preparing to run test...");
-                                logger.WriteSeparator();
-                                testName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                                    ? $"{options.OutputFile}.exe"
-                                    : options.OutputFile;
+                                arguments.Append($" {lib}");
+                            }
+                            
+                            foreach (var lib in options.CLibraryFiles)
+                            {
+                                arguments.Append($" {lib}");
+                            }
 
-                                var testProgram = Process.Start(new ProcessStartInfo
+                            logger.WriteLine("(unsafe) Retrieving host machine info...");
+                            
+                            unsafe
+                            {
+                                string cpu = new string(LLVMSharp.Interop.LLVM.GetHostCPUName());
+                                string features = new string(LLVMSharp.Interop.LLVM.GetHostCPUFeatures());
+
+                                //TODO: add argument to configure this level
+                                LLVMCodeGenOptLevel optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault;
+                                var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
+                                LLVMTargetMachineRef machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple,
+                                    cpu,
+                                    features,
+                                    optLevel,LLVMRelocMode.LLVMRelocDefault,
+                                    LLVMCodeModel.LLVMCodeModelDefault);
+
+                                logger.WriteLine($"Writing to object file \"{path}\"");
+                                machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMObjectFile);
+                            }
+                            
+                            logger.WriteLine($"Compiling final product...");
+                            
+                            linkerName = "clang";
+                            arguments.Append($" -o {options.OutputFile}");
+
+                            if (OperatingSystem.IsWindows() && outputType == OutputType.Executable)
+                            {
+                                arguments.Append(".exe");
+                            }
+                            else if (outputType == OutputType.StaticLib)
+                            {
+                                arguments.Append(".mothlib");
+                            }
+
+                            if (OperatingSystem.IsWindows())
+                            {
+                                arguments.Append(" --llegacy_stdio_definitions");
+                            }
+                            
+                            if (options.Verbose)
+                            {
+                                arguments.Append(" -v");
+                            }
+
+                            logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
+                            logger.WriteSeparator();
+                            var linker = Process.Start(new ProcessStartInfo
+                            {
+                                FileName = linkerName,
+                                WorkingDirectory = dir,
+                                Arguments = arguments.ToString(),
+                                RedirectStandardOutput = true,
+                                RedirectStandardError = true,
+                            });
+
+                            var linkerLogger = new Logger(linkerName);
+
+                            _ = linker ?? throw new Exception($"Linker \"{linkerName}\" failed to start.");
+
+                            while (!linker.HasExited)
+                            {
+                                linkerLogger.WriteUnsignedLine(linker.StandardOutput.ReadToEnd());
+                                linkerLogger.WriteUnsignedLine(linker.StandardError.ReadToEnd());
+                            }
+
+                            linkerLogger.WriteSeparator();
+                            linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
+
+                            if (options.RunTest && linker.ExitCode == 0)
+                            {
+                                string? testName = null;
+
+                                try
                                 {
-                                    FileName = Path.Join(dir, testName),
-                                    WorkingDirectory = dir,
-                                });
+                                    logger.WriteLine($"Preparing to run test...");
+                                    logger.WriteSeparator();
+                                    testName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                                        ? $"{options.OutputFile}.exe"
+                                        : options.OutputFile;
 
-                                _ = testProgram ?? throw new Exception($"Failed to start \"{testName}\".");
+                                    var testProgram = Process.Start(new ProcessStartInfo
+                                    {
+                                        FileName = Path.Join(dir, testName),
+                                        WorkingDirectory = dir,
+                                    });
 
-                                var testLogger = new Logger(testName);
-                                testProgram.WaitForExit();
-                                testLogger.WriteEmptyLine();
-                                testLogger.WriteSeparator();
-                                testLogger.WriteLine($"Exited with code {testProgram.ExitCode}");
+                                    _ = testProgram ?? throw new Exception($"Failed to start \"{testName}\".");
+
+                                    var testLogger = new Logger(testName);
+                                    testProgram.WaitForExit();
+                                    testLogger.WriteEmptyLine();
+                                    testLogger.WriteSeparator();
+                                    testLogger.WriteLine($"Exited with code {testProgram.ExitCode}");
+                                }
+                                catch (Exception e)
+                                {
+                                    testName ??= "UNKNOWN";
+
+                                    logger.WriteEmptyLine();
+                                    logger.WriteLine($"Failed to interact with {testName} due to: {e}");
+                                }
                             }
-                            catch (Exception e)
-                            {
-                                testName ??= "UNKNOWN";
+                        }
+                        catch (Exception e)
+                        {
+                            linkerName ??= "UNKNOWN";
 
-                                logger.WriteEmptyLine();
-                                logger.WriteLine($"Failed to interact with {testName} due to: {e}");
-                            }
+                            logger.WriteEmptyLine();
+                            logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
                         }
                     }
-                    catch (Exception e)
+                    else if (outputType == OutputType.StaticLib)
                     {
-                        linkerName ??= "UNKNOWN";
-
-                        logger.WriteEmptyLine();
-                        logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
+                        var path = Path.Join(dir, $"{options.OutputFile}.mothlib");
+                        logger.WriteLine($"Outputting IR to \"{path}\"");
+                        compiler.Module.WriteBitcodeToFile(path);
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("Output type not supported.");
                     }
                 }
                 catch (Exception e)

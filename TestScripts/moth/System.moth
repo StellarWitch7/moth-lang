@@ -1,4 +1,4 @@
-namespace std;
+namespace test;
 
 // // @TargetOS("windows")
 // // public func STDIn() #File* {

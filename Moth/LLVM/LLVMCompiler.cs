@@ -1,6 +1,12 @@
 ﻿using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
+using Moth.LLVM.Reflection;
+using System.Text.RegularExpressions;
+using Field = Moth.LLVM.Data.Field;
+using Function = Moth.LLVM.Data.Function;
+using FuncType = Moth.LLVM.Data.FuncType;
+using Parameter = Moth.LLVM.Data.Parameter;
 
 namespace Moth.LLVM;
 
@@ -164,10 +170,31 @@ public class LLVMCompiler
     public void Warn(string message) => Log($"Warning: {message}");
 
     public void Log(string message) => _logger.WriteLine(message);
-
-    public void LoadLibrary(string path)
+    
+    public unsafe void LoadLibrary(string path)
     {
-        throw new NotImplementedException(); //TODO
+        var module = LoadLLVMModule(path);
+        var match = Regex.Match(Path.GetFileName(path),
+            "(.*)(?=\\.mothlib)");
+        
+        if (!match.Success)
+        {
+            throw new Exception($"Cannot load mothlibs, \"{path}\" does not have the correct extension.");
+        }
+
+        var libName = match.Value;
+        match = Regex.Match(module.GetNamedGlobal($"<{libName}/metadata>").ToString(),
+            "(?<=<metadata>)(.*)(?=<\\/metadata>)");
+
+        if (!match.Success)
+        {
+            throw new Exception($"Cannot load mothlibs, missing metadata for \"{path}\".");
+        }
+
+        var metadata = Utils.Unescape(match.Value);
+        var bytes = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(metadata), false);
+        var deserializer = new MetadataDeserializer(this, bytes);
+        deserializer.Process();
     }
 
     public unsafe byte[] GenerateMetadata(string assemblyName)
@@ -179,6 +206,8 @@ public class LLVMCompiler
             $"<{assemblyName}/metadata>");
         global.Initializer = LLVMValueRef.CreateConstArray(LLVMTypeRef.Int8,
             bytes.ToArray().AsLLVMValues());
+        global.Linkage = LLVMLinkage.LLVMDLLExportLinkage;
+        global.IsGlobalConstant = true;
         return bytes.ToArray();
     }
     
@@ -1693,5 +1722,28 @@ public class LLVMCompiler
     {
         CurrentNamespace = ResolveNamespace(@namespace);
         _imports = ResolveImports(imports);
+    }
+
+    private unsafe LLVMModuleRef LoadLLVMModule(string path)
+    {
+        var buffer = GetMemoryBufferFromFile(path);
+        var module = Context.GetBitcodeModule(buffer);
+        LLVMSharp.Interop.LLVM.DisposeMemoryBuffer(buffer);
+        return module;
+    }
+    
+    private unsafe LLVMMemoryBufferRef GetMemoryBufferFromFile(string path)
+    {
+        var buffer = new byte[Encoding.ASCII.GetMaxByteCount(path.Length) + 1];
+        var count = Encoding.UTF8.GetBytes(path, buffer);
+        buffer[count] = 0;
+        fixed (byte* ptr = buffer)
+        {
+            sbyte* message;
+            LLVMOpaqueMemoryBuffer* memoryBuffer;
+            if (LLVMSharp.Interop.LLVM.CreateMemoryBufferWithContentsOfFile((sbyte*)ptr, &memoryBuffer, &message) != 0)
+                throw new Exception(new string(message));
+            return memoryBuffer;
+        }
     }
 }

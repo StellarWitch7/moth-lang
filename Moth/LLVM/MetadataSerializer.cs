@@ -1,6 +1,5 @@
 using LLVMSharp;
 using Moth.LLVM.Data;
-using Moth.LLVM.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 
@@ -122,6 +121,7 @@ public unsafe class MetadataSerializer
 
         header.functype_table_offset = _position;
         header.param_table_offset = header.functype_table_offset + _functypeTablePosition;
+        header.paramtype_table_offset = header.param_table_offset + _paramTablePosition;
         header.typeref_table_offset = header.param_table_offset + _paramTablePosition;
         header.name_table_offset = header.typeref_table_offset + _typeRefTablePosition;
         
@@ -149,9 +149,19 @@ public unsafe class MetadataSerializer
             bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Global) * _globals.Count));
         }
 
+        fixed (Reflection.FuncType* ptr = CollectionsMarshal.AsSpan(_funcTypes))
+        {
+            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.FuncType) * _funcTypes.Count));
+        }
+
         fixed (Reflection.Parameter* ptr = CollectionsMarshal.AsSpan(_params))
         {
             bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Parameter) * _params.Count));
+        }
+
+        fixed (Reflection.ParamType* ptr = CollectionsMarshal.AsSpan(_paramTypes))
+        {
+            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.ParamType) * _paramTypes.Count));
         }
 
         fixed (byte* ptr = CollectionsMarshal.AsSpan(_typeRefs))
@@ -226,72 +236,76 @@ public unsafe class MetadataSerializer
         _nameTablePosition += (uint)name.Length;
     }
     
-    public ulong AddTypeRef(Header header, Type type)
+    public ulong AddTypeRef(Reflection.Header header, Type type)
     {
         var result = new List<byte>();
         
         while (type != null)
         {
+            if (type is RefType refType)
+            {
+                type = refType.BaseType;
+            }
             if (type is PtrType ptrType && type.GetType() == typeof(PtrType))
             {
-                result.Add((byte)TypeTag.Pointer);
+                result.Add((byte)Reflection.TypeTag.Pointer);
                 type = ptrType.BaseType;
             }
             else if (type == Primitives.Void)
             {
-                result.Add((byte)TypeTag.Void);
+                result.Add((byte)Reflection.TypeTag.Void);
                 type = null;
             }
             else if (type == Primitives.Bool)
             {
-                result.Add((byte)TypeTag.Bool);
+                result.Add((byte)Reflection.TypeTag.Bool);
                 type = null;
             }
             else if (type == Primitives.Char || type == Primitives.UInt8)
             {
-                result.Add((byte)TypeTag.Char);
+                result.Add((byte)Reflection.TypeTag.Char);
                 type = null;
             }
             else if (type == Primitives.UInt16)
             {
-                result.Add((byte)TypeTag.UInt16);
+                result.Add((byte)Reflection.TypeTag.UInt16);
                 type = null;
             }
             else if (type == Primitives.UInt32)
             {
-                result.Add((byte)TypeTag.UInt32);
+                result.Add((byte)Reflection.TypeTag.UInt32);
                 type = null;
             }
             else if (type == Primitives.UInt64)
             {
-                result.Add((byte)TypeTag.UInt64);
+                result.Add((byte)Reflection.TypeTag.UInt64);
                 type = null;
             }
             else if (type == Primitives.Int8)
             {
-                result.Add((byte)TypeTag.Int8);
+                result.Add((byte)Reflection.TypeTag.Int8);
                 type = null;
             }
             else if (type == Primitives.Int16)
             {
-                result.Add((byte)TypeTag.Int16);
+                result.Add((byte)Reflection.TypeTag.Int16);
                 type = null;
             }
             else if (type == Primitives.Int32)
             {
-                result.Add((byte)TypeTag.Int32);
+                result.Add((byte)Reflection.TypeTag.Int32);
                 type = null;
             }
             else if (type == Primitives.Int64)
             {
-                result.Add((byte)TypeTag.Int64);
+                result.Add((byte)Reflection.TypeTag.Int64);
                 type = null;
             }
             else
             {
                 if (_typeIndexes.TryGetValue(type, out ulong index))
                 {
-                    result.Add((byte)TypeTag.Type);
+                    result.Add((byte)Reflection.TypeTag.Type);
                     result.AddRange(new ReadOnlySpan<byte>((byte*) &index, sizeof(ulong)).ToArray());
                     type = null;
                 }
@@ -299,7 +313,7 @@ public unsafe class MetadataSerializer
                 {
                     if (type is Data.FuncType fnType)
                     {
-                        result.Add((byte)TypeTag.FuncType);
+                        result.Add((byte)Reflection.TypeTag.FuncType);
                         
                         if (_functypeIndexes.TryGetValue(fnType, out index))
                         {
@@ -317,7 +331,7 @@ public unsafe class MetadataSerializer
 
                             foreach (var paramType in fnType.ParameterTypes)
                             {
-                                var newParamType = new ParamType();
+                                var newParamType = new Reflection.ParamType();
                                 newParamType.typeref_table_index = _typeRefTablePosition;
                                 newParamType.typeref_table_length = AddTypeRef(header, paramType);
                                 AddParamType(newParamType);

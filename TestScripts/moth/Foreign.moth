@@ -1,4 +1,4 @@
-namespace std;
+namespace test;
 
 // private foreign func malloc(size #u64) #void*;
 // private foreign func realloc(ptr #void*, size #u64) #void*;
