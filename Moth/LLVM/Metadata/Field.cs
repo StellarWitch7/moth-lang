@@ -1,8 +1,8 @@
 using Moth.AST.Node;
 
-namespace Moth.LLVM.Reflection;
+namespace Moth.LLVM.Metadata;
 
-public struct Global
+public struct Field
 {
     public PrivacyType privacy;
     public ulong name_table_index;

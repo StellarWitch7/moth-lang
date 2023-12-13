@@ -1,6 +1,6 @@
 using Moth.AST.Node;
 
-namespace Moth.LLVM.Reflection;
+namespace Moth.LLVM.Metadata;
 
 public struct Type
 {

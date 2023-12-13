@@ -1,12 +1,7 @@
 ﻿using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
-using Moth.LLVM.Reflection;
 using System.Text.RegularExpressions;
-using Field = Moth.LLVM.Data.Field;
-using Function = Moth.LLVM.Data.Function;
-using FuncType = Moth.LLVM.Data.FuncType;
-using Parameter = Moth.LLVM.Data.Parameter;
 
 namespace Moth.LLVM;
 
@@ -189,12 +184,12 @@ public class LLVMCompiler
 
         if (!match.Success)
         {
-            throw new Exception($"Cannot load mothlibs, missing metadata for \"{path}\".");
+            throw new Exception($"Cannot load mothlibs, missing metadata for \"{libName}\".");
         }
 
         var metadata = new MemoryStream(Utils.Unescape(match.Value), false);
         var deserializer = new MetadataDeserializer(this, metadata);
-        deserializer.Process();
+        deserializer.Process(libName);
     }
 
     public unsafe byte[] GenerateMetadata(string assemblyName)

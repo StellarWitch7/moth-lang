@@ -1,6 +1,4 @@
 using Moth.LLVM.Data;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
 
 namespace Moth.LLVM;
 
@@ -15,73 +13,90 @@ public unsafe class MetadataDeserializer
         _bytes = bytes;
     }
     
-    public void Process()
+    public void Process(string libName)
     {
-        var header = new Reflection.Header();
-        var size = sizeof(Reflection.Header);
-        _bytes.ReadExactly(new Span<byte>(&header, sizeof(Reflection.Header)));
-        
-        var types = new Reflection.Type[(int)((header.field_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.Type))];
-        
-        fixed (Reflection.Type* ptr = types)
+        var version = new Metadata.Version();
+        _bytes.ReadExactly(new Span<byte>((byte*) &version, sizeof(Metadata.Version)));
+
+        if (version.Major != Meta.Version.Major)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.Type) * types.Length));
+            throw new Exception($"Cannot load libary \"{libName}\" due to mismatched major version!" +
+                $"\nCompiler: {Meta.Version}" +
+                $"\n{libName}: {version}");
         }
 
-        var fields = new Reflection.Field[(int)((header.function_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.Type))];
-        
-        fixed (Reflection.Field* ptr = fields)
+        if (version.Minor != Meta.Version.Minor)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.Field) * fields.Length));
+            _compiler.Warn($"Library \"{libName}\" has mismatched minor version." +
+                $"\nCompiler: {Meta.Version}" +
+                $"\n{libName}: {version}");
         }
         
-        var functions = new Reflection.Function[(int)((header.method_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.Function))];
+        var header = new Metadata.Header();
+        var size = sizeof(Metadata.Header);
+        _bytes.ReadExactly(new Span<byte>(&header, sizeof(Metadata.Header)));
         
-        fixed (Reflection.Function* ptr = functions)
+        var types = new Metadata.Type[(int)((header.field_table_offset
+                - (ulong)_bytes.Position)
+            / (uint)sizeof(Metadata.Type))];
+        
+        fixed (Metadata.Type* ptr = types)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.Function) * functions.Length));
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Type) * types.Length));
+        }
+
+        var fields = new Metadata.Field[(int)((header.function_table_offset
+                - (ulong)_bytes.Position)
+            / (uint)sizeof(Metadata.Type))];
+        
+        fixed (Metadata.Field* ptr = fields)
+        {
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Field) * fields.Length));
         }
         
-        var globals = new Reflection.Global[(int)((header.functype_table_offset
+        var functions = new Metadata.Function[(int)((header.method_table_offset
                 - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.Global))];
+            / (uint)sizeof(Metadata.Function))];
         
-        fixed (Reflection.Global* ptr = globals)
+        fixed (Metadata.Function* ptr = functions)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.Global) * globals.Length));
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Function) * functions.Length));
         }
         
-        var funcTypes = new Reflection.FuncType[(int)((header.param_table_offset
+        var globals = new Metadata.Global[(int)((header.functype_table_offset
                 - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.FuncType))];
+            / (uint)sizeof(Metadata.Global))];
         
-        fixed (Reflection.FuncType* ptr = funcTypes)
+        fixed (Metadata.Global* ptr = globals)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.FuncType) * funcTypes.Length));
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Global) * globals.Length));
         }
         
-        var parameters = new Reflection.Parameter[(int)((header.paramtype_table_offset
+        var funcTypes = new Metadata.FuncType[(int)((header.param_table_offset
                 - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.Parameter))];
+            / (uint)sizeof(Metadata.FuncType))];
         
-        fixed (Reflection.Parameter* ptr = parameters)
+        fixed (Metadata.FuncType* ptr = funcTypes)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.Parameter) * parameters.Length));
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.FuncType) * funcTypes.Length));
         }
         
-        var paramTypes = new Reflection.ParamType[(int)((header.typeref_table_offset
+        var parameters = new Metadata.Parameter[(int)((header.paramtype_table_offset
                 - (ulong)_bytes.Position)
-            / (uint)sizeof(Reflection.ParamType))];
+            / (uint)sizeof(Metadata.Parameter))];
         
-        fixed (Reflection.ParamType* ptr = paramTypes)
+        fixed (Metadata.Parameter* ptr = parameters)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Reflection.ParamType) * paramTypes.Length));
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Parameter) * parameters.Length));
+        }
+        
+        var paramTypes = new Metadata.ParamType[(int)((header.typeref_table_offset
+                - (ulong)_bytes.Position)
+            / (uint)sizeof(Metadata.ParamType))];
+        
+        fixed (Metadata.ParamType* ptr = paramTypes)
+        {
+            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.ParamType) * paramTypes.Length));
         }
         
         var typeRefs = new byte[(int)((header.name_table_offset
@@ -104,7 +119,7 @@ public unsafe class MetadataDeserializer
 
         if (_bytes.ReadByte() != -1)
         {
-            throw new Exception("Failed to read the entirety of the metadata.");
+            throw new Exception($"Failed to read the entirety of the metadata for \"{libName}\".");
         }
 
         throw new NotImplementedException();
