@@ -22,7 +22,7 @@ public unsafe class MetadataDeserializer
         _bytes.ReadExactly(new Span<byte>(&header, sizeof(Reflection.Header)));
         
         var types = new Reflection.Type[(int)((header.field_table_offset
-                - header.type_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.Type))];
         
         fixed (Reflection.Type* ptr = types)
@@ -31,7 +31,7 @@ public unsafe class MetadataDeserializer
         }
 
         var fields = new Reflection.Field[(int)((header.function_table_offset
-                - header.field_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.Type))];
         
         fixed (Reflection.Field* ptr = fields)
@@ -40,7 +40,7 @@ public unsafe class MetadataDeserializer
         }
         
         var functions = new Reflection.Function[(int)((header.method_table_offset
-                - header.function_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.Function))];
         
         fixed (Reflection.Function* ptr = functions)
@@ -49,7 +49,7 @@ public unsafe class MetadataDeserializer
         }
         
         var globals = new Reflection.Global[(int)((header.functype_table_offset
-                - header.global_variable_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.Global))];
         
         fixed (Reflection.Global* ptr = globals)
@@ -58,7 +58,7 @@ public unsafe class MetadataDeserializer
         }
         
         var funcTypes = new Reflection.FuncType[(int)((header.param_table_offset
-                - header.functype_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.FuncType))];
         
         fixed (Reflection.FuncType* ptr = funcTypes)
@@ -67,7 +67,7 @@ public unsafe class MetadataDeserializer
         }
         
         var parameters = new Reflection.Parameter[(int)((header.paramtype_table_offset
-                - header.param_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.Parameter))];
         
         fixed (Reflection.Parameter* ptr = parameters)
@@ -76,7 +76,7 @@ public unsafe class MetadataDeserializer
         }
         
         var paramTypes = new Reflection.ParamType[(int)((header.typeref_table_offset
-                - header.paramtype_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(Reflection.ParamType))];
         
         fixed (Reflection.ParamType* ptr = paramTypes)
@@ -85,7 +85,7 @@ public unsafe class MetadataDeserializer
         }
         
         var typeRefs = new byte[(int)((header.name_table_offset
-                - header.typeref_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(byte))];
         
         fixed (byte* ptr = typeRefs)
@@ -94,7 +94,7 @@ public unsafe class MetadataDeserializer
         }
         
         var names = new byte[(int)((header.size
-                - header.name_table_offset)
+                - (ulong)_bytes.Position)
             / (uint)sizeof(byte))];
 
         fixed (byte* ptr = names)

@@ -199,8 +199,11 @@ public class LLVMCompiler
 
     public unsafe byte[] GenerateMetadata(string assemblyName)
     {
-        MetadataSerializer serializer = new MetadataSerializer(this);
-        MemoryStream bytes = serializer.Process();
+        MemoryStream bytes = new MemoryStream();
+        MetadataSerializer serializer = new MetadataSerializer(this, bytes);
+        bytes.Write(System.Text.Encoding.UTF8.GetBytes("<metadata>"));
+        serializer.Process();
+        bytes.Write(System.Text.Encoding.UTF8.GetBytes("</metadata>"));
         var global = Module.AddGlobal(LLVMTypeRef.CreateArray(LLVMTypeRef.Int8,
                 (uint)bytes.Length),
             $"<{assemblyName}/metadata>");

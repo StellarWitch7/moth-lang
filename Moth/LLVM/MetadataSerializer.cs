@@ -7,6 +7,7 @@ namespace Moth.LLVM;
 
 public unsafe class MetadataSerializer
 {
+    private MemoryStream _stream = new MemoryStream();
     private List<Reflection.Type> _types = new List<Reflection.Type>();
     private List<Reflection.Field> _fields = new List<Reflection.Field>();
     private List<Reflection.Function> _functions = new List<Reflection.Function>();
@@ -35,12 +36,16 @@ public unsafe class MetadataSerializer
     {
         _compiler = compiler;
     }
-    
+
+    public MetadataSerializer(LLVMCompiler compiler, MemoryStream stream) : this(compiler)
+    {
+        _stream = stream;
+    }
+
     public MemoryStream Process()
     {
-        MemoryStream bytes = new MemoryStream();
-        Reflection.Header header = new Reflection.Header();
-
+        var startPos = (ulong)_stream.Position;
+        
         foreach (var @struct in _compiler.Types)
         {
             var newType = new Reflection.Type();
@@ -64,7 +69,7 @@ public unsafe class MetadataSerializer
                 {
                     var newField = new Reflection.Field();
                     newField.typeref_table_index = _typeRefTablePosition;
-                    newField.typeref_table_length = AddTypeRef(header, field.Type);
+                    newField.typeref_table_length = AddTypeRef(field.Type);
                     newField.privacy = field.Privacy;
                     newField.name_table_index = _nameTablePosition;
                     newField.name_table_length = (uint)field.Name.Length;
@@ -78,7 +83,7 @@ public unsafe class MetadataSerializer
         {
             var newFunc = new Reflection.Function();
             newFunc.privacy = func.Privacy;
-            newFunc.functype_table_index = AddTypeRef(header, func.Type);
+            newFunc.functype_table_index = AddTypeRef(func.Type);
             newFunc.name_table_index = _nameTablePosition;
             newFunc.name_table_length = (uint)func.Name.Length; //TODO: is the name broken still?
             AddName(func.Name);
@@ -101,94 +106,100 @@ public unsafe class MetadataSerializer
             var newGlobal = new Reflection.Global();
             newGlobal.privacy = global.Privacy;
             newGlobal.typeref_table_index = _typeRefTablePosition;
-            newGlobal.typeref_table_length = AddTypeRef(header, global.Type);
+            newGlobal.typeref_table_length = AddTypeRef(global.Type);
             newGlobal.name_table_index = _nameTablePosition;
             newGlobal.name_table_length = (uint)global.Name.Length;
             AddName(global.Name);
             AddGlobal(newGlobal);
         }
-
-        header.type_table_offset
-            = (ulong)sizeof(Reflection.Header);
-        header.field_table_offset
-            = header.type_table_offset + (ulong)(sizeof(Reflection.Type) * _types.Count);
-        header.function_table_offset
-            = header.field_table_offset + (ulong)(sizeof(Reflection.Field) * _fields.Count);
-        header.method_table_offset
-            = header.function_table_offset + (ulong)(sizeof(Reflection.Function) * _functions.Count);
-        header.static_method_table_offset
-            = header.method_table_offset + (ulong)(sizeof(Reflection.Function) * _methods.Count);
-        header.global_variable_table_offset
-            = header.static_method_table_offset + (ulong)(sizeof(Reflection.Function) * _staticMethods.Count);
-        header.functype_table_offset
-            = header.global_variable_table_offset + (ulong)(sizeof(Reflection.Global) * _globals.Count);
-        header.param_table_offset
-            = header.functype_table_offset + (ulong)(sizeof(Reflection.FuncType) * _funcTypes.Count);
-        header.paramtype_table_offset
-            = header.param_table_offset + (ulong)(sizeof(Reflection.Parameter) * _params.Count);
-        header.typeref_table_offset
-            = header.paramtype_table_offset + (ulong)(sizeof(Reflection.ParamType) * _paramTypes.Count);
-        header.name_table_offset
-            = header.typeref_table_offset + (ulong)(sizeof(byte) * _typeRefs.Count);
-        header.size
-            = header.name_table_offset;
-
-        foreach (var name in _names)
-        {
-            header.size += (ulong)(sizeof(char) * name.Length); // only works with ASCII
-        }
         
         // write the result
-        bytes.Write(System.Text.Encoding.UTF8.GetBytes("<metadata>"));
-        bytes.Write(new ReadOnlySpan<byte>((byte*) &header, sizeof(Reflection.Header)));
+        Reflection.Header header = new Reflection.Header();
+        _stream.Write(new ReadOnlySpan<byte>((byte*) &header, sizeof(Reflection.Header)));
 
+        header.type_table_offset = (ulong)_stream.Position - startPos;
+        
         fixed (Reflection.Type* ptr = CollectionsMarshal.AsSpan(_types))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Type) * _types.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Type) * _types.Count));
         }
+
+        header.field_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Reflection.Field* ptr = CollectionsMarshal.AsSpan(_fields))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Field) * _fields.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Field) * _fields.Count));
         }
+
+        header.function_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Reflection.Function* ptr = CollectionsMarshal.AsSpan(_functions))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Field) * _functions.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Function) * _functions.Count));
         }
+
+        header.method_table_offset = (ulong)_stream.Position - startPos;
+        
+        fixed (Reflection.Function* ptr = CollectionsMarshal.AsSpan(_methods))
+        {
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Function) * _methods.Count));
+        }
+
+        header.static_method_table_offset = (ulong)_stream.Position - startPos;
+        
+        fixed (Reflection.Function* ptr = CollectionsMarshal.AsSpan(_staticMethods))
+        {
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Function) * _staticMethods.Count));
+        }
+
+        header.global_variable_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Reflection.Global* ptr = CollectionsMarshal.AsSpan(_globals))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Global) * _globals.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Global) * _globals.Count));
         }
+
+        header.functype_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Reflection.FuncType* ptr = CollectionsMarshal.AsSpan(_funcTypes))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.FuncType) * _funcTypes.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.FuncType) * _funcTypes.Count));
         }
+
+        header.param_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Reflection.Parameter* ptr = CollectionsMarshal.AsSpan(_params))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Parameter) * _params.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.Parameter) * _params.Count));
         }
+
+        header.paramtype_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Reflection.ParamType* ptr = CollectionsMarshal.AsSpan(_paramTypes))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.ParamType) * _paramTypes.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Reflection.ParamType) * _paramTypes.Count));
         }
+
+        header.typeref_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (byte* ptr = CollectionsMarshal.AsSpan(_typeRefs))
         {
-            bytes.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(byte) * _typeRefs.Count));
+            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(byte) * _typeRefs.Count));
         }
+
+        header.name_table_offset = (ulong)_stream.Position - startPos;
 
         foreach (var name in _names)
         {
-            bytes.Write(System.Text.Encoding.UTF8.GetBytes(name));
+            _stream.Write(System.Text.Encoding.UTF8.GetBytes(name));
         }
+
+        header.size = (ulong)_stream.Position - startPos;
         
-        bytes.Write(System.Text.Encoding.UTF8.GetBytes("</metadata>"));
-        return bytes;
+        _stream.Position = (long)startPos;
+        _stream.Write(new ReadOnlySpan<byte>((byte*) &header, sizeof(Reflection.Header)));
+        _stream.Position = _stream.Length;
+        return _stream;
     }
     
     public void AddType(Struct @struct, Reflection.Type type)
@@ -241,7 +252,7 @@ public unsafe class MetadataSerializer
         _nameTablePosition += (uint)name.Length;
     }
     
-    public ulong AddTypeRef(Reflection.Header header, Type type)
+    public ulong AddTypeRef(Type type)
     {
         var result = new List<byte>();
         
@@ -330,7 +341,7 @@ public unsafe class MetadataSerializer
                             var newFuncType = new Reflection.FuncType();
                             newFuncType.is_variadic = fnType.IsVariadic;
                             newFuncType.return_typeref_table_index = _typeRefTablePosition;
-                            newFuncType.return_typeref_table_length = AddTypeRef(header, fnType.ReturnType);
+                            newFuncType.return_typeref_table_length = AddTypeRef(fnType.ReturnType);
                             newFuncType.paramtype_table_index = _paramTypeTablePosition;
                             newFuncType.paramtype_table_length = (uint)fnType.ParameterTypes.Length;
 
@@ -338,7 +349,7 @@ public unsafe class MetadataSerializer
                             {
                                 var newParamType = new Reflection.ParamType();
                                 newParamType.typeref_table_index = _typeRefTablePosition;
-                                newParamType.typeref_table_length = AddTypeRef(header, paramType);
+                                newParamType.typeref_table_length = AddTypeRef(paramType);
                                 AddParamType(newParamType);
                             }
                             
