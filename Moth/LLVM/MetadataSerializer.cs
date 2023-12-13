@@ -10,15 +10,16 @@ public unsafe class MetadataSerializer
     private List<Reflection.Type> _types = new List<Reflection.Type>();
     private List<Reflection.Field> _fields = new List<Reflection.Field>();
     private List<Reflection.Function> _functions = new List<Reflection.Function>();
+    private List<Reflection.Function> _methods = new List<Reflection.Function>();
+    private List<Reflection.Function> _staticMethods = new List<Reflection.Function>();
     private List<Reflection.Global> _globals = new List<Reflection.Global>();
+    private List<Reflection.FuncType> _funcTypes = new List<Reflection.FuncType>();
     private List<Reflection.Parameter> _params = new List<Reflection.Parameter>();
     private List<Reflection.ParamType> _paramTypes = new List<Reflection.ParamType>();
-    private List<Reflection.FuncType> _funcTypes = new List<Reflection.FuncType>();
-    private List<string> _names = new List<string>();
     private List<byte> _typeRefs = new List<byte>();
+    private List<string> _names = new List<string>();
     private Dictionary<Data.Type, ulong> _typeIndexes = new Dictionary<Data.Type, ulong>();
     private Dictionary<Data.FuncType, ulong> _functypeIndexes = new Dictionary<Data.FuncType, ulong>();
-    private uint _position = 0;
     private uint _typeTablePosition = 0;
     private uint _fieldTablePosition = 0;
     private uint _functionTablePosition = 0;
@@ -39,9 +40,6 @@ public unsafe class MetadataSerializer
     {
         MemoryStream bytes = new MemoryStream();
         Reflection.Header header = new Reflection.Header();
-        _position += (uint)sizeof(Reflection.Header);
-
-        header.type_table_offset = _position;
 
         foreach (var @struct in _compiler.Types)
         {
@@ -53,8 +51,6 @@ public unsafe class MetadataSerializer
             AddName(@struct.FullName);
             AddType(@struct, newType);
         }
-
-        header.field_table_offset = _position;
         
         foreach (var kv in _typeIndexes)
         {
@@ -78,8 +74,6 @@ public unsafe class MetadataSerializer
             }
         }
 
-        header.function_table_offset = _position;
-
         foreach (var func in _compiler.Functions)
         {
             var newFunc = new Reflection.Function();
@@ -101,11 +95,6 @@ public unsafe class MetadataSerializer
             
             AddFunction(newFunc);
         }
-        
-        // header.method_table_offset = _position;
-        // header.static_method_table_offset = _position;
-        
-        header.global_variable_table_offset = _position;
 
         foreach (var global in _compiler.Globals)
         {
@@ -119,11 +108,35 @@ public unsafe class MetadataSerializer
             AddGlobal(newGlobal);
         }
 
-        header.functype_table_offset = _position;
-        header.param_table_offset = header.functype_table_offset + _functypeTablePosition;
-        header.paramtype_table_offset = header.param_table_offset + _paramTablePosition;
-        header.typeref_table_offset = header.param_table_offset + _paramTablePosition;
-        header.name_table_offset = header.typeref_table_offset + _typeRefTablePosition;
+        header.type_table_offset
+            = (ulong)sizeof(Reflection.Header);
+        header.field_table_offset
+            = header.type_table_offset + (ulong)(sizeof(Reflection.Type) * _types.Count);
+        header.function_table_offset
+            = header.field_table_offset + (ulong)(sizeof(Reflection.Field) * _fields.Count);
+        header.method_table_offset
+            = header.function_table_offset + (ulong)(sizeof(Reflection.Function) * _functions.Count);
+        header.static_method_table_offset
+            = header.method_table_offset + (ulong)(sizeof(Reflection.Function) * _methods.Count);
+        header.global_variable_table_offset
+            = header.static_method_table_offset + (ulong)(sizeof(Reflection.Function) * _staticMethods.Count);
+        header.functype_table_offset
+            = header.global_variable_table_offset + (ulong)(sizeof(Reflection.Global) * _globals.Count);
+        header.param_table_offset
+            = header.functype_table_offset + (ulong)(sizeof(Reflection.FuncType) * _funcTypes.Count);
+        header.paramtype_table_offset
+            = header.param_table_offset + (ulong)(sizeof(Reflection.Parameter) * _params.Count);
+        header.typeref_table_offset
+            = header.paramtype_table_offset + (ulong)(sizeof(Reflection.ParamType) * _paramTypes.Count);
+        header.name_table_offset
+            = header.typeref_table_offset + (ulong)(sizeof(byte) * _typeRefs.Count);
+        header.size
+            = header.name_table_offset;
+
+        foreach (var name in _names)
+        {
+            header.size += (ulong)(sizeof(char) * name.Length); // only works with ASCII
+        }
         
         // write the result
         bytes.Write(System.Text.Encoding.UTF8.GetBytes("<metadata>"));
@@ -182,7 +195,6 @@ public unsafe class MetadataSerializer
     {
         _typeIndexes.Add(@struct, _typeTablePosition);
         _types.Add(type);
-        _position += (uint)sizeof(Reflection.Type);
         _typeTablePosition++;
     }
 
@@ -190,49 +202,42 @@ public unsafe class MetadataSerializer
     {
         _functypeIndexes.Add(originalType, _functypeTablePosition);
         _funcTypes.Add(type);
-        _position += (uint)sizeof(Reflection.FuncType);
         _functypeTablePosition++;
     }
 
     public void AddField(Reflection.Field field)
     {
         _fields.Add(field);
-        _position += (uint)sizeof(Reflection.Field);
         _fieldTablePosition++;
     }
 
     public void AddFunction(Reflection.Function func)
     {
         _functions.Add(func);
-        _position += (uint)sizeof(Reflection.Function);
         _functionTablePosition++;
     }
 
     public void AddGlobal(Reflection.Global global)
     {
         _globals.Add(global);
-        _position += (uint)sizeof(Reflection.Global);
         _globalTablePosition++;
     }
 
     public void AddParam(Reflection.Parameter param)
     {
         _params.Add(param);
-        _position += (uint)sizeof(Reflection.Parameter);
         _paramTablePosition++;
     }
 
     public void AddParamType(Reflection.ParamType paramType)
     {
         _paramTypes.Add(paramType);
-        _position += (uint)sizeof(Reflection.ParamType);
         _paramTypeTablePosition++;
     }
 
     public void AddName(string name)
     {
         _names.Add(name);
-        _position += (uint)(sizeof(char) * name.Length);
         _nameTablePosition += (uint)name.Length;
     }
     
@@ -350,7 +355,6 @@ public unsafe class MetadataSerializer
         }
 
         _typeRefs.AddRange(result);
-        _position += (uint)(result.Count * sizeof(byte));
         _typeRefTablePosition += (uint)result.Count;
         return (ulong)result.Count;
     }
