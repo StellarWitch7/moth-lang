@@ -305,6 +305,7 @@ public class LLVMCompiler
             if (classNode.Scope == null)
             {
                 newStruct = new OpaqueStruct(this,
+                    CurrentNamespace,
                     classNode.Name,
                     classNode.Privacy);
             }

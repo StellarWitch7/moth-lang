@@ -144,15 +144,26 @@ public unsafe class MetadataDeserializer
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
             var parent = GetNamespace(fullname);
             var fields = GetFields(type.field_table_index, type.field_table_length);
+            Struct result;
             
             if (type.is_struct)
             {
-                
+                result = new Struct(parent,
+                    name,
+                    LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(),
+                        false),
+                    type.privacy);
             }
             else
             {
-                
+                result = new Class(parent,
+                    name,
+                    LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(),
+                        false),
+                    type.privacy);
             }
+            
+            parent.Structs.Add(name, result);
         }
         
         throw new NotImplementedException();
@@ -162,7 +173,7 @@ public unsafe class MetadataDeserializer
     {
         var builder = new StringBuilder();
 
-        for (ulong i = 0; i <= length; i++)
+        for (ulong i = 0; i < length; i++)
         {
             builder.Append((char)_names[index + i]);
         }
@@ -172,7 +183,7 @@ public unsafe class MetadataDeserializer
 
         if (!match.Success)
         {
-            throw new Exception("Failed to read name from metadata, it may be corrupt.");
+            return fullname;
         }
 
         return match.Value;
@@ -195,7 +206,7 @@ public unsafe class MetadataDeserializer
 
     private Type GetType(ulong index, ulong length)
     {
-        throw new NotImplementedException();
+        throw new NotImplementedException(); //TODO
     }
     
     private Namespace GetNamespace(string name)

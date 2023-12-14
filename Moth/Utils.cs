@@ -109,6 +109,18 @@ public static class ArrayExtensions
         return result;
     }
 
+    public static LLVMTypeRef[] AsLLVMTypes(this Field[] fields)
+    {
+        var types = new List<Type>();
+
+        foreach (var field in fields)
+        {
+            types.Add(field.Type);
+        }
+
+        return types.ToArray().AsLLVMTypes();
+    }
+    
     public static LLVMTypeRef[] AsLLVMTypes(this Type[] types)
     {
         var result = new LLVMTypeRef[types.Length];

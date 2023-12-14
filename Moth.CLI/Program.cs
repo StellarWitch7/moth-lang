@@ -20,6 +20,7 @@ internal class Program
 
             Parser.Default.ParseArguments<Options>(args).WithParsed(options =>
             {
+                _ = options.OutputType ?? throw new Exception("No output file type provided.");
                 _ = options.InputFiles ?? throw new Exception("No input files provided.");
                 _ = options.OutputFile ?? throw new Exception("No output file name provided.");
 

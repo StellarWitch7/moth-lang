@@ -51,32 +51,25 @@ public unsafe class MetadataSerializer
             var newType = new Metadata.Type();
             newType.privacy = @struct.Privacy;
             newType.is_struct = @struct is not Class;
+            newType.field_table_index = _fieldTablePosition;
+            newType.field_table_length = (uint)@struct.Fields.Count;
             newType.name_table_index = _nameTablePosition;
-            newType.name_table_length = (ulong)@struct.Name.Length;
+            newType.name_table_length = (ulong)@struct.FullName.Length;
             AddName(@struct.FullName);
-            AddType(@struct, newType);
-        }
-        
-        foreach (var kv in _typeIndexes)
-        {
-            if (kv.Key is Struct @struct)
-            {
-                var type = _types[(int)kv.Value];
-                type.field_table_index = _fieldTablePosition;
-                type.field_table_length = (uint)@struct.Fields.Count;
 
-                foreach (var field in @struct.Fields.Values)
-                {
-                    var newField = new Metadata.Field();
-                    newField.typeref_table_index = _typeRefTablePosition;
-                    newField.typeref_table_length = AddTypeRef(field.Type);
-                    newField.privacy = field.Privacy;
-                    newField.name_table_index = _nameTablePosition;
-                    newField.name_table_length = (uint)field.Name.Length;
-                    AddName(field.Name);
-                    AddField(newField);
-                }
+            foreach (var field in @struct.Fields.Values)
+            {
+                var newField = new Metadata.Field();
+                newField.privacy = field.Privacy;
+                newField.typeref_table_index = _typeRefTablePosition;
+                newField.typeref_table_length = AddTypeRef(field.Type);
+                newField.name_table_index = _nameTablePosition;
+                newField.name_table_length = (uint)field.Name.Length;
+                AddName(field.Name);
+                AddField(newField);
             }
+            
+            AddType(@struct, newType);
         }
 
         foreach (var func in _compiler.Functions)
