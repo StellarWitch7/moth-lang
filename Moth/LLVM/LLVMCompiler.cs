@@ -109,12 +109,12 @@ public class LLVMCompiler
     public Namespace ResolveNamespace(string str) //TODO: improve
     {
         Namespace value = null;
-        string[] names = str.Split('.');
+        string[] names = str.Split("::");
         uint index = 0;
         
         foreach (var name in names) //TODO: is this unnecessary?
         {
-            names[index] = name.Replace(".", "");
+            names[index] = name.Replace("::", "");
             index++;
         }
         foreach (var name in names)
