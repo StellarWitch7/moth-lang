@@ -21,7 +21,7 @@ public class LLVMCompiler
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
-    private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>(); //TODO: remove?
+    private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>();
     private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
@@ -385,50 +385,46 @@ public class LLVMCompiler
         }
 
         var sig = new Signature(funcDefNode.Name, paramTypes, funcDefNode.IsVariadic);
-        var builder = new StringBuilder($"{funcDefNode.Name}(");
+        string funcName = funcDefNode.Name;
+        var builder = new StringBuilder("(");
         
-        foreach (var param in @params)
+        foreach (var type in paramTypes)
         {
-            builder.Append($"{param.Name} {paramTypes[(int)param.ParamIndex]}, ");
+            builder.Append($"{type}, ");
         }
 
-        if (@params.Count > 0)
+        if (paramTypes.Count > 0)
         {
             builder.Remove(builder.Length - 2, 2);
         }
 
         builder.Append(')');
-        
-        string funcName = funcDefNode.Name == Reserved.Main || funcDefNode.IsForeign
-            ? funcDefNode.Name
-            : builder.ToString();
-        string llvmFuncName = funcDefNode.Name;
 
-        if (!(funcDefNode.Name == Reserved.Main || funcDefNode.IsForeign))
-        {
-            llvmFuncName = $"{CurrentNamespace.FullName}.{funcName}";
-            if (@struct != null)
-            {
-                llvmFuncName = $"{@struct.FullName}.{funcName}";
-            }
-        }
+        string namespacePath = @struct != null
+            ? @struct.FullName
+            : CurrentNamespace.FullName;
+        string llvmFuncName = !(funcName == Reserved.Main || funcDefNode.IsForeign)
+            ? $"{namespacePath}.{funcName}{builder}"
+            : funcName;
         
         Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
             funcDefNode.IsVariadic);
-        FuncType funcType = !funcDefNode.IsStatic
-            ? new FuncType(funcName, returnType, paramTypes.ToArray(), funcDefNode.IsVariadic, @struct)
-            : new MethodType(funcName, returnType, paramTypes.ToArray(), @struct, funcDefNode.IsStatic);
+        FuncType funcType = @struct == null
+            ? new FuncType(returnType, paramTypes.ToArray(), funcDefNode.IsVariadic)
+            : new MethodType(returnType, paramTypes.ToArray(), @struct, funcDefNode.IsStatic);
         DefinedFunction func = new DefinedFunction(@struct == null
                 ? CurrentNamespace
                 : @struct,
+            funcName,
             funcType,
             funcDefNode.IsForeign
                 ? HandleForeign(funcName, funcType)
                 : Module.AddFunction(llvmFuncName, llvmFuncType),
             @params.ToArray(),
-            funcDefNode.Privacy);
+            funcDefNode.Privacy,
+            funcDefNode.IsForeign);
         
         foreach (AttributeNode attribute in funcDefNode.Attributes)
         {
@@ -447,7 +443,7 @@ public class LLVMCompiler
             }
             else
             {
-                throw new Exception($"Cannot have instance method \"{func.Type.Name}\" on struct \"{@struct.Name}\"");
+                throw new Exception($"Cannot have instance method \"{func.Name}\" on struct \"{@struct.Name}\"");
             }
         }
         else
@@ -622,7 +618,7 @@ public class LLVMCompiler
                     {
                         throw new Exception($"Return value \"{expr.LLVMValue}\" " +
                             $"does not match return type of function " +
-                            $"\"{CurrentFunction.Type.Name}\" (\"{CurrentFunction.Type.ReturnType}\").");
+                            $"\"{CurrentFunction.Name}\" (\"{CurrentFunction.Type.ReturnType}\").");
                     }
                 }
                 else
@@ -826,7 +822,7 @@ public class LLVMCompiler
             }
 
             var funcType = new LocalFuncType(retType, paramTypes.ToArray());
-            LLVMValueRef llvmFunc = Module.AddFunction(funcType.Name, funcType.BaseType.LLVMType);
+            LLVMValueRef llvmFunc = Module.AddFunction(Reserved.LocalFunc, funcType.BaseType.LLVMType);
 
             Function? parentFunction = CurrentFunction;
             var func = new Function(funcType, llvmFunc, @params.ToArray())
@@ -1349,7 +1345,7 @@ public class LLVMCompiler
                     throw new Exception("Attempted self-instance reference in a global function.");
                 }
 
-                if (CurrentFunction.Type.Name.Contains($".{Reserved.Init}:"))
+                if (CurrentFunction.Name.Contains($".{Reserved.Init}:"))
                 {
                     context = scope.Variables[Reserved.Self];
                 }
@@ -1665,40 +1661,38 @@ public class LLVMCompiler
 
     private void AddDefaultForeigns()
     {
-        List<FuncType> funcTypes = new List<FuncType>();
+        Dictionary<string, FuncType> entries = new Dictionary<string, FuncType>();
 
         {
-            funcTypes.Add(new FuncType(Reserved.Malloc,
-                new PtrType(Primitives.Void),
-                new Type[1]
-                {
-                    Primitives.UInt64
-                },
-                false,
-                null));
-            funcTypes.Add(new FuncType(Reserved.Realloc,
-                new PtrType(Primitives.Void),
-                new Type[2]
-                {
-                    new PtrType(Primitives.Void),
-                    Primitives.UInt64
-                },
-                false,
-                null));
-            funcTypes.Add(new FuncType(Reserved.Free,
-                Primitives.Void,
-                new Type[1]
-                {
-                    new PtrType(Primitives.Void)
-                },
-                false,
-                null));
+            entries.Add(Reserved.Malloc,
+                new FuncType(new PtrType(Primitives.Void),
+                    new Type[1]
+                    {
+                        Primitives.UInt64
+                        
+                    },
+                    false));
+            entries.Add(Reserved.Realloc,
+                new FuncType(new PtrType(Primitives.Void),
+                    new Type[2]
+                    {
+                        new PtrType(Primitives.Void),
+                        Primitives.UInt64
+                    },
+                    false));
+            entries.Add(Reserved.Free,
+                new FuncType(Primitives.Void,
+                    new Type[1]
+                    {
+                        new PtrType(Primitives.Void)
+                    },
+                    false));
         }
 
-        foreach (var funcType in funcTypes)
+        foreach (var kv in entries)
         {
-            _foreigns.Add(funcType.Name, funcType);
-            Module.AddFunction(funcType.Name, funcType.BaseType.LLVMType);
+            _foreigns.Add(kv.Key, kv.Value);
+            Module.AddFunction(kv.Key, kv.Value.BaseType.LLVMType);
         }
     }
 

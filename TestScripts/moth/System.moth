@@ -34,22 +34,22 @@ public func EOF(ch #i32) #bool {
     return ch < 0;
 }
 
-public func Write(char #char) #void {
+public func Write(char #char) {
     STDOut().Write(char);
     return;
 }
 
-public func Write(string #char*) #void {
+public func Write(string #char*) {
     STDOut().Write(string);
     return;
 }
 
-public func Write(string #char*, end #char) #void {
+public func Write(string #char*, end #char) {
     STDOut().Write(string, end);
     return;
 }
 
-public func WriteLine(string #char*) #void {
+public func WriteLine(string #char*) {
     STDOut().WriteLine(string);
     return;
 }
@@ -75,26 +75,26 @@ public class File {
         return self;
     }
 
-    public func Write(string #char*) #void {
+    public func Write(string #char*) {
         fputs(string, self.CFile);
         fflush(self.CFile);
         return;
     }
 
-    public func Write(char #char) #void {
+    public func Write(char #char) {
         local str #char* = #char* <- malloc(#u64 <- 1);
         sprintf(str, "%c", char);
         self.Write(str);
         return;
     }
 
-    public func Write(string #char*, end #char) #void {
+    public func Write(string #char*, end #char) {
         self.Write(string)
         self.Write(end);
         return;
     }
 
-    public func WriteLine(string #char*) #void {
+    public func WriteLine(string #char*) {
         self.Write(string, '\n');
         return;
     }

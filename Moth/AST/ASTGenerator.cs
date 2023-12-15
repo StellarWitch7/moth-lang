@@ -1,4 +1,5 @@
 ﻿using Moth.AST.Node;
+using Moth.LLVM;
 using Moth.Tokens;
 using System.Runtime.CompilerServices;
 
@@ -368,7 +369,10 @@ public static class ASTGenerator
                 {
                     context.MoveNext();
                     List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
-                    TypeRefNode retTypeRef = ProcessTypeRef(context);
+                    TypeRefNode retTypeRef = context.Current?.Type == TokenType.OpeningCurlyBraces
+                        || context.Current?.Type == TokenType.Semicolon
+                            ? new TypeRefNode(Reserved.Void, 0)
+                            : ProcessTypeRef(context);
 
                     if (!isForeign && context.Current?.Type == TokenType.OpeningCurlyBraces)
                     {

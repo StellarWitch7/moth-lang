@@ -18,7 +18,7 @@ public class Function : Value
     {
         get
         {
-            return Type.Name;
+            return this is DefinedFunction definedFunc ? definedFunc.Name : "N/A";
         }
     }
     
@@ -50,7 +50,7 @@ public class Function : Value
     {
         get
         {
-            return Type.OwnerStruct;
+            return Type is MethodType methodType ? methodType.OwnerStruct : null;
         }
     }
 
@@ -67,22 +67,51 @@ public class Function : Value
 
 public class DefinedFunction : Function
 {
+    public string Name { get; }
     public IContainer? Parent { get; }
     public PrivacyType Privacy { get; }
+    public bool IsForeign { get; }
     
-    public DefinedFunction(IContainer? parent, FuncType type, LLVMValueRef value, Parameter[] @params, PrivacyType privacy)
-        : base(type, value, @params)
+    public DefinedFunction(IContainer? parent, string name, FuncType type,
+        LLVMValueRef value, Parameter[] @params, PrivacyType privacy,
+        bool isForeign = false) : base(type, value, @params)
     {
+        Name = name;
         Parent = parent;
         Privacy = privacy;
+        IsForeign = isForeign;
+    }
+
+    public string FullName
+    {
+        get
+        {
+            if (Parent is Struct @struct)
+            {
+                return $"{@struct.FullName}.{Name}{Type}";
+            }
+            else if (Parent is Namespace nmspace)
+            {
+                return $"{nmspace.FullName}.{Name}{Type}";
+            }
+            else
+            {
+                throw new Exception("Parent of defined function is neither a type nor a namespace.");
+            }
+        }
     }
 }
 
 public abstract class IntrinsicFunction : Function
 {
-    private LLVMValueRef _internalValue;
+    public string Name { get; }
     
-    public IntrinsicFunction(FuncType type) : base(type, default, new Parameter[0]) { }
+    private LLVMValueRef _internalValue;
+
+    public IntrinsicFunction(string name, FuncType type) : base(type, default, new Parameter[0])
+    {
+        Name = name;
+    }
 
     public override LLVMValueRef LLVMValue
     {

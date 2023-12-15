@@ -1,5 +1,7 @@
 using Moth.LLVM.Data;
+using Moth.LLVM.Metadata;
 using System.Text.RegularExpressions;
+using Field = Moth.LLVM.Data.Field;
 
 namespace Moth.LLVM;
 
@@ -145,22 +147,34 @@ public unsafe class MetadataDeserializer
             var parent = GetNamespace(fullname);
             var fields = GetFields(type.field_table_index, type.field_table_length);
             Struct result;
-            
-            if (type.is_struct)
+
+            if (type.is_foreign)
             {
-                result = new Struct(parent,
-                    name,
-                    LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(),
-                        false),
-                    type.privacy);
+                if (!type.is_struct)
+                {
+                    throw new Exception("Incorrect metadata encoding: Cannot have non-struct foreign.");
+                }
+                
+                result = new OpaqueStruct(_compiler, parent, name, type.privacy);
             }
             else
             {
-                result = new Class(parent,
-                    name,
-                    LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(),
-                        false),
-                    type.privacy);
+                if (type.is_struct)
+                {
+                    result = new Struct(parent,
+                        name,
+                        _compiler.Context.GetStructType(fields.AsLLVMTypes(), false),
+                        type.privacy);
+                }
+                else
+                {
+                    result = new Class(parent,
+                        name,
+                        _compiler.Context.GetStructType(fields.AsLLVMTypes(), false),
+                        type.privacy);
+                }
+                
+                result.AddBuiltins(_compiler);
             }
             
             parent.Structs.Add(name, result);
@@ -206,7 +220,37 @@ public unsafe class MetadataDeserializer
 
     private Type GetType(ulong index, ulong length)
     {
-        throw new NotImplementedException(); //TODO
+        uint ptrDepth = 0;
+        Type result = null;
+        
+        for (ulong i = 0; i < length; i++)
+        {
+            switch ((TypeTag)_typeRefs[index + i])
+            {
+                case TypeTag.Pointer:
+                    ptrDepth++;
+                    break;
+                case TypeTag.Type:
+                    throw new NotImplementedException();
+                case TypeTag.FuncType:
+                    throw new NotImplementedException();
+                case TypeTag.Bool:
+                    result = _compiler.GetStruct(Reserved.Bool);
+                    break;
+            }
+        }
+
+        if (result == null)
+        {
+            throw new Exception("Failed to parse types within metadata, it may be corrupt.");
+        }
+
+        for (var i = ptrDepth; i > 0; i--)
+        {
+            result = new PtrType(result);
+        }
+
+        return result;
     }
     
     private Namespace GetNamespace(string name)
