@@ -1642,14 +1642,14 @@ public class LLVMCompiler
         @namespace.Structs.Add(Reserved.Float64, Primitives.Float64);
         @namespace.Structs.Add(Reserved.Bool, Primitives.Bool);
         @namespace.Structs.Add(Reserved.Char, Primitives.Char);
-        @namespace.Structs.Add(Reserved.UnsignedInt8, Primitives.UInt8);
-        @namespace.Structs.Add(Reserved.UnsignedInt16, Primitives.UInt16);
-        @namespace.Structs.Add(Reserved.UnsignedInt32, Primitives.UInt32);
-        @namespace.Structs.Add(Reserved.UnsignedInt64, Primitives.UInt64);
-        @namespace.Structs.Add(Reserved.SignedInt8, Primitives.Int8);
-        @namespace.Structs.Add(Reserved.SignedInt16, Primitives.Int16);
-        @namespace.Structs.Add(Reserved.SignedInt32, Primitives.Int32);
-        @namespace.Structs.Add(Reserved.SignedInt64, Primitives.Int64);
+        @namespace.Structs.Add(Reserved.UInt8, Primitives.UInt8);
+        @namespace.Structs.Add(Reserved.UInt16, Primitives.UInt16);
+        @namespace.Structs.Add(Reserved.UInt32, Primitives.UInt32);
+        @namespace.Structs.Add(Reserved.UInt64, Primitives.UInt64);
+        @namespace.Structs.Add(Reserved.Int8, Primitives.Int8);
+        @namespace.Structs.Add(Reserved.Int16, Primitives.Int16);
+        @namespace.Structs.Add(Reserved.Int32, Primitives.Int32);
+        @namespace.Structs.Add(Reserved.Int64, Primitives.Int64);
 
         foreach (Struct @struct in @namespace.Structs.Values)
         {

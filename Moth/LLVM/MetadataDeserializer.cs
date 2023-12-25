@@ -1,7 +1,5 @@
 using Moth.LLVM.Data;
-using Moth.LLVM.Metadata;
 using System.Text.RegularExpressions;
-using Field = Moth.LLVM.Data.Field;
 
 namespace Moth.LLVM;
 
@@ -145,7 +143,6 @@ public unsafe class MetadataDeserializer
         {
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
             var parent = GetNamespace(fullname);
-            var fields = GetFields(type.field_table_index, type.field_table_length);
             Struct result;
 
             if (type.is_foreign)
@@ -163,14 +160,14 @@ public unsafe class MetadataDeserializer
                 {
                     result = new Struct(parent,
                         name,
-                        _compiler.Context.GetStructType(fields.AsLLVMTypes(), false),
+                        _compiler.Context.CreateNamedStruct(fullname),
                         type.privacy);
                 }
                 else
                 {
                     result = new Class(parent,
                         name,
-                        _compiler.Context.GetStructType(fields.AsLLVMTypes(), false),
+                        _compiler.Context.CreateNamedStruct(fullname),
                         type.privacy);
                 }
                 
@@ -178,6 +175,15 @@ public unsafe class MetadataDeserializer
             }
             
             parent.Structs.Add(name, result);
+        }
+
+        foreach (var type in _types)
+        {
+            var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
+            var parent = GetNamespace(fullname);
+            var result = parent.Structs[name];
+            var fields = GetFields(type.field_table_index, type.field_table_length);
+            result.LLVMType.StructSetBody(fields.AsLLVMTypes(), false);
         }
         
         throw new NotImplementedException();
@@ -225,18 +231,56 @@ public unsafe class MetadataDeserializer
         
         for (ulong i = 0; i < length; i++)
         {
-            switch ((TypeTag)_typeRefs[index + i])
+            switch ((Metadata.TypeTag)_typeRefs[index + i])
             {
-                case TypeTag.Pointer:
+                case Metadata.TypeTag.Type:
+                    throw new NotImplementedException();
+                case Metadata.TypeTag.FuncType:
+                    throw new NotImplementedException();
+                case Metadata.TypeTag.Pointer:
                     ptrDepth++;
                     break;
-                case TypeTag.Type:
-                    throw new NotImplementedException();
-                case TypeTag.FuncType:
-                    throw new NotImplementedException();
-                case TypeTag.Bool:
-                    result = _compiler.GetStruct(Reserved.Bool);
+                case Metadata.TypeTag.Void:
+                    result = Primitives.Void;
                     break;
+                case Metadata.TypeTag.Bool:
+                    result = Primitives.Bool;
+                    break;
+                case Metadata.TypeTag.Char:
+                    result = Primitives.Char;
+                    break;
+                case Metadata.TypeTag.UInt8:
+                    result = Primitives.UInt8;
+                    break;
+                case Metadata.TypeTag.UInt16:
+                    result = Primitives.UInt16;
+                    break;
+                case Metadata.TypeTag.UInt32:
+                    result = Primitives.UInt32;
+                    break;
+                case Metadata.TypeTag.UInt64:
+                    result = Primitives.UInt64;
+                    break;
+                case Metadata.TypeTag.Int16:
+                    result = Primitives.Int16;
+                    break;
+                case Metadata.TypeTag.Int32:
+                    result = Primitives.Int32;
+                    break;
+                case Metadata.TypeTag.Int64:
+                    result = Primitives.Int64;
+                    break;
+                case Metadata.TypeTag.Float16:
+                    result = Primitives.Float16;
+                    break;
+                case Metadata.TypeTag.Float32:
+                    result = Primitives.Float32;
+                    break;
+                case Metadata.TypeTag.Float64:
+                    result = Primitives.Float64;
+                    break;
+                default:
+                    throw new NotImplementedException("Type cannot be read.");
             }
         }
 

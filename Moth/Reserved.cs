@@ -18,19 +18,19 @@ public static class Reserved
     public const string Public = "public";
     
     public const string Void = "void";
+    public const string Bool = "bool";
+    public const string Char = "char";
+    public const string UInt8 = "u8";
+    public const string UInt16 = "u16";
+    public const string UInt32 = "u32";
+    public const string UInt64 = "u64";
+    public const string Int8 = "i8";
+    public const string Int16 = "i16";
+    public const string Int32 = "i32";
+    public const string Int64 = "i64";
     public const string Float16 = "f16";
     public const string Float32 = "f32";
     public const string Float64 = "f64";
-    public const string Bool = "bool";
-    public const string Char = "char";
-    public const string UnsignedInt8 = "u8";
-    public const string UnsignedInt16 = "u16";
-    public const string UnsignedInt32 = "u32";
-    public const string UnsignedInt64 = "u64";
-    public const string SignedInt8 = "i8";
-    public const string SignedInt16 = "i16";
-    public const string SignedInt32 = "i32";
-    public const string SignedInt64 = "i64";
 
     public const string CallingConvention = "CallingConvention";
     public const string TargetOS = "TargetOS";

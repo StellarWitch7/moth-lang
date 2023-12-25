@@ -4,9 +4,11 @@ public enum TypeTag
 {
     Type,
     FuncType,
+    Pointer,
     Void,
     Bool,
     Char,
+    UInt8,
     UInt16,
     UInt32,
     UInt64,
@@ -14,9 +16,7 @@ public enum TypeTag
     Int16,
     Int32,
     Int64,
-    Float8,
     Float16,
     Float32,
-    Float64,
-    Pointer
+    Float64
 }
