@@ -21,6 +21,14 @@ public class Function : Value
             return this is DefinedFunction definedFunc ? definedFunc.Name : "N/A";
         }
     }
+
+    public string FullName
+    {
+        get
+        {
+            return this is DefinedFunction definedFunc ? definedFunc.FullName : "N/A";
+        }
+    }
     
     public Type ReturnType
     {
@@ -71,15 +79,41 @@ public class DefinedFunction : Function
     public IContainer? Parent { get; }
     public PrivacyType Privacy { get; }
     public bool IsForeign { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
+
+    private LLVMCompiler _compiler { get; }
     
-    public DefinedFunction(IContainer? parent, string name, FuncType type,
-        LLVMValueRef value, Parameter[] @params, PrivacyType privacy,
-        bool isForeign = false) : base(type, value, @params)
+    private LLVMValueRef _internalValue;
+    
+    public DefinedFunction(LLVMCompiler compiler, IContainer? parent, string name,
+        FuncType type, Parameter[] @params, PrivacyType privacy,
+        bool isForeign, Dictionary<string, IAttribute> attributes)
+        : base(type, null, @params)
     {
+        _compiler = compiler;
         Name = name;
         Parent = parent;
         Privacy = privacy;
         IsForeign = isForeign;
+        Attributes = attributes;
+    }
+    
+    public override LLVMValueRef LLVMValue
+    {
+        get
+        {
+            if (_internalValue == default)
+            {
+                string llvmFuncName = !(Name == Reserved.Main || IsForeign)
+                    ? FullName
+                    : Name;
+                _internalValue = IsForeign
+                    ? _compiler.HandleForeign(Name, Type)
+                    : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
+            }
+
+            return _internalValue;
+        }
     }
 
     public string FullName

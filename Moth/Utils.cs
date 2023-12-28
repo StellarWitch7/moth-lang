@@ -7,6 +7,45 @@ namespace Moth;
 
 public static class Utils
 {
+    public static LLVMCallConv StringToCallConv(string str)
+    {
+        return str switch
+        {
+            "cdecl" => LLVMCallConv.LLVMCCallConv,
+            _ => throw new Exception($"Invalid calling convention: \"{str}\".")
+        };
+    }
+    
+    public static OS StringToOS(string str)
+    {
+        return str switch
+        {
+            "windows" => OS.Windows,
+            "linux" => OS.Linux,
+            "macos" => OS.MacOS,
+            _ => throw new Exception($"Invalid OS: \"{str}\".")
+        };
+    }
+
+    public static OS GetOS()
+    {
+        if (OperatingSystem.IsWindows()) return OS.Windows;
+        if (OperatingSystem.IsLinux()) return OS.Linux;
+        if (OperatingSystem.IsMacOS()) return OS.MacOS;
+        throw new PlatformNotSupportedException();
+    }
+
+    public static bool IsOS(OS os)
+    {
+        return os switch
+        {
+            OS.Windows => OperatingSystem.IsWindows(),
+            OS.Linux => OperatingSystem.IsLinux(),
+            OS.MacOS => OperatingSystem.IsMacOS(),
+            _ => throw new Exception($"Cannot verify that the current OS is \"{os}\".")
+        };
+    }
+    
     public static byte[] Unescape(string original)
     {
         if (original.Length == 0)
@@ -81,6 +120,18 @@ public static class ListExtensions
 
 public static class ArrayExtensions
 {
+    public static RESULT[] ExecuteOverAll<ORIGINAL, RESULT>(this ORIGINAL[] original, Func<ORIGINAL, RESULT> func)
+    {
+        var result = new List<RESULT>();
+
+        foreach (var val in original)
+        {
+            result.Add(func(val));
+        }
+
+        return result.ToArray();
+    }
+    
     public static LLVMValueRef[] AsLLVMValues(this byte[] bytes)
     {
         var result = new LLVMValueRef[bytes.Length];

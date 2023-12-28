@@ -1,7 +1,9 @@
 ﻿using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using Pointer = Moth.LLVM.Data.Pointer;
 
 namespace Moth.LLVM;
 
@@ -14,10 +16,11 @@ public class LLVMCompiler
     public LLVMBuilderRef Builder { get; }
     public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
-
     public List<Struct> Types { get; } = new List<Struct>();
     public List<DefinedFunction> Functions { get; } = new List<DefinedFunction>();
     public List<IGlobal> Globals { get; } = new List<IGlobal>();
+
+    public Func<string, IReadOnlyList<object>, IAttribute> MakeAttribute { get; }
 
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
@@ -52,6 +55,9 @@ public class LLVMCompiler
                 LLVMSharp.Interop.LLVM.InitializeFunctionPassManager(FunctionPassManager);
             }
         }
+        
+        Log("Registering compiler attributes...");
+        MakeAttribute = IAttribute.MakeCreationFunction(Assembly.GetExecutingAssembly().GetTypes().ToArray());
     }
 
     public LLVMCompiler(string moduleName, IReadOnlyCollection<ScriptAST> scripts) : this(moduleName) => Compile(scripts);
@@ -365,6 +371,18 @@ public class LLVMCompiler
 
     public void DefineFunction(FuncDefNode funcDefNode, Struct? @struct = null)
     {
+        var attributes = new Dictionary<string, IAttribute>();
+        
+        foreach (AttributeNode attribute in funcDefNode.Attributes)
+        {
+            attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+        }
+
+        if (attributes.TryGetValue(Reserved.TargetOS, out var attr))
+        {
+            if (!((TargetOSAttribute)attr).Targets.Contains(Utils.GetOS())) return;
+        }
+        
         uint index = 0;
         var @params = new List<Parameter>();
         var paramTypes = new List<Type>();
@@ -399,13 +417,6 @@ public class LLVMCompiler
         }
 
         builder.Append(')');
-
-        string namespacePath = @struct != null
-            ? @struct.FullName
-            : CurrentNamespace.FullName;
-        string llvmFuncName = !(funcName == Reserved.Main || funcDefNode.IsForeign)
-            ? $"{namespacePath}.{funcName}{builder}"
-            : funcName;
         
         Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(returnType.LLVMType,
@@ -414,22 +425,16 @@ public class LLVMCompiler
         FuncType funcType = @struct == null
             ? new FuncType(returnType, paramTypes.ToArray(), funcDefNode.IsVariadic)
             : new MethodType(returnType, paramTypes.ToArray(), @struct, funcDefNode.IsStatic);
-        DefinedFunction func = new DefinedFunction(@struct == null
+        DefinedFunction func = new DefinedFunction(this,
+            @struct == null
                 ? CurrentNamespace
                 : @struct,
             funcName,
             funcType,
-            funcDefNode.IsForeign
-                ? HandleForeign(funcName, funcType)
-                : Module.AddFunction(llvmFuncName, llvmFuncType),
             @params.ToArray(),
             funcDefNode.Privacy,
-            funcDefNode.IsForeign);
-        
-        foreach (AttributeNode attribute in funcDefNode.Attributes)
-        {
-            ResolveAttribute(func, attribute);
-        }
+            funcDefNode.IsForeign,
+            attributes);
         
         if (@struct != null)
         {
@@ -456,6 +461,18 @@ public class LLVMCompiler
 
     public void CompileFunction(FuncDefNode funcDefNode, Struct? @struct = null)
     {
+        // Confirm that the definition is for the correct OS
+        {
+            foreach (AttributeNode attribute in funcDefNode.Attributes)
+            {
+                if (attribute.Name == Reserved.TargetOS)
+                {
+                    var targetOS = (TargetOSAttribute)MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray()));
+                    if (!targetOS.Targets.Contains(Utils.GetOS())) return;
+                }
+            }
+        }
+        
         Function? func;
         var paramTypes = new List<Type>();
 
@@ -551,7 +568,7 @@ public class LLVMCompiler
         {
             if (DoOptimize)
             {
-                Log($"(unsafe) Running optimization pass on function \"{funcDefNode.Name}\".");
+                Log($"(unsafe) Running optimization pass on function \"{func.FullName}\".");
             
                 unsafe
                 {
@@ -1497,68 +1514,6 @@ public class LLVMCompiler
         return func.Call(this, args.ToArray());
     }
 
-    public void ResolveAttribute(Function func, AttributeNode attribute)
-    {
-        if (attribute.Name == Reserved.CallingConvention)
-        {
-            if (attribute.Arguments.Count != 1)
-            {
-                throw new Exception($"Attribute \"{Reserved.CallingConvention}\" has too many arguments.");
-            }
-
-            if (attribute.Arguments[0] is LiteralNode literalNode)
-            {
-                if (literalNode.Value is string str)
-                {
-                    LLVMValueRef llvmFunc = func.LLVMValue;
-                    llvmFunc.FunctionCallConv = str switch
-                    {
-                        "cdecl" => 0,
-                        _ => throw new Exception("Invalid calling convention!"),
-                    };
-                }
-                else
-                {
-                    throw new Exception($"Attribute \"{Reserved.CallingConvention}\" was passed a non-string.");
-                }
-            }
-            else
-            {
-                throw new Exception($"Attribute \"{Reserved.CallingConvention}\" was passed a complex expression.");
-            }
-        }
-        else if (attribute.Name == Reserved.TargetOS)
-        {
-            if (attribute.Arguments.Count <= 0)
-            {
-                throw new Exception($"Attribute \"{Reserved.TargetOS}\" has too many arguments.");
-            }
-
-            foreach (var arg in attribute.Arguments)
-            {
-                if (arg is LiteralNode literalNode)
-                {
-                    if (literalNode.Value is string str)
-                    {
-                        //TODO: big one here
-                    }
-                    else
-                    {
-                        
-                    }
-                }
-                else
-                {
-                    throw new Exception($"Attribute \"{Reserved.TargetOS}\" was passed a complex expression.");
-                }
-            }
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-    }
-
     public Namespace GetNamespace(string name)
     {
         if (CurrentNamespace.Name == name)
@@ -1631,6 +1586,25 @@ public class LLVMCompiler
         => type is RefType @ref
             ? @ref
             : new RefType(type);
+
+    public IReadOnlyList<object> CleanAttributeArgs(ExpressionNode[] args)
+    {
+        var result = new List<object>();
+
+        foreach (var expr in args)
+        {
+            if (expr is LiteralNode litNode)
+            {
+                result.Add(litNode.Value);
+            }
+            else
+            {
+                throw new Exception("Cannot pass non-literal parameters to an attribute.");
+            }
+        }
+
+        return result;
+    }
 
     private Namespace InitGlobalNamespace()
     {

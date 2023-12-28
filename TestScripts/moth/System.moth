@@ -1,19 +1,19 @@
 namespace core;
 
-// @TargetOS("windows")
-// public func STDIn() #File* {
-//     return #File.init(__acrt_iob_func(#u32 <- 0));
-// }
+@TargetOS("windows")
+public func STDIn() #File* {
+    return #File.init(__acrt_iob_func(#u32 <- 0));
+}
 
-// @TargetOS("windows")
-// public func STDOut() #File* {
-//     return #File.init(__acrt_iob_func(#u32 <- 1));
-// }
+@TargetOS("windows")
+public func STDOut() #File* {
+    return #File.init(__acrt_iob_func(#u32 <- 1));
+}
 
-// @TargetOS("windows")
-// public func STDErr() #File* {
-//     return #File.init(__acrt_iob_func(#u32 <- 2));
-// }
+@TargetOS("windows")
+public func STDErr() #File* {
+    return #File.init(__acrt_iob_func(#u32 <- 2));
+}
 
 @TargetOS("linux")
 public func STDIn() #File* {

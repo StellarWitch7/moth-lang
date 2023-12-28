@@ -32,6 +32,6 @@ public static class Reserved
     public const string Float32 = "f32";
     public const string Float64 = "f64";
 
-    public const string CallingConvention = "CallingConvention";
+    public const string CallConv = "CallConv";
     public const string TargetOS = "TargetOS";
 }

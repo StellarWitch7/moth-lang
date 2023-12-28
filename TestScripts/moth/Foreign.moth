@@ -15,9 +15,9 @@ private foreign func strcpy(destination #char*, source #char*) #char*;
 
 private foreign struct FILE;
 
-// @TargetOS("windows")
-// @CallingConvention("cdecl")
-// private foreign func __acrt_iob_func(n #u32) #FILE*;
+@TargetOS("windows")
+@CallConv("cdecl")
+private foreign func __acrt_iob_func(n #u32) #FILE*;
 
 @TargetOS("linux")
 private foreign stdin #FILE*;
