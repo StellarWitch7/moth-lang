@@ -1,5 +1,6 @@
 ﻿using Moth.AST.Node;
 using Moth.LLVM;
+using Moth.LLVM.Data;
 using Moth.Tokens;
 using System.Runtime.CompilerServices;
 
@@ -652,6 +653,32 @@ public static class ASTGenerator
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
                 }
             }
+            else if (startToken != TokenType.GenericTypeRef && context.Current?.Type == TokenType.OpeningSquareBrackets)
+            {
+                uint pointerDepth = 0;
+                
+                if (!(context.MoveNext()?.Type is TokenType.TypeRef or TokenType.GenericTypeRef))
+                {
+                    throw new UnexpectedTokenException(context.Current.Value);
+                }
+
+                var elementType = ProcessTypeRef(context);
+
+                if (context.Current?.Type != TokenType.ClosingSquareBrackets)
+                {
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
+                }
+
+                context.MoveNext();
+                
+                while (context.Current?.Type == TokenType.Asterix)
+                {
+                    pointerDepth++;
+                    context.MoveNext();
+                }
+
+                return new ArrayTypeRefNode(elementType, pointerDepth);
+            }
             else
             {
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
@@ -774,6 +801,9 @@ public static class ASTGenerator
                         throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
                     }
 
+                    break;
+                case TokenType.OpeningSquareBrackets:
+                    lastCreatedNode = ProcessLiteralArray(context);
                     break;
                 case TokenType.If:
                     context.MoveNext();
@@ -924,6 +954,49 @@ public static class ASTGenerator
         };
     }
 
+    public static LiteralArrayNode ProcessLiteralArray(ParseContext context)
+    {
+        var elements = new List<ExpressionNode>();
+        
+        if (context.Current?.Type != TokenType.OpeningSquareBrackets)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningSquareBrackets);
+        }
+
+        context.MoveNext();
+        var elementType = ProcessTypeRef(context);
+
+        if (context.Current?.Type == TokenType.Arrow)
+        {
+            context.MoveNext();
+            bool b = true;
+            
+            while (b)
+            {
+                switch (context.Current?.Type)
+                {
+                    case TokenType.ClosingSquareBrackets:
+                        b = false;
+                        break;
+                    case TokenType.Comma:
+                        context.MoveNext();
+                        break;
+                    default:
+                        elements.Add(ProcessExpression(context, null));
+                        break;
+                }
+            }
+        }
+
+        if (context.Current?.Type != TokenType.ClosingSquareBrackets)
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
+        }
+
+        context.MoveNext();
+        return new LiteralArrayNode(elementType, elements.ToArray());
+    }
+    
     public static RefNode ProcessAccess(ParseContext context)
     {
         RefNode? newRefNode = null;

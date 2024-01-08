@@ -97,7 +97,6 @@ public static class Tokenizer
                             Type = keyword.Span switch
                             {
                                 "if" => TokenType.If,
-                                "invoke" => TokenType.Invoke,
                                 "addrof" => TokenType.AddressOf,
                                 "load" => TokenType.DeRef,
                                 "null" => TokenType.Null,
@@ -162,7 +161,8 @@ public static class Tokenizer
                     }
 
                 case '#' when char.IsLetter((char)stream.Next)
-                    || (char)stream.Next == '(':
+                    || (char)stream.Next == '('
+                    || (char)stream.Next == '[':
                 case '?' when char.IsLetter((char)stream.Next):
                     {
                         char character = (char)stream.Current;
@@ -197,6 +197,7 @@ public static class Tokenizer
                             '~' when next is '~' => TokenType.Variadic,
                             '?' when next is '=' => TokenType.InferAssign,
                             '<' when next is '-' => TokenType.Cast,
+                            '-' when next is '>' => TokenType.Arrow,
                             '<' when next is '\\' => TokenType.OpeningGenericBracket,
                             '\\' when next is '>' => TokenType.ClosingGenericBracket,
                             ':' => TokenType.Colon,
@@ -236,7 +237,8 @@ public static class Tokenizer
                         {
                             Text = type switch
                             {
-                                TokenType.Cast or TokenType.Variadic or TokenType.InferAssign
+                                TokenType.Cast or TokenType.Arrow
+                                    or TokenType.Variadic or TokenType.InferAssign
                                     or TokenType.AddAssign or TokenType.SubAssign
                                     or TokenType.MulAssign or TokenType.DivAssign
                                     or TokenType.ModAssign or TokenType.ExpAssign

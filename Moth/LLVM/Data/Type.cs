@@ -9,6 +9,7 @@ public enum TypeKind
     Function,
     Pointer,
     Reference,
+    Array
 }
 
 public class Type : CompilerData

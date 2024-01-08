@@ -6,9 +6,10 @@ private foreign func malloc(size #u64) #void*;
 private foreign func printf(text #char*, ~~) #i32;
 
 private func main() #i32 {
-    local a ?= 3;
-    local b ?= (0 - 3) + a;
-    return b;
+    local arr #[#i32] = [#i32 -> 1, 2, 3];
+    return #i32 <- arr.Length;
+    // local v #i32 = 0 - 3 + 3; // returning 250 when it should be 0
+    // return v;
 }
 
 // public class TestArray {

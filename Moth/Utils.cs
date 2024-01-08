@@ -131,6 +131,18 @@ public static class ArrayExtensions
 
         return result.ToArray();
     }
+
+    public static Value[] CompileToValues(this ExpressionNode[] expressionNodes, LLVMCompiler compiler, Scope scope)
+    {
+        var result = new List<Value>();
+
+        foreach (var expr in expressionNodes)
+        {
+            result.Add(compiler.CompileExpression(scope, expr));
+        }
+
+        return result.ToArray();
+    }
     
     public static LLVMValueRef[] AsLLVMValues(this byte[] bytes)
     {

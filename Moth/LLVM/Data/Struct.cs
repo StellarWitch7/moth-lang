@@ -43,7 +43,7 @@ public class Struct : Type, IContainer
         }
     }
 
-    public virtual void AddBuiltins(LLVMCompiler compiler)
+    public virtual Struct AddBuiltins(LLVMCompiler compiler)
     {
         // sizeof()
         {
@@ -53,7 +53,7 @@ public class Struct : Type, IContainer
 
             var value = Value.Create(Primitives.UInt64, retValue);
             var func = new ConstRetFn(Reserved.SizeOf, value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, System.Array.Empty<Type>()), func);
         }
 
         // alignof()
@@ -64,22 +64,16 @@ public class Struct : Type, IContainer
 
             var value = Value.Create(Primitives.UInt64, retValue);
             var func = new ConstRetFn(Reserved.AlignOf, value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, System.Array.Empty<Type>()), func);
         }
 
-        if (this.GetType() == typeof(Struct))
-        {
-            var ret = this;
-            List<Type> @params = new List<Type>();
+        return this;
+    }
 
-            foreach (Field field in Fields.Values)
-            {
-                if (field.Privacy != PrivacyType.Private)
-                {
-                    @params.Add(field.Type);
-                }
-            }
-        }
+    public Struct AddField(string name, uint index, Type type, PrivacyType privacy)
+    {
+        Fields.Add(name, new Field(name, index, type, privacy));
+        return this;
     }
 
     public Field GetField(string name, Struct currentStruct)
@@ -186,5 +180,5 @@ public class OpaqueStruct : Struct
     public OpaqueStruct(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy)
         : base(parent, name, compiler.Context.CreateNamedStruct(name), privacy) { }
 
-    public override void AddBuiltins(LLVMCompiler compiler) => throw new Exception("Cannot add builtins to opaque struct.");
+    public override Struct AddBuiltins(LLVMCompiler compiler) => this;
 }

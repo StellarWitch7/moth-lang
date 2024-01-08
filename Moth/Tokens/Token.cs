@@ -107,5 +107,5 @@ public enum TokenType
     ExpAssign,
     DeRef,
     ScientificNotation,
-    Invoke
+    Arrow
 }

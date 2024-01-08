@@ -3,6 +3,7 @@ using Moth.AST.Node;
 using Moth.LLVM.Data;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Array = Moth.LLVM.Data.Array;
 using Pointer = Moth.LLVM.Data.Pointer;
 
 namespace Moth.LLVM;
@@ -337,13 +338,7 @@ public class LLVMCompiler
         }
         
         CurrentNamespace.Structs.Add(classNode.Name, newStruct);
-        
-        if (newStruct is not OpaqueStruct)
-        {
-            newStruct.AddBuiltins(this);
-        }
-
-        Types.Add(newStruct);
+        Types.Add(newStruct.AddBuiltins(this));
     }
 
     public void CompileType(ClassNode classNode)
@@ -792,18 +787,20 @@ public class LLVMCompiler
 
             return new LocalFuncType(retType, paramTypes.ToArray());
         }
+        else if (typeRef is ArrayTypeRefNode arrayTypeRef)
+        {
+            Type elementType = ResolveType(arrayTypeRef.ElementType);
+            type = new ArrType(this, elementType);
+        }
         else
         {
             Struct @struct = GetStruct(typeRef.Name);
             type = @struct;
         }
-
-        int index = 0;
-
-        while (index < typeRef.PointerDepth)
+        
+        for (int i = 0; i < typeRef.PointerDepth; i++) //TODO: confirm it works
         {
             type = new PtrType(type);
-            index++;
         }
 
         return type;
@@ -893,6 +890,12 @@ public class LLVMCompiler
             return SafeLoad(thenVal).Type.Equals(SafeLoad(elseVal).Type)
                 ? Value.Create(WrapAsRef(thenVal.Type), result)
                 : throw new Exception("Then and else statements of inline if are not of the same type.");
+        }
+        else if (expr is LiteralArrayNode literalArrayNode)
+        {
+            return new Array(this,
+                ResolveType(literalArrayNode.ElementType),
+                literalArrayNode.Elements.CompileToValues(this, scope));
         }
         else if (expr is LiteralNode literalNode)
         {
