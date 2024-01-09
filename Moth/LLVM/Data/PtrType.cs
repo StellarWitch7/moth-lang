@@ -4,7 +4,7 @@ namespace Moth.LLVM.Data;
 
 public class PtrType : Type
 {
-    public Type BaseType { get; }
+    public virtual Type BaseType { get; }
 
     protected PtrType(Type baseType, TypeKind kind)
         : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind) => BaseType = baseType;
@@ -39,21 +39,27 @@ public sealed class RefType : PtrType
 
 public sealed class ArrType : PtrType
 {
+    public override PrimitiveType BaseType { get; }
     public Type ElementType { get; }
     
     public ArrType(LLVMCompiler compiler, Type elementType)
         : base(new PrimitiveType($"[{elementType}]",
-                compiler.Context.GetStructType(new []
-                {
-                    new PtrType(elementType).LLVMType,
-                    LLVMTypeRef.Int32
-                }, false))
-                .AddField("Length",
-                    1,
-                    Primitives.UInt32,
-                    PrivacyType.Public),
-            TypeKind.Array)
+            compiler.Context.GetStructType(new []
+            {
+                new PtrType(elementType).LLVMType,
+                LLVMTypeRef.Int32
+                
+            }, false)))
     {
+        if (base.BaseType is not PrimitiveType primType)
+        {
+            throw new Exception("How in all hell did you manage that. (Critical compiler error, report to dev ASAP.)");
+        }
+        
+        BaseType = primType;
+        BaseType.Fields.Add("Length", new Field("Length", 1, Primitives.UInt32, PrivacyType.Public));
+        BaseType.Methods.Add(new Signature(Reserved.Indexer, new Type[] { new PtrType(BaseType), Primitives.UInt32 }),
+            new ArrayIndexerFunction(compiler, BaseType, elementType));
         ElementType = elementType;
     }
 

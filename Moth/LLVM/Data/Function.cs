@@ -160,6 +160,9 @@ public abstract class IntrinsicFunction : Function
         }
     }
     
+    public override Value Call(LLVMCompiler compiler, Value[] args)
+        => Type.Call(compiler, LLVMValue, args);
+    
     protected virtual LLVMValueRef GenerateLLVMData()
         => throw new NotImplementedException("This function does not support LLVM data generation.");
 }

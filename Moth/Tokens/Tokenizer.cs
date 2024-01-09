@@ -196,8 +196,6 @@ public static class Tokenizer
                             '-' when next is '-' => TokenType.Decrement,
                             '~' when next is '~' => TokenType.Variadic,
                             '?' when next is '=' => TokenType.InferAssign,
-                            '<' when next is '-' => TokenType.Cast,
-                            '-' when next is '>' => TokenType.Arrow,
                             '<' when next is '\\' => TokenType.OpeningGenericBracket,
                             '\\' when next is '>' => TokenType.ClosingGenericBracket,
                             ':' => TokenType.Colon,
@@ -237,8 +235,7 @@ public static class Tokenizer
                         {
                             Text = type switch
                             {
-                                TokenType.Cast or TokenType.Arrow
-                                    or TokenType.Variadic or TokenType.InferAssign
+                                TokenType.Variadic or TokenType.InferAssign
                                     or TokenType.AddAssign or TokenType.SubAssign
                                     or TokenType.MulAssign or TokenType.DivAssign
                                     or TokenType.ModAssign or TokenType.ExpAssign

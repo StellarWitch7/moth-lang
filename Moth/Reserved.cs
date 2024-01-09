@@ -3,9 +3,10 @@
 public static class Reserved
 {
     public const string Main = "main";
-    public const string Self = "self";
     public const string Init = "init";
+    public const string Indexer = "indxr";
     public const string LocalFunc = "localfunc";
+    public const string Self = "self";
     
     public const string Malloc = "malloc";
     public const string Realloc = "realloc";

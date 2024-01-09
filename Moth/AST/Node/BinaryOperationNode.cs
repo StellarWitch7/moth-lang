@@ -17,7 +17,6 @@ public class BinaryOperationNode : ExpressionNode
 public enum OperationType
 {
     Addition,
-    Cast,
     Subtraction,
     Multiplication,
     Division,

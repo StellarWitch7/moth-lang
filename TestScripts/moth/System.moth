@@ -2,17 +2,17 @@ namespace core;
 
 @TargetOS("windows")
 public func STDIn() #File* {
-    return #File.init(__acrt_iob_func(#u32 <- 0));
+    return #File.init(__acrt_iob_func(#u32(0)));
 }
 
 @TargetOS("windows")
 public func STDOut() #File* {
-    return #File.init(__acrt_iob_func(#u32 <- 1));
+    return #File.init(__acrt_iob_func(#u32(1)));
 }
 
 @TargetOS("windows")
 public func STDErr() #File* {
-    return #File.init(__acrt_iob_func(#u32 <- 2));
+    return #File.init(__acrt_iob_func(#u32(2)));
 }
 
 @TargetOS("linux")
@@ -82,7 +82,7 @@ public class File {
     }
 
     public func Write(char #char) {
-        local str #char* = #char* <- malloc(#u64 <- 1);
+        local str #char* = #char*(malloc(#u64(1)));
         sprintf(str, "%c", char);
         self.Write(str);
         return;
@@ -103,15 +103,15 @@ public class File {
         local ch #i32 = fgetc(self.CFile);
 
         if !EOF(ch) {
-            return #char <- ch;
+            return #char(ch);
         } else {
             return '\0';
         }
     }
 
     public func ReadLine() #char* {
-        local size #u64 = #u64 <- 512;
-        local string ?= #char* <- malloc(size);
+        local size #u64 = #u64(512);
+        local string ?= #char*(malloc(size));
         local ch #char;
         local len ?= -1;
 
@@ -122,8 +122,8 @@ public class File {
         while (ch = self.GetChar()) != '\0' and ch != '\n' {
             string[++len] = ch;
             
-            if len >= (#i32 <- size) {
-                string = #char* <- realloc(#void* <- string, size += (#u64 <- 512));
+            if len >= (#i32(size)) {
+                string = #char*(realloc(#void*(string), size += (#u64(512))));
 
                 if string == null {
                     return string;
@@ -132,7 +132,7 @@ public class File {
         }
 
         string[++len] = '\0';
-        string = #char* <- realloc(#void* <- string, #u64 <- ++len);
+        string = #char*(realloc(#void*(string), #u64(++len)));
         return string;
     }
 }

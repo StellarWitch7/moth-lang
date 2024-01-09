@@ -93,7 +93,6 @@ public enum TokenType
     InferAssign,
     AttributeMarker,
     LiteralChar,
-    Cast,
     ClosingGenericBracket,
     OpeningGenericBracket,
     Then,
@@ -106,6 +105,5 @@ public enum TokenType
     ModAssign,
     ExpAssign,
     DeRef,
-    ScientificNotation,
-    Arrow
+    ScientificNotation
 }

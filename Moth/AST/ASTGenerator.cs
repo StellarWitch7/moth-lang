@@ -699,7 +699,9 @@ public static class ASTGenerator
             switch (context.Current?.Type)
             {
                 case TokenType.OpeningParentheses:
+                {
                     context.MoveNext();
+                    var prevNode = lastCreatedNode;
                     lastCreatedNode = new SubExprNode(ProcessExpression(context, lastCreatedNode));
 
                     if (context.Current?.Type != TokenType.ClosingParentheses)
@@ -707,8 +709,14 @@ public static class ASTGenerator
                         throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
                     }
 
+                    if (prevNode is TypeRefNode typeRef)
+                    {
+                        lastCreatedNode = new CastNode(typeRef, lastCreatedNode);
+                    }
+                    
                     context.MoveNext();
                     break;
+                }
                 case TokenType.LiteralFloat:
                     lastCreatedNode = new LiteralNode(float.Parse(context.Current.Value.Text.Span));
                     context.MoveNext();
@@ -803,8 +811,15 @@ public static class ASTGenerator
 
                     break;
                 case TokenType.OpeningSquareBrackets:
-                    lastCreatedNode = ProcessLiteralArray(context);
-                    break;
+                    {
+                        if (lastCreatedNode is not TypeRefNode typeRef)
+                        {
+                            throw new UnexpectedTokenException(context.Current.Value);
+                        }
+
+                        lastCreatedNode = ProcessLiteralArray(context, typeRef);
+                        break;
+                    }
                 case TokenType.If:
                     context.MoveNext();
                     ExpressionNode condition = ProcessExpression(context, null);
@@ -830,7 +845,7 @@ public static class ASTGenerator
                 case TokenType.Hyphen:
                     if (lastCreatedNode != null)
                     {
-                        goto case TokenType.Cast;
+                        goto case TokenType.Assign;
                     }
                     else
                     {
@@ -838,7 +853,6 @@ public static class ASTGenerator
                         lastCreatedNode = ProcessBinaryOp(context, OperationType.Multiplication, new LiteralNode(-1));
                         break;
                     }
-                case TokenType.Cast:
                 case TokenType.Assign:
                 case TokenType.Plus:
                 case TokenType.Asterix:
@@ -929,7 +943,6 @@ public static class ASTGenerator
         return type switch
         {
             TokenType.Assign => OperationType.Assignment,
-            TokenType.Cast => OperationType.Cast,
             TokenType.Plus => OperationType.Addition,
             TokenType.Hyphen => OperationType.Subtraction,
             TokenType.Asterix => OperationType.Multiplication,
@@ -954,7 +967,7 @@ public static class ASTGenerator
         };
     }
 
-    public static LiteralArrayNode ProcessLiteralArray(ParseContext context)
+    public static LiteralArrayNode ProcessLiteralArray(ParseContext context, TypeRefNode elementType)
     {
         var elements = new List<ExpressionNode>();
         
@@ -964,27 +977,21 @@ public static class ASTGenerator
         }
 
         context.MoveNext();
-        var elementType = ProcessTypeRef(context);
-
-        if (context.Current?.Type == TokenType.Arrow)
-        {
-            context.MoveNext();
-            bool b = true;
+        bool b = true;
             
-            while (b)
+        while (b)
+        {
+            switch (context.Current?.Type)
             {
-                switch (context.Current?.Type)
-                {
-                    case TokenType.ClosingSquareBrackets:
-                        b = false;
-                        break;
-                    case TokenType.Comma:
-                        context.MoveNext();
-                        break;
-                    default:
-                        elements.Add(ProcessExpression(context, null));
-                        break;
-                }
+                case TokenType.ClosingSquareBrackets:
+                    b = false;
+                    break;
+                case TokenType.Comma:
+                    context.MoveNext();
+                    break;
+                default:
+                    elements.Add(ProcessExpression(context, null));
+                    break;
             }
         }
 
@@ -1132,21 +1139,20 @@ public static class ASTGenerator
     {
         return operationType switch
         {
-            OperationType.Exponential => 6,
+            OperationType.Exponential => 5,
             OperationType.Modulo
                 or OperationType.Multiplication
-                or OperationType.Division => 5,
+                or OperationType.Division => 4,
             OperationType.Addition
-                or OperationType.Subtraction => 4,
+                or OperationType.Subtraction => 3,
             OperationType.Equal
                 or OperationType.NotEqual
                 or OperationType.LesserThanOrEqual
                 or OperationType.GreaterThanOrEqual
                 or OperationType.LesserThan
-                or OperationType.GreaterThan => 3,
+                or OperationType.GreaterThan => 2,
             OperationType.Or
-                or OperationType.And => 2,
-            OperationType.Cast => 1,
+                or OperationType.And => 1,
             _ => 0,
         };
     }

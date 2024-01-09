@@ -24,7 +24,7 @@ public sealed class ConstRetFn : IntrinsicFunction
         LLVMValueRef func = _module.AddFunction(Name, _value.Type.LLVMType);
 
         using LLVMBuilderRef builder = _module.Context.CreateBuilder();
-        builder.PositionAtEnd(func.AppendBasicBlock(""));
+        builder.PositionAtEnd(func.AppendBasicBlock("entry"));
         builder.BuildRet(_value.LLVMValue);
 
         return func;
@@ -40,9 +40,6 @@ public sealed class Pow : IntrinsicFunction
     {
         _module = module;
     }
-
-    public override Value Call(LLVMCompiler compiler, Value[] args)
-        => Type.Call(compiler, LLVMValue, args);
     
     protected override LLVMValueRef GenerateLLVMData()
     {
