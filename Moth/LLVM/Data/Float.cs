@@ -4,7 +4,5 @@ namespace Moth.LLVM.Data;
 
 public class Float : PrimitiveType
 {
-    public Float(string name, LLVMTypeRef llvmType) : base(name, llvmType)
-    {
-    }
+    public Float(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
 }

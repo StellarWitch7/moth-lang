@@ -6,8 +6,13 @@ private foreign func malloc(size #u64) #void*;
 private foreign func printf(text #char*, ~~) #i32;
 
 private func main() #i32 {
-    local arr #[#i32] = #i32[1, 2, 3];
-    return load arr.indxr(#u32(1));
+    local arr #[#i32] = #i32[1, 2, 3, 4, 5];
+    printf("%d\n", arr.indxr(#u32(0)));
+    printf("%d\n", arr.indxr(#u32(1)));
+    printf("%d\n", arr.indxr(#u32(2)));
+    printf("%d\n", arr.indxr(#u32(3)));
+    printf("%d\n", arr.indxr(#u32(4)));
+    return 0;
     // local v #i32 = 0 - 3 + 3; // returning 250 when it should be 0
     // return v;
 }

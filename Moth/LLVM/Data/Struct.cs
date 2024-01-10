@@ -10,6 +10,8 @@ public class Struct : Type, IContainer
     public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
     public Dictionary<Signature, Function> Methods { get; } = new Dictionary<Signature, Function>();
     public Dictionary<Signature, Function> StaticMethods { get; } = new Dictionary<Signature, Function>();
+
+    private uint _bitlength;
     
     public Struct(Namespace? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
         : base(llvmType, TypeKind.Class)
@@ -41,6 +43,26 @@ public class Struct : Type, IContainer
         get
         {
             return $"{ParentNamespace.FullName}#{Name}";
+        }
+    }
+
+    public override uint Bits
+    {
+        get
+        {
+            if (_bitlength == default)
+            {
+                uint i = 0;
+
+                foreach (var field in Fields.Values)
+                {
+                    i += field.Type.Bits;
+                }
+
+                _bitlength = i;
+            }
+
+            return _bitlength;
         }
     }
 

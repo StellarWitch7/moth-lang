@@ -1470,7 +1470,6 @@ public class LLVMCompiler
         }
 
         var sig = new Signature(funcCall.Name, argTypes);
-        context = SafeLoad(context);
 
         if (scope.Variables.TryGetValue(funcCall.Name, out Variable funcVar) && funcVar.Type.BaseType is FuncType funcVarType)
         {

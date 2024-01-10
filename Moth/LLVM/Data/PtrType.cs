@@ -25,6 +25,14 @@ public class PtrType : Type
         return depth;
     }
 
+    public override uint Bits
+    {
+        get
+        {
+            return 32;
+        }
+    }
+
     public override string ToString() => BaseType + "*";
 
     public override bool Equals(object? obj) => obj is PtrType bType && BaseType.Equals(bType.BaseType);
@@ -35,50 +43,4 @@ public class PtrType : Type
 public sealed class RefType : PtrType
 {
     public RefType(Type baseType) : base(baseType, TypeKind.Reference) { }
-}
-
-public sealed class ArrType : PtrType
-{
-    public override PrimitiveType BaseType { get; }
-    public Type ElementType { get; }
-    
-    public ArrType(LLVMCompiler compiler, Type elementType)
-        : base(new PrimitiveType($"[{elementType}]",
-            compiler.Context.GetStructType(new []
-            {
-                new PtrType(elementType).LLVMType,
-                LLVMTypeRef.Int32
-                
-            }, false)))
-    {
-        if (base.BaseType is not PrimitiveType primType)
-        {
-            throw new Exception("How in all hell did you manage that. (Critical compiler error, report to dev ASAP.)");
-        }
-        
-        BaseType = primType;
-        BaseType.Fields.Add("Length", new Field("Length", 1, Primitives.UInt32, PrivacyType.Public));
-        BaseType.Methods.Add(new Signature(Reserved.Indexer, new Type[] { new PtrType(BaseType), Primitives.UInt32 }),
-            new ArrayIndexerFunction(compiler, BaseType, elementType));
-        ElementType = elementType;
-    }
-
-    public override string ToString() => $"#[{ElementType}]";
-
-    public override bool Equals(object? obj)
-    {
-        if (obj is not ArrType arrType)
-        {
-            return false;
-        }
-
-        if (!ElementType.Equals(arrType.ElementType))
-        {
-            return false;
-        }
-
-        return base.Equals(obj);
-    }
-
-    public override int GetHashCode() => base.GetHashCode() + ElementType.GetHashCode();
 }

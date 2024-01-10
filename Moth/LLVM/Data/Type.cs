@@ -22,6 +22,14 @@ public class Type : CompilerData
         LLVMType = llvmType;
         Kind = kind;
     }
+    
+    public virtual uint Bits
+    {
+        get
+        {
+            throw new NotImplementedException();
+        }
+    }
 
     public override string ToString() => throw new NotImplementedException();
 

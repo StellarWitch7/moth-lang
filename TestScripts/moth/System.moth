@@ -1,32 +1,32 @@
 namespace core;
 
 @TargetOS("windows")
-public func STDIn() #File* {
+public func STDIn() #File {
     return #File.init(__acrt_iob_func(#u32(0)));
 }
 
 @TargetOS("windows")
-public func STDOut() #File* {
+public func STDOut() #File {
     return #File.init(__acrt_iob_func(#u32(1)));
 }
 
 @TargetOS("windows")
-public func STDErr() #File* {
+public func STDErr() #File {
     return #File.init(__acrt_iob_func(#u32(2)));
 }
 
 @TargetOS("linux")
-public func STDIn() #File* {
+public func STDIn() #File {
     return #File.init(stdin);
 }
 
 @TargetOS("linux")
-public func STDOut() #File* {
+public func STDOut() #File {
     return #File.init(stdout);
 }
 
 @TargetOS("linux")
-public func STDErr() #File* {
+public func STDErr() #File {
     return #File.init(stderr);
 }
 
@@ -58,19 +58,19 @@ public func Input(string #char*) #char* {
     return Input(string, STDOut(), STDIn());
 }
 
-public func Input(string #char*, output #File*, input #File*) #char* {
+public func Input(string #char*, output #File, input #File) #char* {
     output.Write(string, '\0');
     return input.ReadLine();
 }
 
-public func OpenFile(path #char*, mode #char*) #File* {
+public func OpenFile(path #char*, mode #char*) #File {
     return #File.init(fopen(path, mode));
 }
 
 public class File {
     public CFile #FILE*;
 
-    public static func init(cfile #FILE*) #File* {
+    public static func init(cfile #FILE*) #File {
         self.CFile = cfile;
         return self;
     }

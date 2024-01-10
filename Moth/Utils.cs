@@ -157,6 +157,20 @@ public static class ArrayExtensions
 
         return result;
     }
+
+    public static Value[] SafeLoadAll(this Value[] values, LLVMCompiler compiler)
+    {
+        var result = new Value[values.Length];
+        uint index = 0;
+
+        foreach (Value value in values)
+        {
+            result[index] = compiler.SafeLoad(value);
+            index++;
+        }
+
+        return result;
+    }
     
     public static LLVMValueRef[] AsLLVMValues(this Value[] values)
     {
