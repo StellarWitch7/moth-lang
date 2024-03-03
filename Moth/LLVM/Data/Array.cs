@@ -15,16 +15,17 @@ public class Array : Value
         _compiler = compiler;
         Type = new ArrType(compiler, elementType); //TODO: replace with lazy type creation?
         LLVMValue = compiler.Builder.BuildAlloca(Type.LLVMType);
-        
+
+        var arrLLVMType = LLVMTypeRef.CreateArray(elementType.LLVMType,
+            (uint)elements.Length);
         var arr = compiler.Builder.BuildStructGEP2(Type.LLVMType, LLVMValue, 0);
         var length = compiler.Builder.BuildStructGEP2(Type.LLVMType, LLVMValue, 1);
-        LLVMValueRef values = compiler.Builder.BuildAlloca(LLVMTypeRef.CreateArray(elementType.LLVMType,
-            (uint)elements.Length));
+        LLVMValueRef values = compiler.Builder.BuildAlloca(arrLLVMType);
         compiler.Builder.BuildStore(LLVMValueRef.CreateConstArray(elementType.LLVMType,
                 elements.SafeLoadAll(compiler)
                     .AsLLVMValues()),
             values);
-        compiler.Builder.BuildStore(values,
+        compiler.Builder.BuildStore(compiler.Builder.BuildLoad2(arrLLVMType, values),
             arr);
         compiler.Builder.BuildStore(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32,
                 (ulong)elements.Length),
