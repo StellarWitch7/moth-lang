@@ -534,7 +534,7 @@ public class LLVMCompiler
             var @new = methodType.OwnerStruct.Init(this);
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
-            if (!(@new.Type.BaseType is PtrType ptrType && ptrType.BaseType is Class classOfNew))
+            if (!(@new.Type.BaseType is Class classOfNew))
             {
                 throw new Exception($"Critical failure in the init of class \"{methodType.OwnerStruct}\".");
             }
@@ -1362,7 +1362,7 @@ public class LLVMCompiler
                     throw new Exception("Attempted self-instance reference in a global function.");
                 }
 
-                if (CurrentFunction.Name.Contains($".{Reserved.Init}:"))
+                if (CurrentFunction.Name == Reserved.Init)
                 {
                     context = scope.Variables[Reserved.Self];
                 }
@@ -1425,16 +1425,28 @@ public class LLVMCompiler
     {
         if (context != null)
         {
+            Struct @struct;
+            
             context = SafeLoad(context);
             
-            if (!(context.Type is PtrType ptrType && ptrType.BaseType is Struct structType)) //TODO: why are they not pointers?
+            if (context.Type is Struct temporary)
+            {
+                var ptrToStruct = Value.CreatePtrToTemp(this, context);
+                context = ptrToStruct;
+                @struct = temporary;
+            }
+            else if (context.Type is PtrType ptrType && ptrType.BaseType is Struct structType)
+            {
+                @struct = structType;
+            }
+            else
             {
                 throw new Exception($"Cannot do field access on value of type \"{context.Type}\".");
             }
             
-            Field field = structType.GetField(refNode.Name, CurrentFunction.OwnerStruct);
+            Field field = @struct.GetField(refNode.Name, CurrentFunction.OwnerStruct);
             return new Pointer(WrapAsRef(field.Type),
-                Builder.BuildStructGEP2(structType.LLVMType,
+                Builder.BuildStructGEP2(@struct.LLVMType,
                     context.LLVMValue,
                     field.FieldIndex,
                     field.Name));
@@ -1475,11 +1487,31 @@ public class LLVMCompiler
         {
             func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
         }
-        else if (context != null && context.Type is PtrType ptrType && ptrType.BaseType is Struct @struct)
+        else if (context != null)
         {
+            PtrType ptrType;
+            Struct @struct;
+            
+            if (context.Type is Struct temporary)
+            {
+                Pointer ptrToTemporary = Value.CreatePtrToTemp(this, context);
+                context = ptrToTemporary;
+                ptrType = ptrToTemporary.Type;
+                @struct = temporary;
+            }
+            else if (context.Type is PtrType structPtrType && structPtrType.BaseType is Struct baseType)
+            {
+                ptrType = structPtrType;
+                @struct = baseType;
+            }
+            else
+            {
+                throw new Exception("What");
+            }
+            
             var newArgTypes = new List<Type>
             {
-                new PtrType(@struct)
+                ptrType
             };
             
             newArgTypes.AddRange(argTypes);

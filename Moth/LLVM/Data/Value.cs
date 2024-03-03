@@ -34,6 +34,13 @@ public class Value : CompilerData
             return new Value(type, value);
         }
     }
+
+    public static Pointer CreatePtrToTemp(LLVMCompiler compiler, Value temporary)
+    {
+        var tempPtr = compiler.Builder.BuildAlloca(temporary.Type.LLVMType);
+        compiler.Builder.BuildStore(temporary.LLVMValue, tempPtr);
+        return new Pointer(new PtrType(temporary.Type), tempPtr);
+    }
 }
 
 public class ClassValue : Value //TODO: does this need to exist
