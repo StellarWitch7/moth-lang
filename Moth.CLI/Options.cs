@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using System.ComponentModel.Design.Serialization;
 
 namespace Moth.CLI;
 
@@ -10,6 +11,12 @@ internal class Options
         HelpText = "Whether to include extensive logging.")]
     public bool Verbose { get; set; }
 
+    [Option('n',
+        "no-meta",
+        Required = false,
+        HelpText = "Whether to strip metadata from the output file. WARNING: makes libraries act like C libraries!")]
+    public bool NoMetadata { get; set; }
+    
     [Option("debug-test",
         Required = false,
         HelpText = "Whether to run the output on success.")]

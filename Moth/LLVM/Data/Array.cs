@@ -20,6 +20,7 @@ public class Array : Value
             (uint)elements.Length);
         var arr = compiler.Builder.BuildStructGEP2(Type.LLVMType, LLVMValue, 0);
         var length = compiler.Builder.BuildStructGEP2(Type.LLVMType, LLVMValue, 1);
+        
         LLVMValueRef values = compiler.Builder.BuildAlloca(arrLLVMType);
         compiler.Builder.BuildStore(LLVMValueRef.CreateConstArray(elementType.LLVMType,
                 elements.SafeLoadAll(compiler)

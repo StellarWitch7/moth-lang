@@ -1395,20 +1395,33 @@ public class LLVMCompiler
             }
             else if (refNode is IndexAccessNode indexAccess)
             {
-                context = SafeLoad(CompileVarRef(context, scope, refNode));
+                context = SafeLoad(CompileVarRef(context, scope, refNode)); //TODO: an index access should work on any value, not just ref nodes
 
-                Type resultType = context.Type is PtrType ptrType
-                    ? ptrType.BaseType
-                    : throw new Exception($"Tried to use an index access on non-pointer \"{context.Type.LLVMType}\".");
+                if (context is Pointer ptr)
+                {
+                    Type resultType = ptr.Type.BaseType;
 
-                context = new Pointer(new RefType(resultType),
-                    Builder.BuildInBoundsGEP2(resultType.LLVMType,
-                        context.LLVMValue,
-                        new LLVMValueRef[]
-                        {
-                            Builder.BuildIntCast(SafeLoad(CompileExpression(scope, indexAccess.Index)).LLVMValue,
-                                LLVMTypeRef.Int64)
-                        }));
+                    context = new Pointer(new RefType(resultType),
+                        Builder.BuildInBoundsGEP2(resultType.LLVMType,
+                            context.LLVMValue,
+                            new LLVMValueRef[]
+                            {
+                                Builder.BuildIntCast(SafeLoad(CompileExpression(scope, indexAccess.Index)).LLVMValue,
+                                    LLVMTypeRef.Int64)
+                            }));
+                }
+                else if (context.Type is Struct @struct)
+                {
+                    context = CompileFuncCall(context, scope, new FuncCallNode(Reserved.Indexer, new ExpressionNode[1]
+                    {
+                        indexAccess.Index
+                    }), CurrentFunction.OwnerStruct);
+                }
+                else
+                {
+                    throw new Exception($"Cannot to use an index access on value of type \"{context.Type}\".");
+                }
+                
                 refNode = refNode.Child;
             }
             else
@@ -1521,7 +1534,7 @@ public class LLVMCompiler
             
             var newArgs = new List<Value>
             {
-                context.GetAddr(this) //TODO: is this correct?
+                context
             };
             
             newArgs.AddRange(args);
