@@ -571,26 +571,47 @@ public static class ASTGenerator
 
     public static TypeRefNode ProcessTypeRef(ParseContext context)
     {
-        if (context.Current?.Type is TokenType.TypeRef
-            or TokenType.GenericTypeRef) //TODO: handle this patheticness
+        if (context.Current?.Type == TokenType.TemplateTypeRef)
         {
-            TokenType? startToken = context.Current?.Type;
+            if (context.MoveNext()?.Type != TokenType.Name)
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            }
+            
+            string retTypeName = context.Current.Value.Text.ToString();
+            uint pointerDepth = 0;
 
+            context.MoveNext();
+            
+            while (context.Current?.Type == TokenType.Asterix)
+            {
+                pointerDepth++;
+                context.MoveNext();
+            }
+
+            return new LocalTypeRefNode(retTypeName, pointerDepth);
+        }
+        else
+        {
+            if (context.Current?.Type != TokenType.TypeRef)
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
+            }
+            
             if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
                 var genericParams = new List<ExpressionNode>();
                 uint pointerDepth = 0;
 
-                if (context.MoveNext()?.Type == TokenType.OpeningGenericBracket
-                    && startToken != TokenType.GenericTypeRef)
+                if (context.MoveNext()?.Type == TokenType.OpeningGenericBracket)
                 {
                     context.MoveNext();
 
                     while (context.Current?.Type != TokenType.ClosingGenericBracket)
                     {
                         if (context.Current?.Type is TokenType.TypeRef
-                            or TokenType.GenericTypeRef)
+                            or TokenType.TemplateTypeRef)
                         {
                             genericParams.Add(ProcessTypeRef(context));
                         }
@@ -608,6 +629,8 @@ public static class ASTGenerator
                             throw new UnexpectedTokenException(context.Current.Value);
                         }
                     }
+
+                    context.MoveNext();
                 }
 
                 while (context.Current?.Type == TokenType.Asterix)
@@ -617,16 +640,16 @@ public static class ASTGenerator
                 }
 
                 return genericParams.Count != 0
-                    ? new GenericTypeRefNode(retTypeName, genericParams, pointerDepth)
+                    ? new TemplateTypeRefNode(retTypeName, genericParams, pointerDepth)
                     : new TypeRefNode(retTypeName, pointerDepth);
             }
-            else if (startToken != TokenType.GenericTypeRef && context.Current?.Type == TokenType.OpeningParentheses)
+            else if (context.Current?.Type == TokenType.OpeningParentheses)
             {
                 var @params = new List<TypeRefNode>();
                 uint pointerDepth = 0;
                 TypeRefNode retType;
                 
-                while (context.MoveNext()?.Type is TokenType.TypeRef or TokenType.GenericTypeRef)
+                while (context.MoveNext()?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef)
                 {
                     @params.Add(ProcessTypeRef(context));
 
@@ -655,11 +678,11 @@ public static class ASTGenerator
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
                 }
             }
-            else if (startToken != TokenType.GenericTypeRef && context.Current?.Type == TokenType.OpeningSquareBrackets)
+            else if (context.Current?.Type == TokenType.OpeningSquareBrackets)
             {
                 uint pointerDepth = 0;
                 
-                if (!(context.MoveNext()?.Type is TokenType.TypeRef or TokenType.GenericTypeRef))
+                if (!(context.MoveNext()?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef))
                 {
                     throw new UnexpectedTokenException(context.Current.Value);
                 }
@@ -685,10 +708,6 @@ public static class ASTGenerator
             {
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
             }
-        }
-        else
-        {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
         }
     }
 
@@ -986,8 +1005,7 @@ public static class ASTGenerator
                 case TokenType.Decrement:
                     stack.Push(ProcessIncrementDecrement(context));
                     break;
-                case TokenType.GenericTypeRef:
-                    throw new NotImplementedException();
+                case TokenType.TemplateTypeRef:
                 case TokenType.TypeRef:
                     stack.Push(ProcessTypeRef(context));
                     break;

@@ -308,4 +308,33 @@ public static class ArrayExtensions
             return false;
         }
     }
+    
+    public static bool TryGetTemplate(this Namespace[] imports, string name, out Template template)
+    {
+        template = null;
+        
+        foreach (var import in imports)
+        {
+            if (import.Templates.TryGetValue(name, out template))
+            {
+                if (template.Privacy == PrivacyType.Private)
+                {
+                    template = null;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        if (template != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }

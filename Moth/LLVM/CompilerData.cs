@@ -1,5 +1,5 @@
 ﻿namespace Moth.LLVM;
 
-public class CompilerData
+public abstract class CompilerData
 {
 }

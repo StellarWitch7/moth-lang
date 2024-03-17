@@ -42,18 +42,3 @@ public class Value : CompilerData
         return new Pointer(new PtrType(temporary.Type), tempPtr);
     }
 }
-
-public class ClassValue : Value //TODO: does this need to exist
-{
-    public ClassValue(Class type, LLVMValueRef value) : base(type, value) { }
-}
-
-public class FieldValue : Value //TODO: owo, what's this?
-{
-    public FieldValue(LLVMCompiler compiler, Field field, ClassValue owner)
-        : base(field.Type,
-            compiler.Builder.BuildStructGEP2(owner.Type.LLVMType,
-                owner.LLVMValue,
-                field.FieldIndex,
-                field.Name)) { }
-}

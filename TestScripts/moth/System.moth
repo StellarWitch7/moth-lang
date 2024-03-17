@@ -136,37 +136,3 @@ public class File {
         return string;
     }
 }
-
-//public class Array<\T, SIZE #i32\> {
-//    private value ?T*;
-//
-//    public static func init() #Array<\?T, SIZE\> {
-//        self.value = malloc(SIZE * ?T.sizeof());
-//        return self;
-//    }
-//
-//    public func GetIndex(index #u32, val ?T**) #bool {
-//        (load val) = if index > 0
-//            and index < SIZE - 1
-//            then self.value[index]
-//            else null;
-//        return if index > 0
-//            and index < SIZE - 1
-//            then true
-//            else false;
-//    }
-//
-//    public func SetIndex(index #u32, item ?T) #bool {
-//
-//        if index < 0 or index > SIZE - 1 {
-//            return false;
-//        }
-//
-//        self.value[index] = item;
-//        return true;
-//    }
-//
-//    public func AsPointer() ?T* {
-//        return value;
-//    }
-//}

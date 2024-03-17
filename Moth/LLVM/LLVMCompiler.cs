@@ -26,6 +26,7 @@ public class LLVMCompiler
     private readonly Logger _logger = new Logger("moth/compiler");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>();
+    private Dictionary<string, Type> _anonTypes = new Dictionary<string, Type>();
     private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
@@ -226,7 +227,7 @@ public class LLVMCompiler
             {
                 if (classNode is GenericClassNode genericClass)
                 {
-                    CurrentNamespace.GenericClassTemplates.Add(genericClass.Name, genericClass);
+                    PrepareTemplate(genericClass);
                 }
                 else
                 {
@@ -265,11 +266,11 @@ public class LLVMCompiler
         {
             OpenFile(script.Namespace, script.Imports.ToArray());
 
-            foreach (ClassNode @class in script.ClassNodes)
+            foreach (ClassNode @struct in script.ClassNodes)
             {
-                if (@class is not GenericClassNode)
+                if (@struct is not GenericClassNode)
                 {
-                    CompileType(@class);
+                    CompileType(@struct);
                 }
             }
         }
@@ -303,6 +304,90 @@ public class LLVMCompiler
         return this;
     }
 
+    public void PrepareTemplate(GenericClassNode genericClassNode)
+    {
+        var attributes = new Dictionary<string, IAttribute>();
+        
+        foreach (AttributeNode attribute in genericClassNode.Attributes)
+        {
+            attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+        }
+
+        if (attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS()))
+        {
+            return;
+        }
+        
+        CurrentNamespace.Templates.Add(genericClassNode.Name,
+            new Template(CurrentNamespace,
+                genericClassNode.Name,
+                genericClassNode.Privacy,
+                genericClassNode.Scope,
+                _imports,
+                attributes,
+                PrepareTemplateParameters(genericClassNode.Params)));
+    }
+
+    public TemplateParameter[] PrepareTemplateParameters(IReadOnlyList<GenericParameterNode> @params)
+    {
+        var result = new List<TemplateParameter>();
+        
+        foreach (var param in @params)
+        {
+            result.Add(new TemplateParameter(param.Name, new TemplateParameterBound[0], false));
+        }
+
+        return result.ToArray();
+    }
+
+    public void BuildTemplate(Template template, ClassNode classNode, Struct @struct, IReadOnlyList<ExpressionNode> args)
+    {
+        var oldNamespace = _currentNamespace;
+        var oldImports = _imports;
+        var oldAnonTypes = _anonTypes;
+        var oldFunction = _currentFunction;
+
+        var newAnonTypes = new Dictionary<string, Type>();
+        
+        for (var i = 0; i < template.Params.Length; i++)
+        {
+            var param = template.Params[i];
+            var arg = args[i];
+
+            if (!param.IsConst)
+            {
+                newAnonTypes.Add(param.Name, ResolveType((TypeRefNode)arg));
+            }
+        }
+        
+        CurrentNamespace = template.Parent;
+        _imports = template.Imports;
+        _anonTypes = newAnonTypes;
+        CurrentFunction = null;
+
+        if (template.Contents == null)
+        {
+            throw new Exception($"Template \"{template.Name}\"has no contents.");
+        }
+        
+        CompileType(classNode, @struct);
+        
+        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+        {
+            DefineFunction(funcDefNode, @struct);
+        }
+        
+        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+        {
+            CompileFunction(funcDefNode, @struct);
+        }
+
+        CurrentNamespace = oldNamespace;
+        _imports = oldImports;
+        _anonTypes = oldAnonTypes;
+        CurrentFunction = oldFunction;
+    }
+
     public void DefineType(ClassNode classNode)
     {
         Struct newStruct;
@@ -331,7 +416,7 @@ public class LLVMCompiler
                 throw new Exception($"Class \"{classNode.Name}\" cannot be foreign.");
             }
             
-            newStruct = new Class(CurrentNamespace,
+            newStruct = new Struct(CurrentNamespace,
                 classNode.Name,
                 Context.CreateNamedStruct(classNode.Name),
                 classNode.Privacy);
@@ -341,10 +426,14 @@ public class LLVMCompiler
         Types.Add(newStruct.AddBuiltins(this));
     }
 
-    public void CompileType(ClassNode classNode)
+    public void CompileType(ClassNode classNode, Struct @struct = null)
     {
         var llvmTypes = new List<LLVMTypeRef>();
-        Struct @struct = GetStruct(classNode.Name);
+
+        if (@struct == null)
+        {
+            @struct = GetStruct(classNode.Name);
+        }
 
         if (@struct is OpaqueStruct)
         {
@@ -437,13 +526,9 @@ public class LLVMCompiler
             {
                 @struct.StaticMethods.Add(sig, func);
             }
-            else if (@struct is Class @class)
-            {
-                @class.Methods.Add(sig, func);
-            }
             else
             {
-                throw new Exception($"Cannot have instance method \"{func.Name}\" on struct \"{@struct.Name}\"");
+                @struct.Methods.Add(sig, func);
             }
         }
         else
@@ -495,9 +580,8 @@ public class LLVMCompiler
             return;
         }
         else if (@struct != null
-            && @struct is Class @class
             && !funcDefNode.IsStatic
-            && @class.Methods.TryGetValue(sig, out func))
+            && @struct.Methods.TryGetValue(sig, out func))
         {
             // Keep empty
         }
@@ -522,7 +606,7 @@ public class LLVMCompiler
 
         if (funcDefNode.Name == Reserved.Init && func.IsStatic && func.Type is MethodType methodType)
         {
-            if (func.Type.ReturnType is Class retType)
+            if (func.Type.ReturnType is Struct retType)
             {
                 if (retType != methodType.OwnerStruct)
                 {
@@ -534,12 +618,12 @@ public class LLVMCompiler
             var @new = methodType.OwnerStruct.Init(this);
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
-            if (!(@new.Type.BaseType is Class classOfNew))
+            if (!(@new.Type.BaseType is Struct structOfNew))
             {
                 throw new Exception($"Critical failure in the init of class \"{methodType.OwnerStruct}\".");
             }
             
-            foreach (Field field in classOfNew.Fields.Values)
+            foreach (Field field in structOfNew.Fields.Values)
             {
                 LLVMValueRef llvmField = Builder.BuildStructGEP2(methodType.OwnerStruct.LLVMType, @new.LLVMValue, field.FieldIndex);
                 var zeroedVal = LLVMValueRef.CreateConstNull(field.Type.LLVMType);
@@ -600,7 +684,7 @@ public class LLVMCompiler
         return ResolveType(param.TypeRef);
     }
 
-    public void DefineGlobal(FieldDefNode globalDef, Class? @class = null)
+    public void DefineGlobal(FieldDefNode globalDef, Struct? @struct = null)
     {
         Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
@@ -770,9 +854,17 @@ public class LLVMCompiler
     {
         Type type;
 
-        if (typeRef is GenericTypeRefNode)
+        if (typeRef is LocalTypeRefNode localTypeRef)
         {
-            throw new NotImplementedException();
+            if (!_anonTypes.TryGetValue(localTypeRef.Name, out type))
+            {
+                throw new Exception($"No template loaded with type parameter \"{localTypeRef.Name}\".");
+            }
+        }
+        else if (typeRef is TemplateTypeRefNode tmplTypeRef)
+        {
+            Template template = GetTemplate(tmplTypeRef.Name);
+            type = template.Build(this, tmplTypeRef.Arguments);
         }
         else if (typeRef is FuncTypeRefNode fnTypeRef)
         {
@@ -798,7 +890,7 @@ public class LLVMCompiler
             type = @struct;
         }
         
-        for (int i = 0; i < typeRef.PointerDepth; i++) //TODO: confirm it works
+        for (int i = 0; i < typeRef.PointerDepth; i++)
         {
             type = new PtrType(type);
         }
@@ -1589,6 +1681,22 @@ public class LLVMCompiler
         else
         {
             throw new Exception($"Could not find type \"{name}\".");
+        }
+    }
+    
+    public Template GetTemplate(string name)
+    {
+        if (CurrentNamespace.TryGetTemplate(name, out Template template))
+        {
+            return template;
+        }
+        else if (_imports.TryGetTemplate(name, out template))
+        {
+            return template;
+        }
+        else
+        {
+            throw new Exception($"Could not find template \"{name}\".");
         }
     }
 

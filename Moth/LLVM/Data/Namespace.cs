@@ -10,8 +10,7 @@ public class Namespace : CompilerData, IContainer
     public Dictionary<Signature, Function> Functions { get; } = new Dictionary<Signature, Function>();
     public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
     public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
-    public Dictionary<string, GenericClassNode> GenericClassTemplates { get; } = new Dictionary<string, GenericClassNode>();
-    public GenericDictionary GenericClasses { get; } = new GenericDictionary();
+    public Dictionary<string, Template> Templates { get; } = new Dictionary<string, Template>();
 
     public Namespace(Namespace? parent, string name)
     {
@@ -140,6 +139,40 @@ public class Namespace : CompilerData, IContainer
         catch
         {
             @struct = null;
+            return false;
+        }
+    }
+    
+    public Template GetTemplate(string name)
+    {
+        if (Templates.TryGetValue(name, out Template template))
+        {
+            return template;
+        }
+        else
+        {
+            return ParentNamespace != null
+                ? ParentNamespace.GetTemplate(name)
+                : throw new Exception($"Template \"{name}\" was not found in namespace \"{Name}\"");
+        }
+    }
+    
+    public bool TryGetTemplate(string name, out Template template)
+    {
+        try
+        {
+            template = GetTemplate(name);
+
+            if (template == null)
+            {
+                throw new Exception();
+            }
+            
+            return true;
+        }
+        catch
+        {
+            template = null;
             return false;
         }
     }

@@ -169,7 +169,7 @@ public static class Tokenizer
                         tokens.Add(new Token()
                         {
                             Text = $"{character}".AsMemory(),
-                            Type = character == '?' ? TokenType.GenericTypeRef : TokenType.TypeRef,
+                            Type = character == '?' ? TokenType.TemplateTypeRef : TokenType.TypeRef,
                         });
 
                         break;

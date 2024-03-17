@@ -6,48 +6,14 @@ private foreign func malloc(size #u64) #void*;
 private foreign func printf(text #char*, ~~) #i32;
 
 private func main() #i32 {
-    local arr #[#i32] = #i32[1, 2, 3, 4, 5];
-    
-    printf("%d\n", arr[#u32(0)]);
-    printf("%d\n", arr[#u32(1)]);
-    printf("%d\n", arr[#u32(2)]); // why is this giving 5 instead of 3
-    printf("%d\n", arr[#u32(3)]);
-    printf("%d\n", arr[#u32(4)]);
-    
+    local arr ?= #Thing<\#i32\>.init();
     return 0;
 }
 
-// public class TestArray {
-//     private value #i32*;
-//     private size #u64;
+public class Thing<\T\> {
+    public value ?T;
 
-//     public static func init(size #u64) #TestArray {
-//         self.value = #i32* <- malloc(size * #i32.sizeof());
-//         self.size = size;
-//         return self;
-//     }
-
-//     public func GetIndex(index #u64, val #i32**) #bool {
-//         (load val) = if (index >= (#u64 <- 0))
-//             and index < self.size
-//             then self.value[index]
-//             else 0;
-//         return if (index >= (#u64 <- 0))
-//             and index < self.size
-//             then true
-//             else false;
-//     }
-
-//     public func SetIndex(index #u64, item #i32) #bool {
-//         if (index < #u64 <- 0) or index >= self.size {
-//             return false;
-//         }
-
-//         self.value[index] = item;
-//         return true;
-//     }
-
-//     public func AsPointer() #i32* {
-//         return self.value;
-//     }
-// }
+    public static func init() #Thing<\T\> {
+        return self;
+    }
+}

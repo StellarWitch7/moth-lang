@@ -4,7 +4,6 @@ namespace Moth.LLVM.Metadata;
 
 public struct Type
 {
-    public bool is_struct;
     public bool is_foreign;
     public PrivacyType privacy;
     public ulong name_table_index;

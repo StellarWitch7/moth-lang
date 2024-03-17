@@ -147,30 +147,14 @@ public unsafe class MetadataDeserializer
 
             if (type.is_foreign)
             {
-                if (!type.is_struct)
-                {
-                    throw new Exception("Incorrect metadata encoding: Cannot have non-struct foreign.");
-                }
-                
                 result = new OpaqueStruct(_compiler, parent, name, type.privacy);
             }
             else
             {
-                if (type.is_struct)
-                {
-                    result = new Struct(parent,
-                        name,
-                        _compiler.Context.CreateNamedStruct(fullname),
-                        type.privacy);
-                }
-                else
-                {
-                    result = new Class(parent,
-                        name,
-                        _compiler.Context.CreateNamedStruct(fullname),
-                        type.privacy);
-                }
-                
+                result = new Struct(parent,
+                    name,
+                    _compiler.Context.CreateNamedStruct(fullname),
+                    type.privacy);
                 result.AddBuiltins(_compiler);
             }
             
