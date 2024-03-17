@@ -1,8 +1,13 @@
 ﻿namespace Moth.AST.Node;
 
-public class IndexAccessNode : RefNode
+public class IndexAccessNode : ExpressionNode
 {
-    public ExpressionNode Index { get; set; }
+    public ExpressionNode ToBeIndexed { get; set; }
+    public IReadOnlyList<ExpressionNode> Params { get; set; }
 
-    public IndexAccessNode(string name, ExpressionNode index) : base(name) => Index = index;
+    public IndexAccessNode(ExpressionNode toBeIndexed, IReadOnlyList<ExpressionNode> @params)
+    {
+        ToBeIndexed = toBeIndexed;
+        Params = @params;
+    }
 }

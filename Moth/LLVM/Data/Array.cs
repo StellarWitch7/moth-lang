@@ -4,6 +4,8 @@ namespace Moth.LLVM.Data;
 
 public class Array : Value
 {
+    public static Dictionary<Type, ArrType> ArrayTypes { get; } = new Dictionary<Type, ArrType>();
+    
     public override ArrType Type { get; }
     public override LLVMValueRef LLVMValue { get; }
 
@@ -13,7 +15,7 @@ public class Array : Value
         : base(null, null)
     {
         _compiler = compiler;
-        Type = new ArrType(compiler, elementType); //TODO: replace with lazy type creation?
+        Type = ResolveType(compiler, elementType);
         LLVMValue = compiler.Builder.BuildAlloca(Type.LLVMType);
 
         var arrLLVMType = LLVMTypeRef.CreateArray(elementType.LLVMType,
@@ -32,11 +34,26 @@ public class Array : Value
                 (ulong)elements.Length),
             length);
     }
+
+    public static ArrType ResolveType(LLVMCompiler compiler, Type elementType)
+    {
+        if (Array.ArrayTypes.TryGetValue(elementType, out ArrType type))
+        {
+            // Keep empty
+        }
+        else
+        {
+            type = new ArrType(compiler, elementType);
+            ArrayTypes.Add(elementType, type);
+        }
+
+        return type;
+    }
 }
 
 public class ArrayIndexerFunction : DefinedFunction
 {
-    public ArrayIndexerFunction(LLVMCompiler compiler, PrimitiveType internalArrayStruct, Type elementType)
+    public ArrayIndexerFunction(LLVMCompiler compiler, ArrType internalArrayStruct, Type elementType)
         : base(compiler, internalArrayStruct, Reserved.Indexer, new FuncType(new RefType(elementType), new Type[]
         {
             new PtrType(internalArrayStruct),
@@ -44,13 +61,16 @@ public class ArrayIndexerFunction : DefinedFunction
         }, false), new Parameter[0], PrivacyType.Public, false, new Dictionary<string, IAttribute>())
     {
         using LLVMBuilderRef builder = compiler.Module.Context.CreateBuilder();
+        
         builder.PositionAtEnd(LLVMValue.AppendBasicBlock("entry"));
+        
         var rawArray = builder.BuildLoad2(LLVMTypeRef.CreatePointer(elementType.LLVMType, 0),
             builder.BuildStructGEP2(internalArrayStruct.LLVMType, LLVMValue.Params[0], 0));
         var result = builder.BuildInBoundsGEP2(elementType.LLVMType, rawArray, new LLVMValueRef[]
         {
             LLVMValue.Params[1]
         });
+        
         builder.BuildRet(result);
     }
 }

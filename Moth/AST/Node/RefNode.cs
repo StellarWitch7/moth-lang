@@ -3,11 +3,11 @@
 public class RefNode : ExpressionNode
 {
     public string Name { get; set; }
-    public RefNode? Child { set; get; }
+    public ExpressionNode? Parent { set; get; }
 
-    public RefNode(string name)
+    public RefNode(string name, ExpressionNode parent)
     {
         Name = name;
-        Child = null;
+        Parent = parent;
     }
 }

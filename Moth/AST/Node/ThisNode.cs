@@ -1,8 +1,5 @@
 ﻿namespace Moth.AST.Node;
 
-public class ThisNode : RefNode
+public class ThisNode : ExpressionNode
 {
-    public ThisNode() : base(null)
-    {
-    }
 }

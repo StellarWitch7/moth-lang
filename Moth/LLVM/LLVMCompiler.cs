@@ -790,7 +790,7 @@ public class LLVMCompiler
         else if (typeRef is ArrayTypeRefNode arrayTypeRef)
         {
             Type elementType = ResolveType(arrayTypeRef.ElementType);
-            type = new ArrType(this, elementType);
+            type = Array.ResolveType(this, elementType);
         }
         else
         {
@@ -903,39 +903,94 @@ public class LLVMCompiler
         {
             return CompileLiteral(literalNode);
         }
+        else if (expr is ThisNode @this)
+        {
+            if (CurrentFunction.OwnerStruct == null)
+            {
+                throw new Exception("Attempted self-instance reference in a global function.");
+            }
+
+            if (CurrentFunction.IsStatic)
+            {
+                if (CurrentFunction.Name == Reserved.Init)
+                {
+                    return scope.Variables[Reserved.Self];
+                }
+                else
+                {
+                    throw new Exception("Attempted self-instance reference in a static method.");
+                }
+            }
+            else
+            {
+                return Value.Create(new PtrType(CurrentFunction.OwnerStruct), CurrentFunction.LLVMValue.FirstParam);
+            }
+        }
+        else if (expr is IndexAccessNode indexAccess)
+        {
+            var toBeIndexed = SafeLoad(CompileExpression(scope, indexAccess.ToBeIndexed));
+
+            if (toBeIndexed is Pointer ptr)
+            {
+                Type resultType = ptr.Type.BaseType;
+
+                if (indexAccess.Params.Count != 1)
+                {
+                    throw new Exception("Standard pointer indexer must be given one parameter as index.");
+                }
+                    
+                return new Pointer(new RefType(resultType),
+                    Builder.BuildInBoundsGEP2(resultType.LLVMType,
+                        toBeIndexed.LLVMValue,
+                        new LLVMValueRef[]
+                        {
+                            Builder.BuildIntCast(SafeLoad(CompileExpression(scope, indexAccess.Params[0])).LLVMValue,
+                                LLVMTypeRef.Int64)
+                        }));
+            }
+            else if (toBeIndexed.Type is Struct @struct)
+            {
+                return CompileFuncCall(scope, new FuncCallNode(Reserved.Indexer, indexAccess.Params, indexAccess.ToBeIndexed), CurrentFunction.OwnerStruct);
+            }
+            else
+            {
+                throw new Exception($"Cannot to use an index access on value of type \"{toBeIndexed.Type}\".");
+            }
+        }
         else if (expr is InverseNode inverse)
         {
-            Value @ref = CompileRef(scope, inverse.Value);
-            return Value.Create(@ref.Type,
+            var value = CompileExpression(scope, inverse.Value);
+            
+            return Value.Create(value.Type,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
-                    SafeLoad(@ref).LLVMValue,
+                    SafeLoad(value).LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)));
         }
         else if (expr is IncrementVarNode incrementVar)
         {
-            Value @ref = CompileRef(scope, incrementVar.RefNode);
+            var value = CompileExpression(scope, incrementVar.Value);
 
-            if (@ref is not Pointer ptr || @ref.Type is not RefType || SafeLoad(@ref).Type is PtrType or FuncType)
+            if (value is not Pointer ptr || value.Type is not RefType || SafeLoad(value).Type is PtrType or FuncType)
             {
                 throw new Exception(); //TODO
             }
             
-            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildAdd(SafeLoad(@ref).LLVMValue, valToAdd)));
-            return new Pointer(WrapAsRef(@ref.Type), @ref.LLVMValue);
+            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(value).Type.LLVMType, 1); //TODO: float compat?
+            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildAdd(SafeLoad(value).LLVMValue, valToAdd)));
+            return new Pointer(WrapAsRef(value.Type), value.LLVMValue);
         }
         else if (expr is DecrementVarNode decrementVar)
         {
-            Value @ref = CompileRef(scope, decrementVar.RefNode);
+            var value = CompileExpression(scope, decrementVar.Value);
 
-            if (@ref is not Pointer ptr || @ref.Type is not RefType || SafeLoad(@ref).Type is PtrType or FuncType)
+            if (value is not Pointer ptr || value.Type is not RefType || SafeLoad(value).Type is PtrType or FuncType)
             {
                 throw new Exception(); //TODO
             }
             
-            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(@ref).Type.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(@ref).LLVMValue, valToAdd)));
-            return new Pointer(WrapAsRef(@ref.Type), @ref.LLVMValue);
+            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(value).Type.LLVMType, 1); //TODO: float compat?
+            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(value).LLVMValue, valToAdd)));
+            return new Pointer(WrapAsRef(value.Type), value.LLVMValue);
         }
         else if (expr is AddressOfNode addrofNode)
         {
@@ -950,13 +1005,21 @@ public class LLVMCompiler
                 ? ptr.Load(this)
                 : throw new Exception("Attempted to load a non-pointer.");
         }
+        else if (expr is FuncCallNode funcCall)
+        {
+            return CompileFuncCall(scope, funcCall, CurrentFunction.OwnerStruct);
+        }
+        else if (expr is RefNode @ref)
+        {
+            return CompileVarRef(scope, @ref);
+        }
+        else if (expr is SubExprNode subExpr)
+        {
+            return CompileExpression(scope, subExpr.Expression);
+        }
         else
         {
-            return expr is RefNode @ref
-                ? CompileRef(scope, @ref)
-                : expr is SubExprNode subExpr
-                    ? CompileExpression(scope, subExpr.Expression)
-                    : throw new NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 
@@ -1348,140 +1411,55 @@ public class LLVMCompiler
 
         return ret;
     }
-
-    public Value CompileRef(Scope scope, RefNode? refNode)
+    
+    public Pointer CompileVarRef(Scope scope, RefNode @ref)
     {
-        Value? context = null;
-
-        while (refNode != null)
-        {
-            if (refNode is ThisNode)
-            {
-                if (CurrentFunction.OwnerStruct == null)
-                {
-                    throw new Exception("Attempted self-instance reference in a global function.");
-                }
-
-                if (CurrentFunction.Name == Reserved.Init)
-                {
-                    context = scope.Variables[Reserved.Self];
-                }
-                else
-                {
-                    context = Value.Create(new PtrType(CurrentFunction.OwnerStruct), CurrentFunction.LLVMValue.FirstParam);
-                }
-
-                refNode = refNode.Child;
-            }
-            else if (refNode is TypeRefNode typeRef)
-            {
-                Struct @struct = GetStruct(typeRef.Name);
-                refNode = refNode.Child;
-
-                if (refNode is FuncCallNode funcCall)
-                {
-                    context = CompileFuncCall(context, scope, funcCall, @struct);
-                    refNode = refNode.Child;
-                }
-                else
-                {
-                    throw new Exception($"#{@struct} cannot be treated like an expression value.");
-                }
-            }
-            else if (refNode is FuncCallNode funcCall)
-            {
-                context = CompileFuncCall(context, scope, funcCall);
-                refNode = refNode.Child;
-            }
-            else if (refNode is IndexAccessNode indexAccess)
-            {
-                context = SafeLoad(CompileVarRef(context, scope, refNode)); //TODO: an index access should work on any value, not just ref nodes
-
-                if (context is Pointer ptr)
-                {
-                    Type resultType = ptr.Type.BaseType;
-
-                    context = new Pointer(new RefType(resultType),
-                        Builder.BuildInBoundsGEP2(resultType.LLVMType,
-                            context.LLVMValue,
-                            new LLVMValueRef[]
-                            {
-                                Builder.BuildIntCast(SafeLoad(CompileExpression(scope, indexAccess.Index)).LLVMValue,
-                                    LLVMTypeRef.Int64)
-                            }));
-                }
-                else if (context.Type is Struct @struct)
-                {
-                    context = CompileFuncCall(context, scope, new FuncCallNode(Reserved.Indexer, new ExpressionNode[1]
-                    {
-                        indexAccess.Index
-                    }), CurrentFunction.OwnerStruct);
-                }
-                else
-                {
-                    throw new Exception($"Cannot to use an index access on value of type \"{context.Type}\".");
-                }
-                
-                refNode = refNode.Child;
-            }
-            else
-            {
-                context = CompileVarRef(context, scope, refNode);
-                refNode = refNode.Child;
-            }
-        }
-
-        return context ?? throw new Exception($"Failed to compile \"{refNode}\".");
-    }
-
-    public Pointer CompileVarRef(Value? context, Scope scope, RefNode refNode)
-    {
-        if (context != null)
+        if (@ref.Parent != null)
         {
             Struct @struct;
             
-            context = SafeLoad(context);
+            var parent = SafeLoad(CompileExpression(scope, @ref.Parent));
             
-            if (context.Type is Struct temporary)
+            if (parent.Type is Struct temporary)
             {
-                var ptrToStruct = Value.CreatePtrToTemp(this, context);
-                context = ptrToStruct;
+                var ptrToStruct = Value.CreatePtrToTemp(this, parent);
+                parent = ptrToStruct;
                 @struct = temporary;
             }
-            else if (context.Type is PtrType ptrType && ptrType.BaseType is Struct structType)
+            else if (parent.Type is PtrType ptrType && ptrType.BaseType is Struct structType)
             {
                 @struct = structType;
             }
             else
             {
-                throw new Exception($"Cannot do field access on value of type \"{context.Type}\".");
+                throw new Exception($"Cannot do field access on value of type \"{parent.Type}\".");
             }
             
-            Field field = @struct.GetField(refNode.Name, CurrentFunction.OwnerStruct);
+            Field field = @struct.GetField(@ref.Name, CurrentFunction.OwnerStruct);
             return new Pointer(WrapAsRef(field.Type),
                 Builder.BuildStructGEP2(@struct.LLVMType,
-                    context.LLVMValue,
+                    parent.LLVMValue,
                     field.FieldIndex,
                     field.Name));
         }
         else
         {
-            if (scope.Variables.TryGetValue(refNode.Name, out Variable @var))
+            if (scope.Variables.TryGetValue(@ref.Name, out Variable @var))
             {
                 return @var;
             }
-            else if (CurrentNamespace.TryGetGlobal(refNode.Name, out IGlobal globalVar))
+            else if (CurrentNamespace.TryGetGlobal(@ref.Name, out IGlobal globalVar))
             {
                 return (Variable)globalVar;
             }
             else
             {
-                throw new Exception($"Variable \"{refNode.Name}\" does not exist.");
+                throw new Exception($"Variable \"{@ref.Name}\" does not exist.");
             }
         }
     }
 
-    public Value CompileFuncCall(Value? context, Scope scope, FuncCallNode funcCall, Struct? sourceStruct = null)
+    public Value CompileFuncCall(Scope scope, FuncCallNode funcCall, Struct? sourceStruct = null)
     {
         Function? func;
         var argTypes = new List<Type>();
@@ -1495,64 +1473,84 @@ public class LLVMCompiler
         }
 
         var sig = new Signature(funcCall.Name, argTypes);
+        
+        if (funcCall.ToCallOn != null)
+        {
+            if (funcCall.ToCallOn is TypeRefNode typeRef)
+            {
+                var type = ResolveType(typeRef);
 
-        if (scope.Variables.TryGetValue(funcCall.Name, out Variable funcVar) && funcVar.Type.BaseType is FuncType funcVarType)
-        {
-            func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
-        }
-        else if (context != null)
-        {
-            PtrType ptrType;
-            Struct @struct;
-            
-            if (context.Type is Struct temporary)
-            {
-                Pointer ptrToTemporary = Value.CreatePtrToTemp(this, context);
-                context = ptrToTemporary;
-                ptrType = ptrToTemporary.Type;
-                @struct = temporary;
-            }
-            else if (context.Type is PtrType structPtrType && structPtrType.BaseType is Struct baseType)
-            {
-                ptrType = structPtrType;
-                @struct = baseType;
+                if (type is Struct @struct)
+                {
+                    if (@struct.StaticMethods.TryGetValue(sig, out func))
+                    {
+                        // Keep empty
+                    }
+                    else
+                    {
+                        throw new Exception($"Static method \"{sig}\" does not exist on struct \"{@struct}\".");
+                    }
+                }
+                else
+                {
+                    throw new Exception($"Cannot call static method \"{funcCall.Name}\" on non-struct \"{type}\".");
+                }
             }
             else
             {
-                throw new Exception("What");
+                var toCallOn = SafeLoad(CompileExpression(scope, funcCall.ToCallOn));
+            
+                PtrType ptrType;
+                Struct @struct;
+            
+                if (toCallOn.Type is Struct temporary)
+                {
+                    Pointer ptrToTemporary = Value.CreatePtrToTemp(this, toCallOn);
+                    toCallOn = ptrToTemporary;
+                    ptrType = ptrToTemporary.Type;
+                    @struct = temporary;
+                }
+                else if (toCallOn.Type is PtrType structPtrType && structPtrType.BaseType is Struct baseType)
+                {
+                    ptrType = structPtrType;
+                    @struct = baseType;
+                }
+                else
+                {
+                    throw new Exception("What");
+                }
+            
+                var newArgTypes = new List<Type>
+                {
+                    ptrType
+                };
+            
+                newArgTypes.AddRange(argTypes);
+                argTypes = newArgTypes;
+                sig = new Signature(sig.Name, argTypes);
+                func = @struct.GetMethod(sig, CurrentFunction.OwnerStruct);
+            
+                var newArgs = new List<Value>
+                {
+                    toCallOn
+                };
+            
+                newArgs.AddRange(args);
+                args = newArgs;
             }
-            
-            var newArgTypes = new List<Type>
-            {
-                ptrType
-            };
-            
-            newArgTypes.AddRange(argTypes);
-            argTypes = newArgTypes;
-            sig = new Signature(sig.Name, argTypes);
-            func = @struct.GetMethod(sig, CurrentFunction.OwnerStruct);
-            
-            var newArgs = new List<Value>
-            {
-                context
-            };
-            
-            newArgs.AddRange(args);
-            args = newArgs;
         }
-        else if (context == null
-            && sourceStruct != null
+        else if (scope.Variables.TryGetValue(funcCall.Name, out Variable funcVar) && funcVar.Type.BaseType is FuncType funcVarType)
+        {
+            func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
+        }
+        else if (sourceStruct != null
             && sourceStruct.TryGetFunction(sig, CurrentFunction.OwnerStruct, false, out func))
         {
             // Keep empty
         }
-        else if (context == null)
-        {
-            func = GetFunction(sig);
-        }
         else
         {
-            throw new Exception($"Function \"{funcCall.Name}\" does not exist.");
+            func = GetFunction(sig);
         }
 
         return func.Call(this, args.ToArray());

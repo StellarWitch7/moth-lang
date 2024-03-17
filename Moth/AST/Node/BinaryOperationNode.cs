@@ -4,12 +4,11 @@ public class BinaryOperationNode : ExpressionNode
 {
     public OperationType Type { get; set; }
     public ExpressionNode Left { get; set; }
-    public ExpressionNode Right { get; set; }
+    public ExpressionNode Right { get; set; } = null;
 
-    public BinaryOperationNode(ExpressionNode left, ExpressionNode right, OperationType type)
+    public BinaryOperationNode(ExpressionNode left, OperationType type)
     {
         Left = left;
-        Right = right;
         Type = type;
     }
 }

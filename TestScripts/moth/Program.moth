@@ -7,14 +7,14 @@ private foreign func printf(text #char*, ~~) #i32;
 
 private func main() #i32 {
     local arr #[#i32] = #i32[1, 2, 3, 4, 5];
+    
     printf("%d\n", arr[#u32(0)]);
     printf("%d\n", arr[#u32(1)]);
-    printf("%d\n", arr[#u32(2)]);
+    printf("%d\n", arr[#u32(2)]); // why is this giving 5 instead of 3
     printf("%d\n", arr[#u32(3)]);
     printf("%d\n", arr[#u32(4)]);
+    
     return 0;
-    // local v #i32 = 0 - 3 + 3; // returning 250 when it should be 0
-    // return v;
 }
 
 // public class TestArray {

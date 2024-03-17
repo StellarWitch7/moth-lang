@@ -2,7 +2,7 @@
 
 public class InverseNode : ExpressionNode
 {
-    public RefNode Value { get; set; }
+    public ExpressionNode Value { get; set; }
 
-    public InverseNode(RefNode value) => Value = value;
+    public InverseNode(ExpressionNode value) => Value = value;
 }

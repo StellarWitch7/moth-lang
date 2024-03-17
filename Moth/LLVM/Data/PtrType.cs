@@ -33,7 +33,7 @@ public class PtrType : Type
         }
     }
 
-    public override string ToString() => BaseType + "*";
+    public override string ToString() => $"{BaseType}*";
 
     public override bool Equals(object? obj) => obj is PtrType bType && BaseType.Equals(bType.BaseType);
 
