@@ -14,7 +14,7 @@ public class LLVMCompiler
     public bool DoOptimize { get; }
     public LLVMContextRef Context { get; }
     public LLVMModuleRef Module { get; }
-    public LLVMBuilderRef Builder { get; }
+    public LLVMBuilderRef Builder { get; set; }
     public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
     public List<Struct> Types { get; } = new List<Struct>();
@@ -342,6 +342,7 @@ public class LLVMCompiler
 
     public void BuildTemplate(Template template, ClassNode classNode, Struct @struct, IReadOnlyList<ExpressionNode> args)
     {
+        var oldBuilder = Builder;
         var oldNamespace = _currentNamespace;
         var oldImports = _imports;
         var oldAnonTypes = _anonTypes;
@@ -359,7 +360,8 @@ public class LLVMCompiler
                 newAnonTypes.Add(param.Name, ResolveType((TypeRefNode)arg));
             }
         }
-        
+
+        Builder = Context.CreateBuilder();
         CurrentNamespace = template.Parent;
         _imports = template.Imports;
         _anonTypes = newAnonTypes;
@@ -382,6 +384,8 @@ public class LLVMCompiler
             CompileFunction(funcDefNode, @struct);
         }
 
+        Builder.Dispose();
+        Builder = oldBuilder;
         CurrentNamespace = oldNamespace;
         _imports = oldImports;
         _anonTypes = oldAnonTypes;
