@@ -116,12 +116,10 @@ public static class Tokenizer
                                 "and" => TokenType.And,
                                 "func" => TokenType.Function,
                                 "struct" => TokenType.Struct,
-                                "class" => TokenType.Class,
                                 "with" => TokenType.Import,
                                 "public" => TokenType.Public,
                                 "static" => TokenType.Static,
                                 "return" => TokenType.Return,
-                                "private" => TokenType.Private,
                                 "foreign" => TokenType.Foreign,
                                 _ => TokenType.Name,
                             },
@@ -174,73 +172,80 @@ public static class Tokenizer
 
                         break;
                     }
-
+                
                 // Parse symbols
                 case var _ when char.IsSymbol(ch) || char.IsPunctuation(ch):
                     {
                         char? next = stream.Next;
-                        TokenType? type = ch switch
-                        {
-                            '.' when next is '.' => TokenType.Range,
-                            '=' when next is '=' => TokenType.Equal,
-                            '!' when next is '=' => TokenType.NotEqual,
-                            '<' when next is '=' => TokenType.LesserThanOrEqual,
-                            '>' when next is '=' => TokenType.GreaterThanOrEqual,
-                            '+' when next is '=' => TokenType.AddAssign,
-                            '-' when next is '=' => TokenType.SubAssign,
-                            '*' when next is '=' => TokenType.MulAssign,
-                            '/' when next is '=' => TokenType.DivAssign,
-                            '%' when next is '=' => TokenType.ModAssign,
-                            '^' when next is '=' => TokenType.ExpAssign,
-                            '+' when next is '+' => TokenType.Increment,
-                            '-' when next is '-' => TokenType.Decrement,
-                            '~' when next is '~' => TokenType.Variadic,
-                            '?' when next is '=' => TokenType.InferAssign,
-                            '<' when next is '\\' => TokenType.OpeningGenericBracket,
-                            '\\' when next is '>' => TokenType.ClosingGenericBracket,
-                            ':' => TokenType.Colon,
-                            '^' => TokenType.Exponential,
-                            ',' => TokenType.Comma,
-                            '.' => TokenType.Period,
-                            ';' => TokenType.Semicolon,
-                            '{' => TokenType.OpeningCurlyBraces,
-                            '}' => TokenType.ClosingCurlyBraces,
-                            '(' => TokenType.OpeningParentheses,
-                            ')' => TokenType.ClosingParentheses,
-                            '[' => TokenType.OpeningSquareBrackets,
-                            ']' => TokenType.ClosingSquareBrackets,
-                            '>' => TokenType.GreaterThan,
-                            '<' => TokenType.LesserThan,
-                            '|' => TokenType.Or,
-                            '&' => TokenType.And,
-                            '!' => TokenType.Not,
-                            '+' => TokenType.Plus,
-                            '/' => TokenType.ForwardSlash,
-                            '-' => TokenType.Hyphen,
-                            '*' => TokenType.Asterix,
-                            '%' => TokenType.Modulo,
-                            '=' => TokenType.Assign,
-                            '@' => TokenType.AttributeMarker,
+                        char? next2 = stream.Next2;
+                        TokenType? type;
 
-                            _ => throw new TokenizerException
+                        if (ch == '.' && next == '.' && next2 == '.')
+                        {
+                            type = TokenType.Variadic;
+                        }
+                        else
+                        {
+                            type = ch switch
                             {
-                                Character = ch,
-                                Line = stream.CurrentLine,
-                                Column = stream.CurrentColumn,
-                                Position = stream.Position,
-                            },
-                        };
+                                '.' when next is '.' => TokenType.Range,
+                                '=' when next is '=' => TokenType.Equal,
+                                '!' when next is '=' => TokenType.NotEqual,
+                                '<' when next is '=' => TokenType.LesserThanOrEqual,
+                                '>' when next is '=' => TokenType.GreaterThanOrEqual,
+                                '+' when next is '=' => TokenType.AddAssign,
+                                '-' when next is '=' => TokenType.SubAssign,
+                                '*' when next is '=' => TokenType.MulAssign,
+                                '/' when next is '=' => TokenType.DivAssign,
+                                '%' when next is '=' => TokenType.ModAssign,
+                                '^' when next is '=' => TokenType.ExpAssign,
+                                '+' when next is '+' => TokenType.Increment,
+                                '-' when next is '-' => TokenType.Decrement,
+                                '?' when next is '=' => TokenType.InferAssign,
+                                ':' => TokenType.Colon,
+                                '^' => TokenType.Exponential,
+                                ',' => TokenType.Comma,
+                                '.' => TokenType.Period,
+                                ';' => TokenType.Semicolon,
+                                '{' => TokenType.OpeningCurlyBraces,
+                                '}' => TokenType.ClosingCurlyBraces,
+                                '(' => TokenType.OpeningParentheses,
+                                ')' => TokenType.ClosingParentheses,
+                                '[' => TokenType.OpeningSquareBrackets,
+                                ']' => TokenType.ClosingSquareBrackets,
+                                '>' => TokenType.GreaterThan,
+                                '<' => TokenType.LesserThan,
+                                '|' => TokenType.Or,
+                                '&' => TokenType.And,
+                                '!' => TokenType.Not,
+                                '+' => TokenType.Plus,
+                                '/' => TokenType.ForwardSlash,
+                                '-' => TokenType.Hyphen,
+                                '*' => TokenType.Asterix,
+                                '%' => TokenType.Modulo,
+                                '=' => TokenType.Assign,
+                                '@' => TokenType.AttributeMarker,
+
+                                _ => throw new TokenizerException
+                                {
+                                    Character = ch,
+                                    Line = stream.CurrentLine,
+                                    Column = stream.CurrentColumn,
+                                    Position = stream.Position,
+                                },
+                            };
+                        }
 
                         var newToken = new Token
                         {
                             Text = type switch
                             {
-                                TokenType.Variadic or TokenType.InferAssign
+                                TokenType.Variadic => stream.Peek(3),
+                                TokenType.InferAssign
                                     or TokenType.AddAssign or TokenType.SubAssign
                                     or TokenType.MulAssign or TokenType.DivAssign
                                     or TokenType.ModAssign or TokenType.ExpAssign
                                     or TokenType.Increment or TokenType.Decrement
-                                    or TokenType.OpeningGenericBracket or TokenType.ClosingGenericBracket
                                     or TokenType.LesserThanOrEqual or TokenType.GreaterThanOrEqual
                                     or TokenType.Equal or TokenType.NotEqual => stream.Peek(2),
                                 _ => stream.Peek(1),

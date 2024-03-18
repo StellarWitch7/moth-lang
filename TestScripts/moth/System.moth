@@ -67,7 +67,7 @@ public func OpenFile(path #char*, mode #char*) #File {
     return #File.init(fopen(path, mode));
 }
 
-public class File {
+public struct File {
     public CFile #FILE*;
 
     public static func init(cfile #FILE*) #File {

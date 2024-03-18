@@ -34,9 +34,15 @@ public struct PeekStream
     {
         get
         {
-            return Position < Length - 1
-        ? _text[Position + 1]
-        : null;
+            return Position < Length - 1 ? _text[Position + 1] : null;
+        }
+    }
+
+    public char? Next2
+    {
+        get
+        {
+            return Position < Length - 2 ? _text[Position + 2] : null;
         }
     }
 

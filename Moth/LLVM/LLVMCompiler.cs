@@ -223,9 +223,9 @@ public class LLVMCompiler
         {
             OpenFile(script.Namespace, script.Imports.ToArray());
 
-            foreach (ClassNode classNode in script.ClassNodes)
+            foreach (StructNode classNode in script.ClassNodes)
             {
-                if (classNode is GenericClassNode genericClass)
+                if (classNode is TemplateNode genericClass)
                 {
                     PrepareTemplate(genericClass);
                 }
@@ -245,9 +245,9 @@ public class LLVMCompiler
                 DefineFunction(funcDefNode);
             }
 
-            foreach (ClassNode classNode in script.ClassNodes)
+            foreach (StructNode classNode in script.ClassNodes)
             {
-                if (classNode is not GenericClassNode)
+                if (classNode is not TemplateNode)
                 {
                     Struct @struct = GetStruct(classNode.Name);
 
@@ -266,9 +266,9 @@ public class LLVMCompiler
         {
             OpenFile(script.Namespace, script.Imports.ToArray());
 
-            foreach (ClassNode @struct in script.ClassNodes)
+            foreach (StructNode @struct in script.ClassNodes)
             {
-                if (@struct is not GenericClassNode)
+                if (@struct is not TemplateNode)
                 {
                     CompileType(@struct);
                 }
@@ -284,9 +284,9 @@ public class LLVMCompiler
                 CompileFunction(funcDefNode);
             }
 
-            foreach (ClassNode classNode in script.ClassNodes)
+            foreach (StructNode classNode in script.ClassNodes)
             {
-                if (classNode is not GenericClassNode)
+                if (classNode is not TemplateNode)
                 {
                     Struct @struct = GetStruct(classNode.Name);
 
@@ -304,11 +304,11 @@ public class LLVMCompiler
         return this;
     }
 
-    public void PrepareTemplate(GenericClassNode genericClassNode)
+    public void PrepareTemplate(TemplateNode templateNode)
     {
         var attributes = new Dictionary<string, IAttribute>();
         
-        foreach (AttributeNode attribute in genericClassNode.Attributes)
+        foreach (AttributeNode attribute in templateNode.Attributes)
         {
             attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
         }
@@ -318,17 +318,17 @@ public class LLVMCompiler
             return;
         }
         
-        CurrentNamespace.Templates.Add(genericClassNode.Name,
+        CurrentNamespace.Templates.Add(templateNode.Name,
             new Template(CurrentNamespace,
-                genericClassNode.Name,
-                genericClassNode.Privacy,
-                genericClassNode.Scope,
+                templateNode.Name,
+                templateNode.Privacy,
+                templateNode.Scope,
                 _imports,
                 attributes,
-                PrepareTemplateParameters(genericClassNode.Params)));
+                PrepareTemplateParameters(templateNode.Params)));
     }
 
-    public TemplateParameter[] PrepareTemplateParameters(IReadOnlyList<GenericParameterNode> @params)
+    public TemplateParameter[] PrepareTemplateParameters(IReadOnlyList<TemplateParameterNode> @params)
     {
         var result = new List<TemplateParameter>();
         
@@ -340,7 +340,7 @@ public class LLVMCompiler
         return result.ToArray();
     }
 
-    public void BuildTemplate(Template template, ClassNode classNode, Struct @struct, IReadOnlyList<ExpressionNode> args)
+    public void BuildTemplate(Template template, StructNode structNode, Struct @struct, IReadOnlyList<ExpressionNode> args)
     {
         var oldBuilder = Builder;
         var oldNamespace = _currentNamespace;
@@ -372,14 +372,14 @@ public class LLVMCompiler
             throw new Exception($"Template \"{template.Name}\"has no contents.");
         }
         
-        CompileType(classNode, @struct);
+        CompileType(structNode, @struct);
         
-        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+        foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
         {
             DefineFunction(funcDefNode, @struct);
         }
         
-        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+        foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
         {
             CompileFunction(funcDefNode, @struct);
         }
@@ -392,51 +392,36 @@ public class LLVMCompiler
         CurrentFunction = oldFunction;
     }
 
-    public void DefineType(ClassNode classNode)
+    public void DefineType(StructNode structNode)
     {
         Struct newStruct;
         
-        if (classNode.IsStruct)
+        if (structNode.Scope == null)
         {
-            if (classNode.Scope == null)
-            {
-                newStruct = new OpaqueStruct(this,
-                    CurrentNamespace,
-                    classNode.Name,
-                    classNode.Privacy);
-            }
-            else
-            {
-                newStruct = new Struct(CurrentNamespace,
-                    classNode.Name,
-                    Context.CreateNamedStruct(classNode.Name),
-                    classNode.Privacy);
-            }
+            newStruct = new OpaqueStruct(this,
+                CurrentNamespace,
+                structNode.Name,
+                structNode.Privacy);
         }
         else
         {
-            if (classNode.Scope == null)
-            {
-                throw new Exception($"Class \"{classNode.Name}\" cannot be foreign.");
-            }
-            
             newStruct = new Struct(CurrentNamespace,
-                classNode.Name,
-                Context.CreateNamedStruct(classNode.Name),
-                classNode.Privacy);
+                structNode.Name,
+                Context.CreateNamedStruct(structNode.Name),
+                structNode.Privacy);
         }
         
-        CurrentNamespace.Structs.Add(classNode.Name, newStruct);
+        CurrentNamespace.Structs.Add(structNode.Name, newStruct);
         Types.Add(newStruct.AddBuiltins(this));
     }
 
-    public void CompileType(ClassNode classNode, Struct @struct = null)
+    public void CompileType(StructNode structNode, Struct @struct = null)
     {
         var llvmTypes = new List<LLVMTypeRef>();
 
         if (@struct == null)
         {
-            @struct = GetStruct(classNode.Name);
+            @struct = GetStruct(structNode.Name);
         }
 
         if (@struct is OpaqueStruct)
@@ -446,7 +431,7 @@ public class LLVMCompiler
         
         uint index = 0;
 
-        foreach (FieldDefNode field in classNode.Scope.Statements.OfType<FieldDefNode>())
+        foreach (FieldDefNode field in structNode.Scope.Statements.OfType<FieldDefNode>())
         {
             Type fieldType = ResolveType(field.TypeRef);
             llvmTypes.Add(fieldType.LLVMType);

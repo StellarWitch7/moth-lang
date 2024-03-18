@@ -2,18 +2,18 @@ namespace test;
 
 with core;
 
-private foreign func malloc(size #u64) #void*;
-private foreign func printf(text #char*, ~~) #i32;
+foreign func malloc(size #u64) #void*;
+foreign func printf(text #char*, ...) #i32;
 
-private func main() #i32 {
-    local arr ?= #Thing<\#i32\>.init();
+func main() #i32 {
+    local arr ?= #Thing<#i32>.init();
     return 0;
 }
 
-public class Thing<\T\> {
+struct Thing<T> {
     public value ?T;
 
-    public static func init() #Thing<\T\> {
+    public static func init() #Thing<?T> {
         return self;
     }
 }

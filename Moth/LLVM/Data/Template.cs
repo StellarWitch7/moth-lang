@@ -64,7 +64,7 @@ public class Template : CompilerData
             }
         }
 
-        var classNode = new ClassNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, true);
+        var classNode = new StructNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents);
         @struct = new Struct(Parent,
             classNode.Name,
             compiler.Context.CreateNamedStruct(classNode.Name),
