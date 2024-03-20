@@ -1073,18 +1073,15 @@ public class LLVMCompiler
             ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(value).LLVMValue, valToAdd)));
             return new Pointer(WrapAsRef(value.Type), value.LLVMValue);
         }
-        else if (expr is AddressOfNode addrofNode)
+        else if (expr is PointerOfNode addrofNode)
         {
             Value value = CompileExpression(scope, addrofNode.Value);
-            return value.GetAddr(this);
+            return value.GetPointer(this);
         }
-        else if (expr is LoadNode loadNode)
+        else if (expr is RefOfNode loadNode)
         {
-            Value value = SafeLoad(CompileExpression(scope, loadNode.Value));
-
-            return value is Pointer ptr
-                ? ptr.Load(this)
-                : throw new Exception("Attempted to load a non-pointer.");
+            Value value = CompileExpression(scope, loadNode.Value);
+            return value.DeRef(this);
         }
         else if (expr is FuncCallNode funcCall)
         {
@@ -1100,6 +1097,11 @@ public class LLVMCompiler
         }
         else
         {
+            if (expr == null)
+            {
+                throw new Exception("Critical! Cannot compiled null expression.");
+            }
+            
             throw new NotImplementedException();
         }
     }

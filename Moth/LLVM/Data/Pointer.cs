@@ -51,6 +51,33 @@ public class Pointer : Value
             throw new Exception("Failed to load pointer!");
         }
     }
+    
+    public override Pointer GetPointer(LLVMCompiler compiler)
+    {
+        if (Type is RefType)
+        {
+            return new Pointer(new PtrType(Type.BaseType), LLVMValue);
+        }
+
+        return base.GetPointer(compiler);
+    }
+    
+    public override Value DeRef(LLVMCompiler compiler)
+    {
+        if (Type is not RefType)
+        {
+            return new Pointer(new RefType(Type.BaseType), LLVMValue);
+        }
+
+        var midVal = compiler.SafeLoad(this);
+
+        if (midVal is not Pointer pointer)
+        {
+            throw new Exception("Cannot dereference value as it is not a pointer!");
+        }
+
+        return pointer.DeRef(compiler);
+    }
 
     public virtual string GetInvalidTypeErrorMsg(Value value)
     {

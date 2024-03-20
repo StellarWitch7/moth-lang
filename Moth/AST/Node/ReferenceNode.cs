@@ -1,8 +1,8 @@
 ﻿namespace Moth.AST.Node;
 
-public class AddressOfNode : ExpressionNode
+public class PointerOfNode : ExpressionNode
 {
     public ExpressionNode Value { get; set; }
 
-    public AddressOfNode(ExpressionNode value) => Value = value;
+    public PointerOfNode(ExpressionNode value) => Value = value;
 }

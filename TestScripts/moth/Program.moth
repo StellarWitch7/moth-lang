@@ -6,8 +6,9 @@ foreign func malloc(size #u64) #void*;
 foreign func printf(text #char*, ...) #i32;
 
 func main() #i32 {
-    local arr ?= #Thing<#i32>.init();
-    return 0;
+    local v #i32* = &5;
+    local v2 #i32 = *v;
+    return v2;
 }
 
 struct Thing<T> {

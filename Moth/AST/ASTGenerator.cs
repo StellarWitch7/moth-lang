@@ -791,13 +791,9 @@ public static class ASTGenerator
                     stack.Push(new LiteralNode(3.14159265358979323846264f));
                     context.MoveNext();
                     break;
-                case TokenType.AddressOf:
+                case TokenType.PtrOf:
                     context.MoveNext();
-                    stack.Push(new AddressOfNode(ProcessExpression(context)));
-                    break;
-                case TokenType.DeRef:
-                    context.MoveNext();
-                    stack.Push(new LoadNode(ProcessExpression(context)));
+                    stack.Push(new PointerOfNode(ProcessExpression(context)));
                     break;
                 case TokenType.Function:
                     if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
@@ -899,19 +895,27 @@ public static class ASTGenerator
                     stack.Push(new InlineIfNode(condition, then, @else));
                     break;
                 case TokenType.Hyphen:
-                    if (stack.Count == 0)
-                    {
-                        context.MoveNext();
-                        stack.Push(new BinaryOperationNode(new LiteralNode(-1), OperationType.Multiplication));
-                        break;
-                    }
-                    else
+                    if (stack.Count != 0
+                        && stack.Peek() is not BinaryOperationNode)
                     {
                         goto case TokenType.Assign;
                     }
+                    
+                    context.MoveNext();
+                    stack.Push(new BinaryOperationNode(new LiteralNode(-1), OperationType.Multiplication));
+                    break;
+                case TokenType.Asterix:
+                    if (stack.Count != 0
+                        && stack.Peek() is not BinaryOperationNode)
+                    {
+                        goto case TokenType.Assign;
+                    }
+                    
+                    context.MoveNext();
+                    stack.Push(new RefOfNode(ProcessExpression(context)));
+                    break;
                 case TokenType.Assign:
                 case TokenType.Plus:
-                case TokenType.Asterix:
                 case TokenType.ForwardSlash:
                 case TokenType.Modulo:
                 case TokenType.Exponential:

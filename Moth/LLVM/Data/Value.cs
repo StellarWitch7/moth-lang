@@ -16,11 +16,16 @@ public class Value : CompilerData
         return this;
     }
 
-    public virtual Pointer GetAddr(LLVMCompiler compiler)
+    public virtual Pointer GetPointer(LLVMCompiler compiler)
     {
         LLVMValueRef newVal = compiler.Builder.BuildAlloca(Type.LLVMType);
         compiler.Builder.BuildStore(LLVMValue, newVal);
         return new Pointer(new PtrType(Type), newVal);
+    }
+
+    public virtual Value DeRef(LLVMCompiler compiler)
+    {
+        throw new Exception("Cannot dereference value as it is not a pointer!");
     }
 
     public static Value Create(Type type, LLVMValueRef value)

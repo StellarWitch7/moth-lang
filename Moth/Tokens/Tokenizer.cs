@@ -97,8 +97,6 @@ public static class Tokenizer
                             Type = keyword.Span switch
                             {
                                 "if" => TokenType.If,
-                                "addrof" => TokenType.AddressOf,
-                                "load" => TokenType.DeRef,
                                 "null" => TokenType.Null,
                                 "local" => TokenType.Local,
                                 "self" => TokenType.This,
@@ -202,6 +200,7 @@ public static class Tokenizer
                                 '+' when next is '+' => TokenType.Increment,
                                 '-' when next is '-' => TokenType.Decrement,
                                 '?' when next is '=' => TokenType.InferAssign,
+                                '&' => TokenType.PtrOf,
                                 ':' => TokenType.Colon,
                                 '^' => TokenType.Exponential,
                                 ',' => TokenType.Comma,
@@ -215,8 +214,6 @@ public static class Tokenizer
                                 ']' => TokenType.ClosingSquareBrackets,
                                 '>' => TokenType.GreaterThan,
                                 '<' => TokenType.LesserThan,
-                                '|' => TokenType.Or,
-                                '&' => TokenType.And,
                                 '!' => TokenType.Not,
                                 '+' => TokenType.Plus,
                                 '/' => TokenType.ForwardSlash,

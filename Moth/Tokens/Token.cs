@@ -93,13 +93,12 @@ public enum TokenType
     LiteralChar,
     Then,
     TemplateTypeRef,
-    AddressOf,
     AddAssign,
     SubAssign,
     MulAssign,
     DivAssign,
     ModAssign,
     ExpAssign,
-    DeRef,
+    PtrOf,
     ScientificNotation
 }
