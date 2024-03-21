@@ -7,7 +7,7 @@ public class Namespace : CompilerData, IContainer
     public IContainer? Parent { get; }
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
-    public Dictionary<Signature, Function> Functions { get; } = new Dictionary<Signature, Function>();
+    public Dictionary<string, OverloadList> Functions { get; } = new Dictionary<string, OverloadList>();
     public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
     public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
     public Dictionary<string, Template> Templates { get; } = new Dictionary<string, Template>();
@@ -75,25 +75,26 @@ public class Namespace : CompilerData, IContainer
         }
     }
 
-    public Function GetFunction(Signature sig)
+    public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
     {
-        if (Functions.TryGetValue(sig, out Function func))
+        if (Functions.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func))
         {
             return func;
         }
         else
         {
             return ParentNamespace != null
-                ? ParentNamespace.GetFunction(sig)
-                : throw new Exception($"Function \"{sig}\" was not found.");
+                ? ParentNamespace.GetFunction(name, paramTypes)
+                : throw new Exception($"Function \"{name}\" was not found.");
         }
     }
 
-    public bool TryGetFunction(Signature sig, out Function func)
+    public bool TryGetFunction(string name, IReadOnlyList<Type> paramTypes, out Function func)
     {
         try
         {
-            func = GetFunction(sig);
+            func = GetFunction(name, paramTypes);
 
             if (func == null)
             {

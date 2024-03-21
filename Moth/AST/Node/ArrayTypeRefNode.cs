@@ -4,7 +4,7 @@ public class ArrayTypeRefNode : TypeRefNode
 {
     public TypeRefNode ElementType { get; set; }
 
-    public ArrayTypeRefNode(TypeRefNode elementType, uint pointerDepth = 0) : base(null, pointerDepth)
+    public ArrayTypeRefNode(TypeRefNode elementType, uint pointerDepth, bool isRef) : base(null, pointerDepth, isRef)
     {
         ElementType = elementType;
     }

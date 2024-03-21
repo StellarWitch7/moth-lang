@@ -251,13 +251,14 @@ public static class ArrayExtensions
         }
     }
 
-    public static bool TryGetFunction(this Namespace[] imports, Signature sig, out Function func)
+    public static bool TryGetFunction(this Namespace[] imports, string name, IReadOnlyList<Type> paramTypes, out Function func)
     {
         func = null;
         
         foreach (var import in imports)
         {
-            if (import.Functions.TryGetValue(sig, out func))
+            if (import.Functions.TryGetValue(name, out OverloadList overloads)
+                && overloads.TryGet(paramTypes, out func))
             {
                 if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private)
                 {

@@ -43,12 +43,8 @@ public sealed class ArrType : PrimitiveType
             }, false), 64)
     {
         Fields.Add("Length", new Field("Length", 1, Primitives.UInt32, PrivacyType.Public));
-        Methods.Add(new Signature(Reserved.Indexer, new Type[]
-            {
-                new PtrType(this),
-                Primitives.UInt32
-            }),
-            new ArrayIndexerFunction(compiler, this, elementType));
+        Methods.TryAdd(Reserved.Indexer, new OverloadList(Reserved.Indexer));
+        Methods[Reserved.Indexer].Add(new ArrayIndexerFunction(compiler, this, elementType));
         ElementType = elementType;
     }
 

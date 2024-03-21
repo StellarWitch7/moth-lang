@@ -475,7 +475,6 @@ public class LLVMCompiler
             index++;
         }
 
-        var sig = new Signature(funcDefNode.Name, paramTypes, funcDefNode.IsVariadic);
         string funcName = funcDefNode.Name;
         var builder = new StringBuilder("(");
         
@@ -508,21 +507,25 @@ public class LLVMCompiler
             funcDefNode.Privacy,
             funcDefNode.IsForeign,
             attributes);
+        OverloadList overloads;
         
         if (@struct != null)
         {
             if (funcDefNode.IsStatic)
             {
-                @struct.StaticMethods.Add(sig, func);
+                @struct.StaticMethods.TryAdd(func.Name, new OverloadList(func.Name));
+                overloads = @struct.StaticMethods[func.Name];
             }
             else
             {
-                @struct.Methods.Add(sig, func);
+                @struct.Methods.TryAdd(func.Name, new OverloadList(func.Name));
+                overloads = @struct.Methods[func.Name];
             }
         }
         else
         {
-            CurrentNamespace.Functions.Add(sig, func);
+            CurrentNamespace.Functions.TryAdd(func.Name, new OverloadList(func.Name));
+            overloads = CurrentNamespace.Functions[func.Name];
         }
         
         Functions.Add(func);
@@ -543,6 +546,7 @@ public class LLVMCompiler
         }
         
         Function? func;
+        OverloadList? overloads;
         var paramTypes = new List<Type>();
 
         foreach (ParameterNode param in funcDefNode.Params)
@@ -560,8 +564,6 @@ public class LLVMCompiler
             newParamTypes.AddRange(paramTypes);
             paramTypes = newParamTypes;
         }
-        
-        var sig = new Signature(funcDefNode.Name, paramTypes);
 
         if (funcDefNode.IsForeign
             || funcDefNode.ExecutionBlock == null)
@@ -570,17 +572,20 @@ public class LLVMCompiler
         }
         else if (@struct != null
             && !funcDefNode.IsStatic
-            && @struct.Methods.TryGetValue(sig, out func))
+            && @struct.Methods.TryGetValue(funcDefNode.Name, out overloads)
+            && overloads.TryGet(paramTypes, out func))
         {
             // Keep empty
         }
         else if (@struct != null
             && funcDefNode.IsStatic
-            && @struct.StaticMethods.TryGetValue(sig, out func))
+            && @struct.StaticMethods.TryGetValue(funcDefNode.Name, out overloads)
+            && overloads.TryGet(paramTypes, out func))
         {
             // Keep empty
         }
-        else if (CurrentNamespace.Functions.TryGetValue(sig, out func))
+        else if (CurrentNamespace.Functions.TryGetValue(funcDefNode.Name, out overloads)
+            && overloads.TryGet(paramTypes, out func))
         {
             // Keep empty
         }
@@ -882,6 +887,11 @@ public class LLVMCompiler
         for (int i = 0; i < typeRef.PointerDepth; i++)
         {
             type = new PtrType(type);
+        }
+
+        if (typeRef.IsRef)
+        {
+            type = new RefType(type);
         }
 
         return type;
@@ -1550,12 +1560,10 @@ public class LLVMCompiler
 
         foreach (ExpressionNode arg in funcCall.Arguments)
         {
-            Value val = CompileExpression(scope, arg);
-            argTypes.Add(val.Type is RefType @ref ? @ref.BaseType : val.Type);
-            args.Add(SafeLoad(val));
+            Value val = SafeLoad(CompileExpression(scope, arg));
+            argTypes.Add(val.Type);
+            args.Add(val);
         }
-
-        var sig = new Signature(funcCall.Name, argTypes);
         
         if (funcCall.ToCallOn != null)
         {
@@ -1565,13 +1573,14 @@ public class LLVMCompiler
 
                 if (type is Struct @struct)
                 {
-                    if (@struct.StaticMethods.TryGetValue(sig, out func))
+                    if (@struct.StaticMethods.TryGetValue(funcCall.Name, out OverloadList overloads)
+                        && overloads.TryGet(argTypes, out func))
                     {
                         // Keep empty
                     }
                     else
                     {
-                        throw new Exception($"Static method \"{sig}\" does not exist on struct \"{@struct}\".");
+                        throw new Exception($"Static method \"{funcCall.Name}\" does not exist on struct \"{@struct}\".");
                     }
                 }
                 else
@@ -1581,7 +1590,7 @@ public class LLVMCompiler
             }
             else
             {
-                var toCallOn = SafeLoad(CompileExpression(scope, funcCall.ToCallOn));
+                var toCallOn = CompileExpression(scope, funcCall.ToCallOn);
             
                 PtrType ptrType;
                 Struct @struct;
@@ -1610,8 +1619,7 @@ public class LLVMCompiler
             
                 newArgTypes.AddRange(argTypes);
                 argTypes = newArgTypes;
-                sig = new Signature(sig.Name, argTypes);
-                func = @struct.GetMethod(sig, CurrentFunction.OwnerStruct);
+                func = @struct.GetMethod(funcCall.Name, argTypes, CurrentFunction.OwnerStruct);
             
                 var newArgs = new List<Value>
                 {
@@ -1627,13 +1635,13 @@ public class LLVMCompiler
             func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
         }
         else if (sourceStruct != null
-            && sourceStruct.TryGetFunction(sig, CurrentFunction.OwnerStruct, false, out func))
+            && sourceStruct.TryGetFunction(funcCall.Name, argTypes, CurrentFunction.OwnerStruct, false, out func))
         {
             // Keep empty
         }
         else
         {
-            func = GetFunction(sig);
+            func = GetFunction(funcCall.Name, argTypes);
         }
 
         return func.Call(this, args.ToArray());
@@ -1691,25 +1699,25 @@ public class LLVMCompiler
         }
     }
 
-    public Function GetFunction(Signature sig)
+    public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
     {
         if (CurrentFunction != null
             && CurrentFunction.OwnerStruct != null
-            && CurrentFunction.OwnerStruct.TryGetFunction(sig, CurrentFunction.OwnerStruct, true, out Function func))
+            && CurrentFunction.OwnerStruct.TryGetFunction(name, paramTypes, CurrentFunction.OwnerStruct, true, out Function func))
         {
             return func;
         }
-        else if (CurrentNamespace.TryGetFunction(sig, out func))
+        else if (CurrentNamespace.TryGetFunction(name, paramTypes, out func))
         {
             return func;
         }
-        else if (_imports.TryGetFunction(sig, out func))
+        else if (_imports.TryGetFunction(name, paramTypes, out func))
         {
             return func;
         }
         else
         {
-            throw new Exception($"Could not find function \"{sig}\".");
+            throw new Exception($"Could not find function \"{name}\".");
         }
     }
 

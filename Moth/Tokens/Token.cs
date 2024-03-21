@@ -99,6 +99,6 @@ public enum TokenType
     DivAssign,
     ModAssign,
     ExpAssign,
-    PtrOf,
+    Ampersand,
     ScientificNotation
 }

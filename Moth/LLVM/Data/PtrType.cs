@@ -7,7 +7,15 @@ public class PtrType : Type
     public virtual Type BaseType { get; }
 
     protected PtrType(Type baseType, TypeKind kind)
-        : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind) => BaseType = baseType;
+        : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind)
+    {
+        if (baseType is RefType)
+        {
+            throw new Exception("References cannot be pointed to or referenced!");
+        }
+        
+        BaseType = baseType;
+    }
     
     public PtrType(Type baseType) : this(baseType, TypeKind.Pointer) { }
 
@@ -43,4 +51,6 @@ public class PtrType : Type
 public sealed class RefType : PtrType
 {
     public RefType(Type baseType) : base(baseType, TypeKind.Reference) { }
+    
+    public override string ToString() => $"{BaseType}&";
 }

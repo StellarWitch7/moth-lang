@@ -359,7 +359,7 @@ public static class ASTGenerator
                     List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
                     TypeRefNode retTypeRef = context.Current?.Type == TokenType.OpeningCurlyBraces
                         || context.Current?.Type == TokenType.Semicolon
-                            ? new TypeRefNode(Reserved.Void, 0)
+                            ? new TypeRefNode(Reserved.Void, 0, false)
                             : ProcessTypeRef(context);
 
                     if (!isForeign && context.Current?.Type == TokenType.OpeningCurlyBraces)
@@ -565,16 +565,24 @@ public static class ASTGenerator
             
             string retTypeName = context.Current.Value.Text.ToString();
             uint pointerDepth = 0;
+            bool isRef = false;
 
             context.MoveNext();
             
-            while (context.Current?.Type == TokenType.Asterix)
+            while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
             {
+                if (context.Current?.Type == TokenType.Ampersand)
+                {
+                    isRef = true;
+                    context.MoveNext();
+                    break;
+                }
+                
                 pointerDepth++;
                 context.MoveNext();
             }
 
-            return new LocalTypeRefNode(retTypeName, pointerDepth);
+            return new LocalTypeRefNode(retTypeName, pointerDepth, isRef);
         }
         else
         {
@@ -588,6 +596,7 @@ public static class ASTGenerator
                 string retTypeName = context.Current.Value.Text.ToString();
                 var genericParams = new List<ExpressionNode>();
                 uint pointerDepth = 0;
+                bool isRef = false;
 
                 if (context.MoveNext()?.Type == TokenType.LesserThan)
                 {
@@ -630,20 +639,28 @@ public static class ASTGenerator
                     context.MoveNext();
                 }
 
-                while (context.Current?.Type == TokenType.Asterix)
+                while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
                 {
+                    if (context.Current?.Type == TokenType.Ampersand)
+                    {
+                        isRef = true;
+                        context.MoveNext();
+                        break;
+                    }
+                
                     pointerDepth++;
                     context.MoveNext();
                 }
 
                 return genericParams.Count != 0
-                    ? new TemplateTypeRefNode(retTypeName, genericParams, pointerDepth)
-                    : new TypeRefNode(retTypeName, pointerDepth);
+                    ? new TemplateTypeRefNode(retTypeName, genericParams, pointerDepth, isRef)
+                    : new TypeRefNode(retTypeName, pointerDepth, isRef);
             }
             else if (context.Current?.Type == TokenType.OpeningParentheses)
             {
                 var @params = new List<TypeRefNode>();
                 uint pointerDepth = 0;
+                bool isRef = false;
                 TypeRefNode retType;
                 
                 while (context.MoveNext()?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef)
@@ -660,15 +677,25 @@ public static class ASTGenerator
                     }
                 }
 
-                while (context.MoveNext()?.Type == TokenType.Asterix)
+                context.MoveNext();
+                
+                while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
                 {
+                    if (context.Current?.Type == TokenType.Ampersand)
+                    {
+                        isRef = true;
+                        context.MoveNext();
+                        break;
+                    }
+                
                     pointerDepth++;
+                    context.MoveNext();
                 }
 
                 if (context.Current?.Type == TokenType.TypeRef)
                 {
                     retType = ProcessTypeRef(context);
-                    return new FuncTypeRefNode(retType, @params, pointerDepth);
+                    return new FuncTypeRefNode(retType, @params, pointerDepth, isRef);
                 }
                 else
                 {
@@ -678,6 +705,7 @@ public static class ASTGenerator
             else if (context.Current?.Type == TokenType.OpeningSquareBrackets)
             {
                 uint pointerDepth = 0;
+                bool isRef = false;
                 
                 if (!(context.MoveNext()?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef))
                 {
@@ -693,13 +721,20 @@ public static class ASTGenerator
 
                 context.MoveNext();
                 
-                while (context.Current?.Type == TokenType.Asterix)
+                while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
                 {
+                    if (context.Current?.Type == TokenType.Ampersand)
+                    {
+                        isRef = true;
+                        context.MoveNext();
+                        break;
+                    }
+                
                     pointerDepth++;
                     context.MoveNext();
                 }
 
-                return new ArrayTypeRefNode(elementType, pointerDepth);
+                return new ArrayTypeRefNode(elementType, pointerDepth, isRef);
             }
             else
             {
@@ -791,7 +826,7 @@ public static class ASTGenerator
                     stack.Push(new LiteralNode(3.14159265358979323846264f));
                     context.MoveNext();
                     break;
-                case TokenType.PtrOf:
+                case TokenType.Ampersand:
                     context.MoveNext();
                     stack.Push(new PointerOfNode(ProcessExpression(context)));
                     break;

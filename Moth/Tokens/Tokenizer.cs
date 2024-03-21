@@ -200,7 +200,7 @@ public static class Tokenizer
                                 '+' when next is '+' => TokenType.Increment,
                                 '-' when next is '-' => TokenType.Decrement,
                                 '?' when next is '=' => TokenType.InferAssign,
-                                '&' => TokenType.PtrOf,
+                                '&' => TokenType.Ampersand,
                                 ':' => TokenType.Colon,
                                 '^' => TokenType.Exponential,
                                 ',' => TokenType.Comma,
