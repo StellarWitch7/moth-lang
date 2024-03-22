@@ -24,7 +24,7 @@ public class OverloadList
         
         foreach (var func in _functions)
         {
-            MatchResult result = CompareParams(func.ParameterTypes, paramTypes);
+            MatchResult result = CompareParams(func.ParameterTypes, paramTypes, func.IsVariadic);
             
             if (result == MatchResult.Exact)
             {
@@ -69,9 +69,67 @@ public class OverloadList
         }
     }
 
-    private MatchResult CompareParams(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    private MatchResult CompareParams(IReadOnlyList<Type> definition, IReadOnlyList<Type> call, bool isVariadic)
     {
-        throw new NotImplementedException();
+        if (isVariadic)
+        {
+            if (definition.Count > call.Count)
+            {
+                return MatchResult.Insufficient;
+            }
+        }
+        else
+        {
+            if (definition.Count != call.Count)
+            {
+                return MatchResult.Insufficient;
+            }
+        }
+        
+        if (ParamsAreEqual(definition, call))
+        {
+            return MatchResult.Exact;
+        }
+        else if (ParamsAreSuitable(definition, call))
+        {
+            return MatchResult.Sufficient;
+        }
+
+        return MatchResult.Insufficient;
+    }
+
+    private bool ParamsAreEqual(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    {
+        int index = 0;
+        
+        foreach (var type in definition)
+        {
+            if (!type.Equals(call[index]))
+            {
+                return false;
+            }
+
+            index++;
+        }
+
+        return true;
+    }
+    
+    private bool ParamsAreSuitable(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    {
+        int index = 0;
+        
+        foreach (var type in definition)
+        {
+            if (!type.CanConvertTo(call[index]))
+            {
+                return false;
+            }
+
+            index++;
+        }
+
+        return true;
     }
 
     enum MatchResult

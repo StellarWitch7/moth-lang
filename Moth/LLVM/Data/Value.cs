@@ -10,6 +10,25 @@ public class Value : CompilerData
         Type = type;
         LLVMValue = value;
     }
+
+    public Value ImplicitConvertTo(LLVMCompiler compiler, Type target)
+    {
+        if (Type.Equals(target))
+        {
+            return this;
+        }
+
+        var implicits = Type.GetImplicitConversions();
+
+        if (implicits.TryGetValue(target, out Func<LLVMCompiler, Value, Value> convert))
+        {
+            return convert(compiler, this);
+        }
+        else
+        {
+            throw new Exception($"Cannot implicitly convert value of type \"{target}\" to \"{Type}\".");
+        }
+    }
     
     public virtual Value SafeLoad(LLVMCompiler compiler)
     {
@@ -30,7 +49,11 @@ public class Value : CompilerData
 
     public static Value Create(Type type, LLVMValueRef value)
     {
-        if (type is PtrType ptrType)
+        if (type is FuncType fnT)
+        {
+            return new Function(fnT, value, new Parameter[0]);
+        }
+        else if (type is PtrType ptrType)
         {
             return new Pointer(ptrType, value);
         }

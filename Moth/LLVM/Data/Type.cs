@@ -30,7 +30,22 @@ public class Type : CompilerData
             throw new NotImplementedException();
         }
     }
+    
+    public bool CanConvertTo(Type other)
+    {
+        foreach (var key in GetImplicitConversions().Keys)
+        {
+            if (key.Equals(other))
+            {
+                return true;
+            }
+        }
 
+        return false;
+    }
+    
+    public virtual Dictionary<Type, Func<LLVMCompiler, Value, Value>> GetImplicitConversions() => throw new NotImplementedException();
+    
     public override string ToString() => throw new NotImplementedException();
 
     public override bool Equals(object? obj) => throw new NotImplementedException();

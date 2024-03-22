@@ -6,35 +6,7 @@ foreign func malloc(size #u64) #void*;
 foreign func printf(text #char*, ...) #i32;
 
 func main() #i32 {
-    local arr #SomeArray<#i32> = #SomeArray<#i32>.init(#u64(10));
-    arr[#u32(0)] = 5;
-    arr[#u32(1)] = 2;
-    arr[#u32(2)] = 3;
-    
-    printf("%d\n", arr[#u32(0)]);
-    printf("%d\n", arr[#u32(1)]);
-    printf("%d\n", arr[#u32(2)]);
-    
-    return 0;
-}
-
-struct Thing<T> {
-    public value ?T;
-
-    public static func init() #Thing<?T> {
-        return self;
-    }
-}
-
-struct SomeArray<T> {
-    public internal ?T*;
-
-    public static func init(size #u64) #SomeArray<?T> {
-        self.internal = ?T*(malloc(size));
-        return self;
-    }
-    
-    public func indxr(index #u32) ?T& {
-        return &self.internal[index];
-    }
+    local v #i32 = 5;
+    local v2 #i32 = v;
+    return v2;
 }

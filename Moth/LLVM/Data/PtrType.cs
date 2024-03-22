@@ -50,7 +50,30 @@ public class PtrType : Type
 
 public sealed class RefType : PtrType
 {
-    public RefType(Type baseType) : base(baseType, TypeKind.Reference) { }
-    
+    public RefType(Type baseType) : base(baseType, TypeKind.Reference)
+    {
+        if (baseType.Equals(Primitives.Void))
+        {
+            throw new Exception("Cannot create reference to void.");
+        }
+    }
+
+    public override Dictionary<Type, Func<LLVMCompiler, Value, Value>> GetImplicitConversions()
+    {
+        var dict = new Dictionary<Type, Func<LLVMCompiler, Value, Value>>();
+        
+        dict.Add(new PtrType(BaseType), (compiler, prev) =>
+        {
+            return new Pointer(new PtrType(BaseType), prev.LLVMValue);
+        });
+        
+        dict.Add(BaseType, (compiler, prev) =>
+        {
+            return Value.Create(BaseType, compiler.Builder.BuildLoad2(BaseType.LLVMType, prev.LLVMValue));
+        });
+
+        return dict;
+    }
+
     public override string ToString() => $"{BaseType}&";
 }

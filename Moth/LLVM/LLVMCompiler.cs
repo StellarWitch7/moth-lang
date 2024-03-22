@@ -20,7 +20,6 @@ public class LLVMCompiler
     public List<Struct> Types { get; } = new List<Struct>();
     public List<DefinedFunction> Functions { get; } = new List<DefinedFunction>();
     public List<IGlobal> Globals { get; } = new List<IGlobal>();
-
     public Func<string, IReadOnlyList<object>, IAttribute> MakeAttribute { get; }
 
     private readonly Logger _logger = new Logger("moth/compiler");
@@ -514,18 +513,18 @@ public class LLVMCompiler
             if (funcDefNode.IsStatic)
             {
                 @struct.StaticMethods.TryAdd(func.Name, new OverloadList(func.Name));
-                overloads = @struct.StaticMethods[func.Name];
+                @struct.StaticMethods[func.Name].Add(func);
             }
             else
             {
                 @struct.Methods.TryAdd(func.Name, new OverloadList(func.Name));
-                overloads = @struct.Methods[func.Name];
+                @struct.Methods[func.Name].Add(func);
             }
         }
         else
         {
             CurrentNamespace.Functions.TryAdd(func.Name, new OverloadList(func.Name));
-            overloads = CurrentNamespace.Functions[func.Name];
+            CurrentNamespace.Functions[func.Name].Add(func);
         }
         
         Functions.Add(func);
@@ -591,7 +590,7 @@ public class LLVMCompiler
         }
         else
         {
-            throw new Exception($"Cannot compile function {funcDefNode.Name} as it is undefined.");
+            throw new Exception($"Cannot compile function \"{funcDefNode.Name}\" as it is undefined.");
         }
         
         CurrentFunction = func;
@@ -1045,7 +1044,7 @@ public class LLVMCompiler
             }
             else
             {
-                throw new Exception($"Cannot to use an index access on value of type \"{toBeIndexed.Type}\".");
+                throw new Exception($"Cannot use an index access on value of type \"{toBeIndexed.Type}\".");
             }
         }
         else if (expr is InverseNode inverse)
@@ -1134,7 +1133,15 @@ public class LLVMCompiler
         else if (literalNode.Value is int i32)
         {
             Struct @struct = Primitives.Int32;
-            return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, true));
+            bool signExtend = true;
+            
+            if (i32 < 0)
+            {
+                @struct = Primitives.UInt32;
+                signExtend = false;
+            }
+            
+            return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, signExtend));
         }
         else if (literalNode.Value is float f32)
         {
@@ -1467,14 +1474,14 @@ public class LLVMCompiler
 
     public Value CompileAssignment(Scope scope, BinaryOperationNode binaryOp)
     {
-        Value left = CompileExpression(scope, binaryOp.Left); //TODO: does not work with arrays
+        Value left = CompileExpression(scope, binaryOp.Left);
 
         if (left is not Pointer ptrAssigned)
         {
             throw new Exception($"Cannot assign to non-pointer: #{left.Type}({left.LLVMValue})");
         }
         
-        Value right = SafeLoad(CompileExpression(scope, binaryOp.Right));
+        Value right = CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, ptrAssigned.Type.BaseType);
         return ptrAssigned.Store(this, right);
     }
 
@@ -1511,7 +1518,7 @@ public class LLVMCompiler
         {
             Struct @struct;
             
-            var parent = SafeLoad(CompileExpression(scope, @ref.Parent));
+            var parent = CompileExpression(scope, @ref.Parent);
             
             if (parent.Type is Struct temporary)
             {
