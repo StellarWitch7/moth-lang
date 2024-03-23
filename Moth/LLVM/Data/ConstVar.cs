@@ -4,7 +4,7 @@ public class ConstVar : Variable
 {
     private bool _hasNoValue = true;
     
-    public ConstVar(string name, RefType type, LLVMValueRef llvmVariable) : base(name, type, llvmVariable) { }
+    public ConstVar(string name, VarType type, LLVMValueRef llvmVariable) : base(name, type, llvmVariable) { }
 
     public override Pointer Store(LLVMCompiler compiler, Value value)
     {

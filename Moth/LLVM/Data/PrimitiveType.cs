@@ -1,4 +1,7 @@
 using Moth.AST.Node;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Serialization;
 
 namespace Moth.LLVM.Data;
 
@@ -66,4 +69,73 @@ public sealed class ArrType : PrimitiveType
     }
 
     public override int GetHashCode() => base.GetHashCode() + ElementType.GetHashCode();
+}
+
+public class Void : PrimitiveType
+{
+    public Void() : base(Reserved.Void, LLVMTypeRef.Void, 0) { }
+    
+    public class ImplicitConversionTable : LLVM.ImplicitConversionTable
+    {
+        public ImplicitConversionTable() { }
+
+        public override bool Contains(Type key)
+        {
+            return key is PtrType;
+        }
+        
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        {
+            if (key is PtrType ptrType)
+            {
+                value = (compiler, prev) =>
+                {
+                    return new Pointer(ptrType, prev.LLVMValue);
+                };
+                return true;
+            }
+            else
+            {
+                value = null;
+                return false;
+            }
+        }
+    }
+}
+
+public class Null : PrimitiveType
+{
+    public Null() : base(Reserved.Null, LLVMTypeRef.Int8, 8) { }
+
+    public override ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
+
+    public class ImplicitConversionTable : LLVM.ImplicitConversionTable
+    {
+        public ImplicitConversionTable() { }
+
+        public override bool Contains(Type key)
+        {
+            return true;
+        }
+        
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        {
+            if (key is PtrType)
+            {
+                value = (compiler, prev) =>
+                {
+                    return Value.Create(key, LLVMValueRef.CreateConstPointerNull(key.LLVMType));
+                };
+                return true;
+            }
+            else
+            {
+                value = (compiler, prev) =>
+                {
+                    return Value.Create(key, LLVMValueRef.CreateConstNull(key.LLVMType));
+                };
+                return true;
+            }
+        }
+    }
 }

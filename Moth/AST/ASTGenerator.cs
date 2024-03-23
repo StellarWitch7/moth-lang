@@ -3,6 +3,7 @@ using Moth.LLVM;
 using Moth.LLVM.Data;
 using Moth.Tokens;
 using System.Runtime.CompilerServices;
+using System.Xml;
 
 namespace Moth.AST;
 
@@ -828,7 +829,7 @@ public static class ASTGenerator
                     break;
                 case TokenType.Ampersand:
                     context.MoveNext();
-                    stack.Push(new PointerOfNode(ProcessExpression(context)));
+                    stack.Push(new RefOfNode(ProcessExpression(context)));
                     break;
                 case TokenType.Function:
                     if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
@@ -930,15 +931,25 @@ public static class ASTGenerator
                     stack.Push(new InlineIfNode(condition, then, @else));
                     break;
                 case TokenType.Hyphen:
-                    if (stack.Count != 0
-                        && stack.Peek() is not BinaryOperationNode)
                     {
-                        goto case TokenType.Assign;
+                        if (stack.Count != 0
+                            && stack.Peek() is not BinaryOperationNode)
+                        {
+                            goto case TokenType.Assign;
+                        }
+
+                        var newNode = new BinaryOperationNode(new LiteralNode(-1), OperationType.Multiplication);
+
+                        if (stack.Count != 0
+                            && stack.Peek() is BinaryOperationNode lastBinOp)
+                        {
+                            lastBinOp.Right = newNode;
+                        }
+                        
+                        context.MoveNext();
+                        stack.Push(newNode);
+                        break;
                     }
-                    
-                    context.MoveNext();
-                    stack.Push(new BinaryOperationNode(new LiteralNode(-1), OperationType.Multiplication));
-                    break;
                 case TokenType.Asterix:
                     if (stack.Count != 0
                         && stack.Peek() is not BinaryOperationNode)
@@ -947,7 +958,7 @@ public static class ASTGenerator
                     }
                     
                     context.MoveNext();
-                    stack.Push(new RefOfNode(ProcessExpression(context)));
+                    stack.Push(new DeRefNode(ProcessExpression(context)));
                     break;
                 case TokenType.Assign:
                 case TokenType.Plus:

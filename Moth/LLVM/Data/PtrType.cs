@@ -9,9 +9,9 @@ public class PtrType : Type
     protected PtrType(Type baseType, TypeKind kind)
         : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind)
     {
-        if (baseType is RefType)
+        if (baseType is VarType)
         {
-            throw new Exception("References cannot be pointed to or referenced!");
+            throw new Exception("Cannot create pointer to variable!");
         }
         
         BaseType = baseType;
@@ -41,6 +41,23 @@ public class PtrType : Type
         }
     }
 
+    public override ImplicitConversionTable GetImplicitConversions()
+    {
+        if (BaseType.Equals(Primitives.Void))
+        {
+            return new Void.ImplicitConversionTable();
+        }
+
+        var table = new ImplicitConversionTable();
+        
+        table.Add(new PtrType(Primitives.Void), (compiler, prev) =>
+        {
+            return new Pointer(new PtrType(Primitives.Void), prev.LLVMValue);
+        });
+        
+        return table;
+    }
+    
     public override string ToString() => $"{BaseType}*";
 
     public override bool Equals(object? obj) => obj is PtrType bType && BaseType.Equals(bType.BaseType);
@@ -48,7 +65,7 @@ public class PtrType : Type
     public override int GetHashCode() => BaseType.GetHashCode();
 }
 
-public sealed class RefType : PtrType
+public class RefType : PtrType
 {
     public RefType(Type baseType) : base(baseType, TypeKind.Reference)
     {
@@ -58,22 +75,40 @@ public sealed class RefType : PtrType
         }
     }
 
-    public override Dictionary<Type, Func<LLVMCompiler, Value, Value>> GetImplicitConversions()
+    public override ImplicitConversionTable GetImplicitConversions()
     {
-        var dict = new Dictionary<Type, Func<LLVMCompiler, Value, Value>>();
+        var table = new ImplicitConversionTable();
         
-        dict.Add(new PtrType(BaseType), (compiler, prev) =>
+        table.Add(new PtrType(BaseType), (compiler, prev) =>
         {
             return new Pointer(new PtrType(BaseType), prev.LLVMValue);
         });
         
-        dict.Add(BaseType, (compiler, prev) =>
+        table.Add(BaseType, (compiler, prev) =>
         {
             return Value.Create(BaseType, compiler.Builder.BuildLoad2(BaseType.LLVMType, prev.LLVMValue));
         });
 
-        return dict;
+        return table;
     }
 
     public override string ToString() => $"{BaseType}&";
+
+    public override bool Equals(object? obj) => obj is RefType && base.Equals(obj);
+}
+
+public sealed class VarType : RefType
+{
+    public VarType(Type baseType) : base(baseType) { }
+
+    public override ImplicitConversionTable GetImplicitConversions()
+    {
+        var table = base.GetImplicitConversions();
+        table.Remove(new PtrType(BaseType));
+        return table;
+    }
+
+    public override string ToString() => $"var {BaseType}";
+
+    public override bool Equals(object? obj) => obj is VarType && base.Equals(obj);
 }

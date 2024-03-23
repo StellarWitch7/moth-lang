@@ -4,11 +4,11 @@ namespace Moth.LLVM.Data;
 
 public abstract class Int : PrimitiveType
 {
-    protected Dictionary<Type, Func<LLVMCompiler, Value, Value>> internalImplicits = null;
+    protected ImplicitConversionTable internalImplicits = null;
     
     protected Int(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
     
-    public override Dictionary<Type, Func<LLVMCompiler, Value, Value>> GetImplicitConversions()
+    public override ImplicitConversionTable GetImplicitConversions()
     {
         if (internalImplicits == null)
         {
@@ -18,17 +18,16 @@ public abstract class Int : PrimitiveType
         return internalImplicits;
     }
 
-    protected abstract Dictionary<Type, Func<LLVMCompiler, Value, Value>> GenerateImplicitConversions();
+    protected abstract ImplicitConversionTable GenerateImplicitConversions();
 }
 
 public sealed class SignedInt : Int
 {
     public SignedInt(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
 
-    protected override Dictionary<Type, Func<LLVMCompiler, Value, Value>> GenerateImplicitConversions()
+    protected override ImplicitConversionTable GenerateImplicitConversions()
     {
-        var dict = new Dictionary<Type, Func<LLVMCompiler, Value, Value>>();
-
+        var dict = new ImplicitConversionTable();
         var create = (Int destType) =>
         {
             dict.Add(destType, (compiler, prev) =>
@@ -60,9 +59,9 @@ public sealed class UnsignedInt : Int
 {
     public UnsignedInt(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
     
-    protected override Dictionary<Type, Func<LLVMCompiler, Value, Value>> GenerateImplicitConversions()
+    protected override ImplicitConversionTable GenerateImplicitConversions()
     {
-        var dict = new Dictionary<Type, Func<LLVMCompiler, Value, Value>>();
+        var dict = new ImplicitConversionTable();
         var create = (Int destType) =>
         {
             dict.Add(destType, (compiler, prev) =>
@@ -82,22 +81,22 @@ public sealed class UnsignedInt : Int
             });
         };
         
-        if (Primitives.Int64.Bits > Bits)
+        if (Primitives.Int64.Bits >= Bits)
         {
             create(Primitives.Int64);
         }
 
-        if (Primitives.Int32.Bits > Bits)
+        if (Primitives.Int32.Bits >= Bits)
         {
             create(Primitives.Int32);
         }
 
-        if (Primitives.Int16.Bits > Bits)
+        if (Primitives.Int16.Bits >= Bits)
         {
             create(Primitives.Int16);
         }
         
-        if (Primitives.Int8.Bits > Bits)
+        if (Primitives.Int8.Bits >= Bits)
         {
             create(Primitives.Int8);
         }

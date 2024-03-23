@@ -4,13 +4,14 @@ namespace Moth.LLVM.Data;
 
 public static class Primitives
 {
-    public static readonly PrimitiveType Void = new PrimitiveType(Reserved.Void, LLVMTypeRef.Void, 0);
+    public static readonly Null Null = new Null();
+    public static readonly Void Void = new Void();
     
     public static readonly UnsignedInt Bool = new UnsignedInt(Reserved.Bool, LLVMTypeRef.Int1, 1);
     public static readonly UnsignedInt Char = new UnsignedInt(Reserved.Char, LLVMTypeRef.Int8, 8);
     public static readonly UnsignedInt UInt8 = new UnsignedInt(Reserved.UInt8, LLVMTypeRef.Int8, 8);
     public static readonly UnsignedInt UInt16 = new UnsignedInt(Reserved.UInt16, LLVMTypeRef.Int16, 16);
-    public static readonly UnsignedInt UInt32 = new UnsignedInt(Reserved.UInt32, LLVMTypeRef.Int32, 16);
+    public static readonly UnsignedInt UInt32 = new UnsignedInt(Reserved.UInt32, LLVMTypeRef.Int32, 32);
     public static readonly UnsignedInt UInt64 = new UnsignedInt(Reserved.UInt64, LLVMTypeRef.Int64, 64);
     
     public static readonly SignedInt Int8 = new SignedInt(Reserved.Int8, LLVMTypeRef.Int8, 8);

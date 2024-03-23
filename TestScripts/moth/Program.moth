@@ -8,5 +8,11 @@ foreign func printf(text #char*, ...) #i32;
 func main() #i32 {
     local v #i32 = 5;
     local v2 #i32 = v;
-    return v2;
+    local v3 #i32& = thing();
+    return v2 + *v3;
+}
+
+func thing() #i32& {
+    local v #i32 = 1;
+    return &v;
 }

@@ -632,7 +632,7 @@ public class LLVMCompiler
             Builder.BuildStore(func.LLVMValue.Params[param.ParamIndex], paramAsVar);
             func.OpeningScope.Variables.Add(param.Name,
                 new Variable(param.Name,
-                    new RefType(CurrentFunction.Type.ParameterTypes[param.ParamIndex]),
+                    new VarType(CurrentFunction.Type.ParameterTypes[param.ParamIndex]),
                     paramAsVar));
         }
         
@@ -681,7 +681,7 @@ public class LLVMCompiler
     {
         Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
-        GlobalVariable global = new GlobalVariable(globalDef.Name, WrapAsRef(globalType), globalVal, globalDef.Privacy);
+        GlobalVariable global = new GlobalVariable(globalDef.Name, new VarType(globalType), globalVal, globalDef.Privacy);
         CurrentNamespace.GlobalVariables.Add(globalDef.Name, global);
         Globals.Add(global);
         //TODO: add const support to globals
@@ -697,18 +697,8 @@ public class LLVMCompiler
             {
                 if (@return.ReturnValue != null)
                 {
-                    Value expr = SafeLoad(CompileExpression(scope, @return.ReturnValue));
-
-                    if (expr.Type.Equals(CurrentFunction.Type.ReturnType))
-                    {
-                        Builder.BuildRet(expr.LLVMValue);
-                    }
-                    else
-                    {
-                        throw new Exception($"Return value \"{expr.LLVMValue}\" " +
-                            $"does not match return type of function " +
-                            $"\"{CurrentFunction.Name}\" (\"{CurrentFunction.Type.ReturnType}\").");
-                    }
+                    Value expr = CompileExpression(scope, @return.ReturnValue).ImplicitConvertTo(this, CurrentFunction.Type.ReturnType);
+                    Builder.BuildRet(expr.LLVMValue);
                 }
                 else
                 {
@@ -742,8 +732,8 @@ public class LLVMCompiler
                 LLVMBasicBlockRef @continue = CurrentFunction.LLVMValue.AppendBasicBlock("continue");
                 Builder.BuildBr(loop);
                 Builder.PositionAtEnd(loop);
-                Value condition = CompileExpression(scope, @while.Condition);
-                Builder.BuildCondBr(SafeLoad(condition).LLVMValue, then, @continue);
+                Value condition = CompileExpression(scope, @while.Condition).ImplicitConvertTo(this, Primitives.Bool);
+                Builder.BuildCondBr(condition.LLVMValue, then, @continue);
                 Builder.PositionAtEnd(then);
 
                 var newScope = new Scope(then)
@@ -761,14 +751,14 @@ public class LLVMCompiler
             }
             else if (statement is IfNode @if)
             {
-                Value condition = CompileExpression(scope, @if.Condition);
+                Value condition = CompileExpression(scope, @if.Condition).ImplicitConvertTo(this, Primitives.Bool);
                 LLVMBasicBlockRef then = CurrentFunction.LLVMValue.AppendBasicBlock("then");
                 LLVMBasicBlockRef @else = CurrentFunction.LLVMValue.AppendBasicBlock("else");
                 LLVMBasicBlockRef @continue = null;
                 bool thenReturned = false;
                 bool elseReturned = false;
 
-                Builder.BuildCondBr(SafeLoad(condition).LLVMValue, then, @else);
+                Builder.BuildCondBr(condition.LLVMValue, then, @else);
 
                 //then
                 {
@@ -947,7 +937,7 @@ public class LLVMCompiler
         }
         else if (expr is InlineIfNode @if)
         {
-            Value condition = CompileExpression(scope, @if.Condition);
+            Value condition = CompileExpression(scope, @if.Condition).ImplicitConvertTo(this, Primitives.Bool);
             LLVMBasicBlockRef then = CurrentFunction.LLVMValue.AppendBasicBlock("then");
             LLVMBasicBlockRef @else = CurrentFunction.LLVMValue.AppendBasicBlock("else");
             LLVMBasicBlockRef @continue = CurrentFunction.LLVMValue.AppendBasicBlock("continue");
@@ -958,29 +948,29 @@ public class LLVMCompiler
 
             //else
             Builder.PositionAtEnd(@else);
-            Value elseVal = CompileExpression(scope, @if.Else);
+            Value elseVal = CompileExpression(scope, @if.Else).ImplicitConvertTo(this, thenVal.Type);
 
             //prior
             Builder.PositionAtEnd(scope.LLVMBlock);
             LLVMValueRef result = Builder.BuildAlloca(thenVal.Type.LLVMType, "result");
-            Builder.BuildCondBr(SafeLoad(condition).LLVMValue, then, @else);
+            Builder.BuildCondBr(condition.LLVMValue, then, @else);
 
             //then
             Builder.PositionAtEnd(then);
-            Builder.BuildStore(SafeLoad(thenVal).LLVMValue, result);
+            Builder.BuildStore(thenVal.LLVMValue, result);
             Builder.BuildBr(@continue);
 
             //else
             Builder.PositionAtEnd(@else);
-            Builder.BuildStore(SafeLoad(elseVal).LLVMValue, result);
+            Builder.BuildStore(elseVal.LLVMValue, result);
             Builder.BuildBr(@continue);
 
             //continue
             Builder.PositionAtEnd(@continue);
             scope.LLVMBlock = @continue;
 
-            return SafeLoad(thenVal).Type.Equals(SafeLoad(elseVal).Type)
-                ? Value.Create(WrapAsRef(thenVal.Type), result)
+            return thenVal.Type.Equals(elseVal.Type)
+                ? Value.Create(thenVal.Type, result)
                 : throw new Exception("Then and else statements of inline if are not of the same type.");
         }
         else if (expr is LiteralArrayNode literalArrayNode)
@@ -1018,11 +1008,17 @@ public class LLVMCompiler
         }
         else if (expr is IndexAccessNode indexAccess)
         {
-            var toBeIndexed = SafeLoad(CompileExpression(scope, indexAccess.ToBeIndexed));
+            var toBeIndexed = CompileExpression(scope, indexAccess.ToBeIndexed);
+            Type arrType = toBeIndexed.Type;
 
-            if (toBeIndexed is Pointer ptr)
+            if (toBeIndexed.Type is RefType varType)
             {
-                Type resultType = ptr.Type.BaseType;
+                arrType = varType.BaseType;
+            }
+
+            if (arrType is PtrType ptrType)
+            {
+                Type resultType = ptrType.BaseType;
 
                 if (indexAccess.Params.Count != 1)
                 {
@@ -1034,11 +1030,10 @@ public class LLVMCompiler
                         toBeIndexed.LLVMValue,
                         new LLVMValueRef[]
                         {
-                            Builder.BuildIntCast(SafeLoad(CompileExpression(scope, indexAccess.Params[0])).LLVMValue,
-                                LLVMTypeRef.Int64)
+                            CompileExpression(scope, indexAccess.Params[0]).ImplicitConvertTo(this, Primitives.UInt64).LLVMValue
                         }));
             }
-            else if (toBeIndexed.Type is Struct @struct)
+            else if (arrType is Struct @struct)
             {
                 return CompileFuncCall(scope, new FuncCallNode(Reserved.Indexer, indexAccess.Params, indexAccess.ToBeIndexed), CurrentFunction.OwnerStruct);
             }
@@ -1049,45 +1044,57 @@ public class LLVMCompiler
         }
         else if (expr is InverseNode inverse)
         {
-            var value = CompileExpression(scope, inverse.Value);
+            var value = CompileExpression(scope, inverse.Value).ImplicitConvertTo(this, Primitives.Bool);
             
             return Value.Create(value.Type,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
-                    SafeLoad(value).LLVMValue,
+                    value.LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)));
         }
         else if (expr is IncrementVarNode incrementVar)
         {
             var value = CompileExpression(scope, incrementVar.Value);
 
-            if (value is not Pointer ptr || value.Type is not RefType || SafeLoad(value).Type is PtrType or FuncType)
+            if (value is not Pointer ptr)
+            {
+                throw new Exception(); //TODO
+            }
+
+            if (ptr.Type is not RefType || ptr.Type.BaseType is PtrType or FuncType)
             {
                 throw new Exception(); //TODO
             }
             
-            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(value).Type.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildAdd(SafeLoad(value).LLVMValue, valToAdd)));
-            return new Pointer(WrapAsRef(value.Type), value.LLVMValue);
+            var valToAdd = LLVMValueRef.CreateConstInt(ptr.Type.BaseType.LLVMType, 1); //TODO: float compat?
+            ptr.Store(this, Value.Create(ptr.Type.BaseType,
+                Builder.BuildAdd(value.ImplicitConvertTo(this, ptr.Type.BaseType).LLVMValue, valToAdd)));
+            return value;
         }
         else if (expr is DecrementVarNode decrementVar)
         {
             var value = CompileExpression(scope, decrementVar.Value);
 
-            if (value is not Pointer ptr || value.Type is not RefType || SafeLoad(value).Type is PtrType or FuncType)
+            if (value is not Pointer ptr)
+            {
+                throw new Exception(); //TODO
+            }
+
+            if (ptr.Type is not RefType || ptr.Type.BaseType is PtrType or FuncType)
             {
                 throw new Exception(); //TODO
             }
             
-            var valToAdd = LLVMValueRef.CreateConstInt(SafeLoad(value).Type.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, Value.Create(ptr.Type.BaseType, Builder.BuildSub(SafeLoad(value).LLVMValue, valToAdd)));
-            return new Pointer(WrapAsRef(value.Type), value.LLVMValue);
+            var valToAdd = LLVMValueRef.CreateConstInt(ptr.Type.BaseType.LLVMType, 1); //TODO: float compat?
+            ptr.Store(this, Value.Create(ptr.Type.BaseType,
+                Builder.BuildSub(value.ImplicitConvertTo(this, ptr.Type.BaseType).LLVMValue, valToAdd)));
+            return value;
         }
-        else if (expr is PointerOfNode addrofNode)
+        else if (expr is RefOfNode addrofNode)
         {
             Value value = CompileExpression(scope, addrofNode.Value);
-            return value.GetPointer(this);
+            return value.GetRef(this);
         }
-        else if (expr is RefOfNode loadNode)
+        else if (expr is DeRefNode loadNode)
         {
             Value value = CompileExpression(scope, loadNode.Value);
             return value.DeRef(this);
@@ -1108,7 +1115,7 @@ public class LLVMCompiler
         {
             if (expr == null)
             {
-                throw new Exception("Critical! Cannot compiled null expression.");
+                throw new Exception("Critical! Cannot compile null expression.");
             }
             
             throw new NotImplementedException();
@@ -1132,13 +1139,13 @@ public class LLVMCompiler
         }
         else if (literalNode.Value is int i32)
         {
-            Struct @struct = Primitives.Int32;
-            bool signExtend = true;
+            Struct @struct = Primitives.UInt32;
+            bool signExtend = false;
             
             if (i32 < 0)
             {
-                @struct = Primitives.UInt32;
-                signExtend = false;
+                @struct = Primitives.Int32;
+                signExtend = true;
             }
             
             return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, signExtend));
@@ -1155,7 +1162,7 @@ public class LLVMCompiler
         }
         else if (literalNode.Value == null)
         {
-            Struct @struct = Primitives.Char;
+            Struct @struct = Primitives.Null;
             return Value.Create(@struct, LLVMValueRef.CreateConstNull(@struct.LLVMType));
         }
         else
@@ -1166,8 +1173,14 @@ public class LLVMCompiler
 
     public Value CompileOperation(Scope scope, BinaryOperationNode binaryOp)
     {
-        Value left = SafeLoad(CompileExpression(scope, binaryOp.Left));
-        Value right = SafeLoad(CompileExpression(scope, binaryOp.Right));
+        Value left = CompileExpression(scope, binaryOp.Left);
+
+        if (left.Type is VarType varType)
+        {
+            left = left.DeRef(this);
+        }
+        
+        Value right = CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, left.Type);
 
         if (binaryOp.Type == OperationType.Exponential
             && right.Type is Float or Int
@@ -1308,7 +1321,13 @@ public class LLVMCompiler
 
     public Value CompileCast(Scope scope, CastNode cast)
     {
-        Value value = SafeLoad(CompileExpression(scope, cast.Value));
+        Value value = CompileExpression(scope, cast.Value);
+
+        if (value.Type is VarType varType)
+        {
+            value = value.DeRef(this);
+        }
+        
         Type destType = ResolveType(cast.NewType);
         LLVMValueRef builtVal;
 
@@ -1374,9 +1393,9 @@ public class LLVMCompiler
             }
 
             val = left.Type is SignedInt
-                ? Builder.BuildSIToFP(SafeLoad(left).LLVMValue, destType)
+                ? Builder.BuildSIToFP(left.LLVMValue, destType)
                 : left.Type is UnsignedInt
-                    ? Builder.BuildUIToFP(SafeLoad(left).LLVMValue, destType)
+                    ? Builder.BuildUIToFP(left.LLVMValue, destType)
                     : throw new NotImplementedException();
             left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
                     ? f64
@@ -1386,7 +1405,7 @@ public class LLVMCompiler
         else if (left.Type is Float
             && !left.Type.Equals(Primitives.Float64))
         {
-            val = Builder.BuildFPCast(SafeLoad(left).LLVMValue, destType);
+            val = Builder.BuildFPCast(left.LLVMValue, destType);
             left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
                     ? f64
                     : f32,
@@ -1453,8 +1472,8 @@ public class LLVMCompiler
         IntrinsicFunction func = GetIntrinsic(intrinsic);
         var args = new Value[2]
         {
-            SafeLoad(left),
-            SafeLoad(right),
+            left,
+            right,
         };
         Value result = func.Call(this, args);
 
@@ -1501,12 +1520,12 @@ public class LLVMCompiler
         }
         
         LLVMValueRef llvmVariable = Builder.BuildAlloca(type.LLVMType, localDef.Name);
-        Variable ret = new Variable(localDef.Name, WrapAsRef(type), llvmVariable);
+        Variable ret = new Variable(localDef.Name, new VarType(type), llvmVariable);
         scope.Variables.Add(localDef.Name, ret);
 
         if (value != null)
         {
-            Builder.BuildStore(SafeLoad(value).LLVMValue, llvmVariable);
+            Builder.BuildStore(value.ImplicitConvertTo(this, type).LLVMValue, llvmVariable);
         }
 
         return ret;
@@ -1536,7 +1555,7 @@ public class LLVMCompiler
             }
             
             Field field = @struct.GetField(@ref.Name, CurrentFunction.OwnerStruct);
-            return new Pointer(WrapAsRef(field.Type),
+            return new Pointer(new VarType(field.Type),
                 Builder.BuildStructGEP2(@struct.LLVMType,
                     parent.LLVMValue,
                     field.FieldIndex,
@@ -1567,7 +1586,13 @@ public class LLVMCompiler
 
         foreach (ExpressionNode arg in funcCall.Arguments)
         {
-            Value val = SafeLoad(CompileExpression(scope, arg));
+            Value val = CompileExpression(scope, arg);
+
+            if (val.Type is VarType varType)
+            {
+                val = val.DeRef(this);
+            }
+            
             argTypes.Add(val.Type);
             args.Add(val);
         }
@@ -1601,7 +1626,12 @@ public class LLVMCompiler
             
                 PtrType ptrType;
                 Struct @struct;
-            
+
+                if (toCallOn.Type is VarType)
+                {
+                    toCallOn = toCallOn.DeRef(this);
+                }
+                
                 if (toCallOn.Type is Struct temporary)
                 {
                     Pointer ptrToTemporary = Value.CreatePtrToTemp(this, toCallOn);
@@ -1639,7 +1669,8 @@ public class LLVMCompiler
         }
         else if (scope.Variables.TryGetValue(funcCall.Name, out Variable funcVar) && funcVar.Type.BaseType is FuncType funcVarType)
         {
-            func = new Function(funcVarType, SafeLoad(funcVar).LLVMValue, new Parameter[0]);
+            var funcVal = funcVar.DeRef(this);
+            func = new Function(funcVarType, funcVal.LLVMValue, new Parameter[0]);
         }
         else if (sourceStruct != null
             && sourceStruct.TryGetFunction(funcCall.Name, argTypes, CurrentFunction.OwnerStruct, false, out func))
@@ -1651,6 +1682,14 @@ public class LLVMCompiler
             func = GetFunction(funcCall.Name, argTypes);
         }
 
+        int index = 0;
+        
+        foreach (var paramType in func.ParameterTypes)
+        {
+            args[index] = args[index].ImplicitConvertTo(this, paramType);
+            index++;
+        }
+        
         return func.Call(this, args.ToArray());
     }
 
@@ -1727,21 +1766,6 @@ public class LLVMCompiler
             throw new Exception($"Could not find function \"{name}\".");
         }
     }
-
-    public Value SafeLoad(Value value)
-    {
-        if (value == null)
-        {
-            return null;
-        }
-
-        return value.SafeLoad(this);
-    }
-
-    public RefType WrapAsRef(Type type)
-        => type is RefType @ref
-            ? @ref
-            : new RefType(type);
 
     public IReadOnlyList<object> CleanAttributeArgs(ExpressionNode[] args)
     {

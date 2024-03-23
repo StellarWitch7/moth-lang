@@ -1,8 +1,8 @@
 ﻿namespace Moth.AST.Node;
 
-public class RefOfNode : ExpressionNode
+public class DeRefNode : ExpressionNode
 {
     public ExpressionNode Value { get; set; }
 
-    public RefOfNode(ExpressionNode value) => Value = value;
+    public DeRefNode(ExpressionNode value) => Value = value;
 }

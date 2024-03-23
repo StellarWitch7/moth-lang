@@ -198,7 +198,7 @@ public class Struct : Type, IContainer
     public virtual Variable Init(LLVMCompiler compiler)
     {
         return new Variable(Reserved.Self,
-            compiler.WrapAsRef(this),
+            new VarType(this),
             compiler.Builder.BuildAlloca(LLVMType));
     }
     

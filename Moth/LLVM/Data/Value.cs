@@ -18,6 +18,11 @@ public class Value : CompilerData
             return this;
         }
 
+        if (Type is VarType)
+        {
+            return DeRef(compiler).ImplicitConvertTo(compiler, target);
+        }
+
         var implicits = Type.GetImplicitConversions();
 
         if (implicits.TryGetValue(target, out Func<LLVMCompiler, Value, Value> convert))
@@ -26,20 +31,20 @@ public class Value : CompilerData
         }
         else
         {
-            throw new Exception($"Cannot implicitly convert value of type \"{target}\" to \"{Type}\".");
+            throw new Exception($"Cannot implicitly convert value of type \"{Type}\" to \"{target}\".");
         }
     }
-    
-    public virtual Value SafeLoad(LLVMCompiler compiler)
-    {
-        return this;
-    }
 
-    public virtual Pointer GetPointer(LLVMCompiler compiler)
+    public Pointer GetRef(LLVMCompiler compiler)
     {
+        if (Type is VarType)
+        {
+            return DeRef(compiler).GetRef(compiler);
+        }
+        
         LLVMValueRef newVal = compiler.Builder.BuildAlloca(Type.LLVMType);
         compiler.Builder.BuildStore(LLVMValue, newVal);
-        return new Pointer(new PtrType(Type), newVal);
+        return new Pointer(new RefType(Type), newVal);
     }
 
     public virtual Value DeRef(LLVMCompiler compiler)

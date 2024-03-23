@@ -1,5 +1,6 @@
 ﻿using Moth.AST.Node;
 using Moth.LLVM.Data;
+using System.Linq.Expressions;
 
 namespace Moth.LLVM.Data;
 
@@ -33,18 +34,10 @@ public class Type : CompilerData
     
     public bool CanConvertTo(Type other)
     {
-        foreach (var key in GetImplicitConversions().Keys)
-        {
-            if (key.Equals(other))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return GetImplicitConversions().Contains(other);
     }
     
-    public virtual Dictionary<Type, Func<LLVMCompiler, Value, Value>> GetImplicitConversions() => throw new NotImplementedException();
+    public virtual ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
     
     public override string ToString() => throw new NotImplementedException();
 

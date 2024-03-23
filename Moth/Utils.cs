@@ -158,14 +158,14 @@ public static class ArrayExtensions
         return result;
     }
 
-    public static Value[] SafeLoadAll(this Value[] values, LLVMCompiler compiler)
+    public static Value[] ImplicitConvertAll(this Value[] values, LLVMCompiler compiler, Type target)
     {
         var result = new Value[values.Length];
         uint index = 0;
 
         foreach (Value value in values)
         {
-            result[index] = compiler.SafeLoad(value);
+            result[index] = value.ImplicitConvertTo(compiler, target);
             index++;
         }
 

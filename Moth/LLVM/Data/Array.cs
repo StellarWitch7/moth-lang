@@ -25,7 +25,7 @@ public class Array : Value
         
         LLVMValueRef values = compiler.Builder.BuildAlloca(arrLLVMType);
         compiler.Builder.BuildStore(LLVMValueRef.CreateConstArray(elementType.LLVMType,
-                elements.SafeLoadAll(compiler)
+                elements.ImplicitConvertAll(compiler, elementType)
                     .AsLLVMValues()),
             values);
         compiler.Builder.BuildStore(compiler.Builder.BuildLoad2(arrLLVMType, values),

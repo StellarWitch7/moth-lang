@@ -17,7 +17,8 @@ public static class Reserved
     public const string Local = "local";
     public const string Private = "private";
     public const string Public = "public";
-    
+
+    public const string Null = "null";
     public const string Void = "void";
     public const string Bool = "bool";
     public const string Char = "char";

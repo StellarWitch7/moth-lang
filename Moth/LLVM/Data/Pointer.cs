@@ -21,20 +21,8 @@ public class Pointer : Value
         compiler.Builder.BuildStore(value.LLVMValue, LLVMValue);
         return this;
     }
-
-    public override Value SafeLoad(LLVMCompiler compiler)
-    {
-        try {
-            if (Type is RefType) {
-                return Load(compiler);
-            }
-        }
-        catch { }
-
-        return this;
-    }
-
-    public Value Load(LLVMCompiler compiler)
+    
+    public override Value DeRef(LLVMCompiler compiler) //TODO: might need adjusting for the new type engine
     {
         if (!Type.BaseType.Equals(Primitives.Void))
         {
@@ -44,33 +32,6 @@ public class Pointer : Value
         {
             throw new Exception("Cannot load pointer to void.");
         }
-    }
-    
-    public override Pointer GetPointer(LLVMCompiler compiler)
-    {
-        if (Type is RefType)
-        {
-            return new Pointer(new PtrType(Type.BaseType), LLVMValue);
-        }
-
-        return base.GetPointer(compiler);
-    }
-    
-    public override Value DeRef(LLVMCompiler compiler)
-    {
-        if (Type is not RefType)
-        {
-            return new Pointer(new RefType(Type.BaseType), LLVMValue);
-        }
-
-        var midVal = compiler.SafeLoad(this);
-
-        if (midVal is not Pointer pointer)
-        {
-            throw new Exception("Cannot dereference value as it is not a pointer!");
-        }
-
-        return pointer.DeRef(compiler);
     }
 
     public virtual string GetInvalidTypeErrorMsg(Value value)

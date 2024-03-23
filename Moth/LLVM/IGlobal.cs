@@ -7,7 +7,7 @@ public interface IGlobal
 {
     public PrivacyType Privacy { get; }
     public string Name { get; }
-    public RefType Type { get; }
+    public VarType Type { get; }
     public LLVMValueRef LLVMValue { get; }
 
     public string GetInvalidTypeErrorMsg(Value value);

@@ -121,7 +121,7 @@ public class OverloadList
         
         foreach (var type in definition)
         {
-            if (!type.CanConvertTo(call[index]))
+            if (!call[index].CanConvertTo(type))
             {
                 return false;
             }
