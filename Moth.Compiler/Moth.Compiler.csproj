@@ -6,9 +6,10 @@
         <PublishSingleFile>true</PublishSingleFile>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <StartupObject>Moth.CLI.Program</StartupObject>
-        <AssemblyName>MothCLI</AssemblyName>
+        <StartupObject>Moth.Compiler.Program</StartupObject>
+        <AssemblyName>mothc</AssemblyName>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>Moth.Compiler</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

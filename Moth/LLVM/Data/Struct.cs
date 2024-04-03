@@ -14,7 +14,7 @@ public class Struct : Type, IContainer
     private uint _bitlength;
     
     public Struct(Namespace? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
-        : base(llvmType, TypeKind.Class)
+        : base(llvmType, TypeKind.Struct)
     {
         Parent = parent;
         Name = name;

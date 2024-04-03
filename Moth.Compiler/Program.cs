@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Moth.CLI;
+namespace Moth.Compiler;
 
 internal class Program
 {

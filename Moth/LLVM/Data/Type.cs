@@ -6,7 +6,7 @@ namespace Moth.LLVM.Data;
 
 public enum TypeKind
 {
-    Class,
+    Struct,
     Function,
     Pointer,
     Reference,

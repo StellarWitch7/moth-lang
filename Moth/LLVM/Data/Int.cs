@@ -81,22 +81,22 @@ public sealed class UnsignedInt : Int
             });
         };
         
-        if (Primitives.Int64.Bits >= Bits)
+        if (Primitives.Int64.Bits > Bits)
         {
             create(Primitives.Int64);
         }
 
-        if (Primitives.Int32.Bits >= Bits)
+        if (Primitives.Int32.Bits > Bits)
         {
             create(Primitives.Int32);
         }
 
-        if (Primitives.Int16.Bits >= Bits)
+        if (Primitives.Int16.Bits > Bits)
         {
             create(Primitives.Int16);
         }
         
-        if (Primitives.Int8.Bits >= Bits)
+        if (Primitives.Int8.Bits > Bits)
         {
             create(Primitives.Int8);
         }

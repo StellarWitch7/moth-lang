@@ -1,10 +1,10 @@
 {
   "profiles": {
-    "MothCLI": {
+    "mothc": {
       "commandName": "Project",
       "commandLineArgs": "-v -n --no-advanced-ir-opt --debug-test -t exe -o test -i /home/aurora/RiderProjects/moth-lang/TestScripts/moth/Program.moth /home/aurora/RiderProjects/moth-lang/TestScripts/moth/Foreign.moth /home/aurora/RiderProjects/moth-lang/TestScripts/moth/System.moth",
       "workingDirectory": "/home/aurora/RiderProjects/moth-lang/run",
-      "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.CLI/bin/Debug/net7.0/MothCLI.exe",
+      "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net7.0/mothc.exe",
       "externalTerminal": true,
       "leaveRunningOnClose": true
     }

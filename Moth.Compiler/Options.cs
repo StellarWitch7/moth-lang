@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 using System.ComponentModel.Design.Serialization;
 
-namespace Moth.CLI;
+namespace Moth.Compiler;
 
 internal class Options
 {
