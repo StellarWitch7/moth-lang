@@ -1046,7 +1046,7 @@ public class LLVMCompiler
         {
             var value = CompileExpression(scope, inverse.Value).ImplicitConvertTo(this, Primitives.Bool);
             
-            return Value.Create(value.Type,
+            return Value.Create(Primitives.Bool,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
                     value.LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)));
@@ -1173,150 +1173,41 @@ public class LLVMCompiler
 
     public Value CompileOperation(Scope scope, BinaryOperationNode binaryOp)
     {
-        Value left = CompileExpression(scope, binaryOp.Left);
-
-        if (left.Type is VarType varType)
+        var result = binaryOp.Type switch
         {
-            left = left.DeRef(this);
+            OperationType.And => Value.Create(Primitives.Bool,
+                Builder.BuildAnd(CompileExpression(scope, binaryOp.Left).ImplicitConvertTo(this, Primitives.Bool).LLVMValue,
+                    CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, Primitives.Bool).LLVMValue)),
+            OperationType.Or => Value.Create(Primitives.Bool,
+                Builder.BuildOr(CompileExpression(scope, binaryOp.Left).ImplicitConvertTo(this, Primitives.Bool).LLVMValue,
+                    CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, Primitives.Bool).LLVMValue)),
+            OperationType.NotEqual => Value.Create(Primitives.Bool,
+                Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
+                    CompileFuncCall(scope,
+                        new FuncCallNode(Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
+                            new ExpressionNode[]
+                            {
+                                binaryOp.Right
+                            },
+                            binaryOp.Left),
+                        CurrentFunction.OwnerStruct).ImplicitConvertTo(this, Primitives.Bool).LLVMValue,
+                    LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0))),
+            _ => CompileFuncCall(scope,
+                new FuncCallNode(Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
+                    new ExpressionNode[]
+                    {
+                        binaryOp.Right
+                    },
+                    binaryOp.Left),
+                CurrentFunction.OwnerStruct)
+        };
+
+        if (binaryOp.Type == OperationType.Equal)
+        {
+            result = result.ImplicitConvertTo(this, Primitives.Bool);
         }
         
-        Value right = CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, left.Type);
-
-        if (binaryOp.Type == OperationType.Exponential
-            && right.Type is Float or Int
-            && left.Type is Float or Int)
-        {
-            return CompilePow(left, right);
-        }
-        else if (left.Type.Equals(right.Type)
-            || binaryOp.Type == OperationType.Equal
-            || binaryOp.Type == OperationType.NotEqual)
-        {
-            LLVMValueRef leftVal;
-            LLVMValueRef rightVal;
-            LLVMValueRef builtVal;
-            Type builtType;
-
-            leftVal = left.LLVMValue;
-            rightVal = right.LLVMValue;
-            builtType = left.Type;
-
-            switch (binaryOp.Type)
-            {
-                case OperationType.Addition:
-                    builtVal = left.Type is Float
-                        ? Builder.BuildFAdd(leftVal, rightVal)
-                        : Builder.BuildAdd(leftVal, rightVal);
-                    break;
-                case OperationType.Subtraction:
-                    builtVal = left.Type is Float
-                        ? Builder.BuildFSub(leftVal, rightVal)
-                        : Builder.BuildSub(leftVal, rightVal);
-                    break;
-                case OperationType.Multiplication:
-                    builtVal = left.Type is Float
-                        ? Builder.BuildFMul(leftVal, rightVal)
-                        : Builder.BuildMul(leftVal, rightVal);
-                    break;
-                case OperationType.Division:
-                    builtVal = left.Type is Float
-                        ? Builder.BuildFDiv(leftVal, rightVal)
-                        : left.Type is UnsignedInt
-                            ? Builder.BuildUDiv(leftVal, rightVal)
-                            : left.Type is SignedInt
-                                ? Builder.BuildSDiv(leftVal, rightVal)
-                                : throw new NotImplementedException();
-
-                    break;
-                case OperationType.Modulo:
-                    builtVal = left.Type is Float
-                        ? Builder.BuildFRem(leftVal, rightVal)
-                        : left.Type is UnsignedInt
-                            ? Builder.BuildURem(leftVal, rightVal)
-                            : left.Type is SignedInt
-                                ? Builder.BuildSRem(leftVal, rightVal)
-                                : throw new NotImplementedException();
-
-                    break;
-                case OperationType.And:
-                    builtVal = Builder.BuildAnd(leftVal, rightVal);
-                    builtType = Primitives.Bool;
-                    break;
-                case OperationType.Or:
-                    builtVal = Builder.BuildOr(leftVal, rightVal);
-                    builtType = Primitives.Bool;
-                    break;
-                case OperationType.Equal:
-                case OperationType.NotEqual:
-                    builtVal = right.LLVMValue.IsNull
-                        ? binaryOp.Type == OperationType.Equal
-                            ? Builder.BuildIsNull(leftVal)
-                            : Builder.BuildIsNotNull(leftVal)
-                        : left.LLVMValue.IsNull
-                            ? binaryOp.Type == OperationType.Equal
-                                ? Builder.BuildIsNull(rightVal)
-                                : Builder.BuildIsNotNull(rightVal)
-                            : left.Type is Float
-                                ? Builder.BuildFCmp(binaryOp.Type == OperationType.Equal
-                                        ? LLVMRealPredicate.LLVMRealOEQ
-                                        : LLVMRealPredicate.LLVMRealUNE,
-                                    leftVal, rightVal)
-                                : left.Type is Int
-                                    ? Builder.BuildICmp(binaryOp.Type == OperationType.Equal
-                                            ? LLVMIntPredicate.LLVMIntEQ
-                                            : LLVMIntPredicate.LLVMIntNE,
-                                        leftVal, rightVal)
-                                    : throw new NotImplementedException();
-
-                    builtType = Primitives.Bool;
-                    break;
-                case OperationType.GreaterThan:
-                case OperationType.GreaterThanOrEqual:
-                case OperationType.LesserThan:
-                case OperationType.LesserThanOrEqual:
-                    builtVal = left.Type is Float
-                        ? Builder.BuildFCmp(binaryOp.Type switch
-                        {
-                            OperationType.GreaterThan => LLVMRealPredicate.LLVMRealOGT,
-                            OperationType.GreaterThanOrEqual => LLVMRealPredicate.LLVMRealOGE,
-                            OperationType.LesserThan => LLVMRealPredicate.LLVMRealOLT,
-                            OperationType.LesserThanOrEqual => LLVMRealPredicate.LLVMRealOLE,
-                            _ => throw new NotImplementedException(),
-                        }, leftVal, rightVal)
-                        : left.Type is UnsignedInt
-                            ? Builder.BuildICmp(binaryOp.Type switch
-                            {
-                                OperationType.GreaterThan => LLVMIntPredicate.LLVMIntUGT,
-                                OperationType.GreaterThanOrEqual => LLVMIntPredicate.LLVMIntUGE,
-                                OperationType.LesserThan => LLVMIntPredicate.LLVMIntULT,
-                                OperationType.LesserThanOrEqual => LLVMIntPredicate.LLVMIntULE,
-                                _ => throw new NotImplementedException(),
-                            }, leftVal, rightVal)
-                            : left.Type is SignedInt
-                                ? Builder.BuildICmp(binaryOp.Type switch
-                                {
-                                    OperationType.GreaterThan => LLVMIntPredicate.LLVMIntSGT,
-                                    OperationType.GreaterThanOrEqual => LLVMIntPredicate.LLVMIntSGE,
-                                    OperationType.LesserThan => LLVMIntPredicate.LLVMIntSLT,
-                                    OperationType.LesserThanOrEqual => LLVMIntPredicate.LLVMIntSLE,
-                                    _ => throw new NotImplementedException(),
-                                }, leftVal, rightVal)
-                                : throw new NotImplementedException($"Unimplemented comparison between {left.Type} " +
-                                    $"and {right.Type}.");
-
-                    builtType = Primitives.Bool;
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
-            return Value.Create(builtType, builtVal);
-        }
-        else
-        {
-            throw new Exception($"Operation cannot be done with operands of types \"{left.Type}\" " +
-                $"and \"{right.Type}\"!");
-        }
+        return result;
     }
 
     public Value CompileCast(Scope scope, CastNode cast)
@@ -1371,125 +1262,125 @@ public class LLVMCompiler
         return Value.Create(destType, builtVal);
     }
 
-    public Value CompilePow(Value left, Value right)
-    {
-        Struct i16 = Primitives.Int16;
-        Struct i32 = Primitives.Int32;
-        Struct i64 = Primitives.Int64;
-        Struct f32 = Primitives.Float32;
-        Struct f64 = Primitives.Float64;
-
-        LLVMValueRef val;
-        string intrinsic;
-        LLVMTypeRef destType = LLVMTypeRef.Float;
-        bool returnInt = left.Type is Int && right.Type is Int;
-
-        if (left.Type is Int)
-        {
-            if (left.Type.Equals(Primitives.UInt64)
-                || left.Type.Equals(Primitives.Int64))
-            {
-                destType = LLVMTypeRef.Double;
-            }
-
-            val = left.Type is SignedInt
-                ? Builder.BuildSIToFP(left.LLVMValue, destType)
-                : left.Type is UnsignedInt
-                    ? Builder.BuildUIToFP(left.LLVMValue, destType)
-                    : throw new NotImplementedException();
-            left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                    ? f64
-                    : f32,
-                val);
-        }
-        else if (left.Type is Float
-            && !left.Type.Equals(Primitives.Float64))
-        {
-            val = Builder.BuildFPCast(left.LLVMValue, destType);
-            left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                    ? f64
-                    : f32,
-                val);
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-
-        if (right.Type is Float)
-        {
-            if (left.Type.Equals(Primitives.Float64))
-            {
-                if (right.Type.Equals(Primitives.Float64))
-                {
-                    val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
-                    right = Value.Create(f64, val);
-                }
-
-                intrinsic = "llvm.pow.f64";
-            }
-            else
-            {
-                if (right.Type.Equals(Primitives.Float32))
-                {
-                    val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
-                    right = Value.Create(f32, val);
-                }
-
-                intrinsic = "llvm.pow.f32";
-            }
-        }
-        else if (right.Type is Int)
-        {
-            if (left.Type.Equals(Primitives.Float64))
-            {
-                if (!right.Type.Equals(Primitives.UInt16)
-                    && !right.Type.Equals(Primitives.Int16))
-                {
-                    val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
-                    right = Value.Create(i16, val);
-                }
-
-                intrinsic = "llvm.powi.f64.i16";
-            }
-            else
-            {
-                if (right.Type.Equals(Primitives.UInt32)
-                    || right.Type.Equals(Primitives.Int32))
-                {
-                    val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
-                    right = Value.Create(i32, val);
-                }
-
-                intrinsic = "llvm.powi.f32.i32";
-            }
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-
-        IntrinsicFunction func = GetIntrinsic(intrinsic);
-        var args = new Value[2]
-        {
-            left,
-            right,
-        };
-        Value result = func.Call(this, args);
-
-        if (returnInt)
-        {
-            result = result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-                ? Value.Create(i64,
-                    Builder.BuildFPToSI(result.LLVMValue,
-                        LLVMTypeRef.Int64))
-                : Value.Create(i32,
-                    Builder.BuildFPToSI(result.LLVMValue,
-                        LLVMTypeRef.Int32));
-        }
-
-        return result;
-    }
+    // public Value CompilePow(Value left, Value right)
+    // {
+    //     Struct i16 = Primitives.Int16;
+    //     Struct i32 = Primitives.Int32;
+    //     Struct i64 = Primitives.Int64;
+    //     Struct f32 = Primitives.Float32;
+    //     Struct f64 = Primitives.Float64;
+    //
+    //     LLVMValueRef val;
+    //     string intrinsic;
+    //     LLVMTypeRef destType = LLVMTypeRef.Float;
+    //     bool returnInt = left.Type is Int && right.Type is Int;
+    //
+    //     if (left.Type is Int)
+    //     {
+    //         if (left.Type.Equals(Primitives.UInt64)
+    //             || left.Type.Equals(Primitives.Int64))
+    //         {
+    //             destType = LLVMTypeRef.Double;
+    //         }
+    //
+    //         val = left.Type is SignedInt
+    //             ? Builder.BuildSIToFP(left.LLVMValue, destType)
+    //             : left.Type is UnsignedInt
+    //                 ? Builder.BuildUIToFP(left.LLVMValue, destType)
+    //                 : throw new NotImplementedException();
+    //         left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+    //                 ? f64
+    //                 : f32,
+    //             val);
+    //     }
+    //     else if (left.Type is Float
+    //         && !left.Type.Equals(Primitives.Float64))
+    //     {
+    //         val = Builder.BuildFPCast(left.LLVMValue, destType);
+    //         left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+    //                 ? f64
+    //                 : f32,
+    //             val);
+    //     }
+    //     else
+    //     {
+    //         throw new NotImplementedException();
+    //     }
+    //
+    //     if (right.Type is Float)
+    //     {
+    //         if (left.Type.Equals(Primitives.Float64))
+    //         {
+    //             if (right.Type.Equals(Primitives.Float64))
+    //             {
+    //                 val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
+    //                 right = Value.Create(f64, val);
+    //             }
+    //
+    //             intrinsic = "llvm.pow.f64";
+    //         }
+    //         else
+    //         {
+    //             if (right.Type.Equals(Primitives.Float32))
+    //             {
+    //                 val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
+    //                 right = Value.Create(f32, val);
+    //             }
+    //
+    //             intrinsic = "llvm.pow.f32";
+    //         }
+    //     }
+    //     else if (right.Type is Int)
+    //     {
+    //         if (left.Type.Equals(Primitives.Float64))
+    //         {
+    //             if (!right.Type.Equals(Primitives.UInt16)
+    //                 && !right.Type.Equals(Primitives.Int16))
+    //             {
+    //                 val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
+    //                 right = Value.Create(i16, val);
+    //             }
+    //
+    //             intrinsic = "llvm.powi.f64.i16";
+    //         }
+    //         else
+    //         {
+    //             if (right.Type.Equals(Primitives.UInt32)
+    //                 || right.Type.Equals(Primitives.Int32))
+    //             {
+    //                 val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
+    //                 right = Value.Create(i32, val);
+    //             }
+    //
+    //             intrinsic = "llvm.powi.f32.i32";
+    //         }
+    //     }
+    //     else
+    //     {
+    //         throw new NotImplementedException();
+    //     }
+    //
+    //     IntrinsicFunction func = GetIntrinsic(intrinsic);
+    //     var args = new Value[2]
+    //     {
+    //         left,
+    //         right,
+    //     };
+    //     Value result = func.Call(this, args);
+    //
+    //     if (returnInt)
+    //     {
+    //         result = result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+    //             ? Value.Create(i64,
+    //                 Builder.BuildFPToSI(result.LLVMValue,
+    //                     LLVMTypeRef.Int64))
+    //             : Value.Create(i32,
+    //                 Builder.BuildFPToSI(result.LLVMValue,
+    //                     LLVMTypeRef.Int32));
+    //     }
+    //
+    //     return result;
+    // }
 
     public Value CompileAssignment(Scope scope, BinaryOperationNode binaryOp)
     {

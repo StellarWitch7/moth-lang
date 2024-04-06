@@ -7,6 +7,31 @@ namespace Moth;
 
 public static class Utils
 {
+    public static string ExpandOpName(string op)
+    {
+        return $"__operator{{{op}}}";
+    }
+
+    public static string OpTypeToString(OperationType opType)
+    {
+        return opType switch
+        {
+            OperationType.Addition => "+",
+            OperationType.Subtraction => "-",
+            OperationType.Multiplication => "*",
+            OperationType.Division => "/",
+            OperationType.Modulus => "%",
+            OperationType.LesserThan => "<",
+            OperationType.GreaterThan => ">",
+            OperationType.LesserThanOrEqual => "<=",
+            OperationType.GreaterThanOrEqual => ">=",
+            OperationType.Equal => "==",
+            //OperationType.Range => "..",
+            
+            _ => throw new NotImplementedException($"Unsupported operation type: \"{opType}\"")
+        };
+    }
+    
     public static LLVMCallConv StringToCallConv(string str)
     {
         return str switch

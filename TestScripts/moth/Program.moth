@@ -16,3 +16,9 @@ func thing() #i32& {
     local v #i32 = 1;
     return &v;
 }
+
+struct Test {
+    public func op{*}(right #i32) #i32 {
+        return 0;
+    }
+}

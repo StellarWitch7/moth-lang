@@ -25,6 +25,11 @@ public sealed class SignedInt : Int
 {
     public SignedInt(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
 
+    protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
+    {
+        
+    }
+
     protected override ImplicitConversionTable GenerateImplicitConversions()
     {
         var dict = new ImplicitConversionTable();
@@ -58,6 +63,11 @@ public sealed class SignedInt : Int
 public sealed class UnsignedInt : Int
 {
     public UnsignedInt(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
+
+    protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
+    {
+        
+    }
     
     protected override ImplicitConversionTable GenerateImplicitConversions()
     {

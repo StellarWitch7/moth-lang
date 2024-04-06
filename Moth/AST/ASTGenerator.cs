@@ -1112,7 +1112,7 @@ public static class ASTGenerator
             TokenType.Hyphen => OperationType.Subtraction,
             TokenType.Asterix => OperationType.Multiplication,
             TokenType.ForwardSlash => OperationType.Division,
-            TokenType.Modulo => OperationType.Modulo,
+            TokenType.Modulo => OperationType.Modulus,
             TokenType.Exponential => OperationType.Exponential,
             TokenType.Equal => OperationType.Equal,
             TokenType.NotEqual => OperationType.NotEqual,
@@ -1126,7 +1126,7 @@ public static class ASTGenerator
             TokenType.SubAssign => OperationType.Subtraction,
             TokenType.MulAssign => OperationType.Multiplication,
             TokenType.DivAssign => OperationType.Division,
-            TokenType.ModAssign => OperationType.Modulo,
+            TokenType.ModAssign => OperationType.Modulus,
             TokenType.ExpAssign => OperationType.Exponential,
             _ => throw new UnexpectedTokenException(context.Current.Value)
         };
@@ -1174,7 +1174,7 @@ public static class ASTGenerator
         return operationType switch
         {
             OperationType.Exponential => 5,
-            OperationType.Modulo
+            OperationType.Modulus
                 or OperationType.Multiplication
                 or OperationType.Division => 4,
             OperationType.Addition

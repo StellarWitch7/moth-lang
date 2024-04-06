@@ -7,9 +7,9 @@ public class Struct : Type, IContainer
     public IContainer? Parent { get; }
     public string Name { get; }
     public PrivacyType Privacy { get; }
-    public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
-    public Dictionary<string, OverloadList> Methods { get; } = new Dictionary<string, OverloadList>();
-    public Dictionary<string, OverloadList> StaticMethods { get; } = new Dictionary<string, OverloadList>();
+    public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
+    public virtual Dictionary<string, OverloadList> Methods { get; } = new Dictionary<string, OverloadList>();
+    public virtual Dictionary<string, OverloadList> StaticMethods { get; } = new Dictionary<string, OverloadList>();
 
     private uint _bitlength;
     
