@@ -115,8 +115,6 @@ public class Void : PrimitiveType
 
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public ImplicitConversionTable() { }
-
         public override bool Contains(Type key)
         {
             return key is PtrType;
@@ -154,8 +152,6 @@ public class Null : PrimitiveType
     
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public ImplicitConversionTable() { }
-
         public override bool Contains(Type key)
         {
             return true;

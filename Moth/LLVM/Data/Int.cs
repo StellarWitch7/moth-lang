@@ -27,7 +27,7 @@ public sealed class SignedInt : Int
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
     {
-        
+        throw new NotImplementedException(); //TODO
     }
 
     protected override ImplicitConversionTable GenerateImplicitConversions()
@@ -66,7 +66,7 @@ public sealed class UnsignedInt : Int
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
     {
-        
+        throw new NotImplementedException(); //TODO
     }
     
     protected override ImplicitConversionTable GenerateImplicitConversions()

@@ -1139,16 +1139,7 @@ public class LLVMCompiler
         }
         else if (literalNode.Value is int i32)
         {
-            Struct @struct = Primitives.UInt32;
-            bool signExtend = false;
-            
-            if (i32 < 0)
-            {
-                @struct = Primitives.Int32;
-                signExtend = true;
-            }
-            
-            return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)i32, signExtend));
+            return AbstractInt.Create((long)i32);
         }
         else if (literalNode.Value is float f32)
         {

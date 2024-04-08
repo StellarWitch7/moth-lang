@@ -11,7 +11,7 @@ public class Value : CompilerData
         LLVMValue = value;
     }
 
-    public Value ImplicitConvertTo(LLVMCompiler compiler, Type target)
+    public virtual Value ImplicitConvertTo(LLVMCompiler compiler, Type target)
     {
         if (Type.Equals(target))
         {
