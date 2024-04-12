@@ -49,7 +49,16 @@ public abstract class PrimitiveType : Struct
             return base.Methods;
         }
     }
-
+    
+    protected OverloadList InitOperatorList(Dictionary<string, OverloadList> dict, OperationType opType)
+    {
+        var opName = Utils.ExpandOpName(Utils.OpTypeToString(opType));
+        var op = new OverloadList(opName);
+        
+        dict.Add(opName, op);
+        return op;
+    }
+    
     protected abstract Dictionary<string, OverloadList> GenerateDefaultMethods();
 }
 

@@ -20,6 +20,7 @@ public static class Utils
             OperationType.Subtraction => "-",
             OperationType.Multiplication => "*",
             OperationType.Division => "/",
+            OperationType.Exponential => "^",
             OperationType.Modulus => "%",
             OperationType.LesserThan => "<",
             OperationType.GreaterThan => ">",

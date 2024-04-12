@@ -75,7 +75,7 @@ public abstract class IntrinsicOperator : IntrinsicFunction
             throw new NotImplementedException("Unsupported primitive type for intrinsic operator.");
         }
 
-        return Value.Create(leftType, value);
+        return Value.Create(RetType, value);
     }
 
     protected abstract LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal);

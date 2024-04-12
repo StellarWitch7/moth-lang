@@ -71,6 +71,12 @@ public sealed class Division : IntrinsicOperator
     }
 }
 
+//TODO
+// public sealed class Exponential : IntrinsicOperator
+// {
+//     
+// }
+
 public sealed class Modulus : IntrinsicOperator
 {
     public Modulus(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)

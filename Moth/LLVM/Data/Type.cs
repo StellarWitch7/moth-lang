@@ -34,6 +34,7 @@ public class Type : CompilerData
     
     public bool CanConvertTo(Type other)
     {
+        if (Equals(other)) return true;
         return GetImplicitConversions().Contains(other);
     }
     

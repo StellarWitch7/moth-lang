@@ -6,10 +6,10 @@ foreign func malloc(size #u64) #void*;
 foreign func printf(text #char*, ...) #i32;
 
 func main() #i32 {
-    local v #i8 = 5;
+    local v #i8 = 5 + 2;
     local v2 #i32 = v;
     local v3 #i32& = thing();
-    return v2 + *v3;
+    return v2 + v3;
 }
 
 func thing() #i32& {

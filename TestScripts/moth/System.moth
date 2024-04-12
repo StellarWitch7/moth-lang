@@ -31,7 +31,7 @@ public func STDErr() #File {
 }
 
 public func EOF(ch #i32) #bool {
-    return ch < 0;
+    return ch < #i32(0);
 }
 
 public func Write(char #char) {

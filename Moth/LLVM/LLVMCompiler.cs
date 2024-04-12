@@ -697,7 +697,8 @@ public class LLVMCompiler
             {
                 if (@return.ReturnValue != null)
                 {
-                    Value expr = CompileExpression(scope, @return.ReturnValue).ImplicitConvertTo(this, CurrentFunction.Type.ReturnType);
+                    Value expr = CompileExpression(scope, @return.ReturnValue);
+                    expr = expr.ImplicitConvertTo(this, CurrentFunction.Type.ReturnType);
                     Builder.BuildRet(expr.LLVMValue);
                 }
                 else
@@ -1213,10 +1214,9 @@ public class LLVMCompiler
         Type destType = ResolveType(cast.NewType);
         LLVMValueRef builtVal;
 
-        if ((destType is PtrType destPtrType && destPtrType.Equals(Primitives.Void))
-            || (value.Type is PtrType rPtrType && rPtrType.BaseType.Equals(Primitives.Void)))
+        if (value.Type.CanConvertTo(destType))
         {
-            builtVal = value.LLVMValue;
+            builtVal = value.ImplicitConvertTo(this, destType).LLVMValue;
         }
         else
         {
@@ -1509,9 +1509,16 @@ public class LLVMCompiler
                 PtrType ptrType;
                 Struct @struct;
 
-                if (toCallOn.Type is VarType)
+                if (toCallOn.Type is VarType varType)
                 {
-                    toCallOn = toCallOn.DeRef(this);
+                    if (varType.BaseType is Struct)
+                    {
+                        toCallOn = Value.Create(new PtrType(@varType.BaseType), toCallOn.LLVMValue);
+                    }
+                    else
+                    {
+                        toCallOn = toCallOn.DeRef(this);
+                    }
                 }
                 
                 if (toCallOn.Type is Struct temporary)
