@@ -31,39 +31,39 @@ public func STDErr() #File {
 }
 
 public func EOF(ch #i32) #bool {
-    return ch < #i32(0);
+    return ch < 0;
 }
 
-public func Write(char #char) {
+public func Write(char #u8) {
     STDOut().Write(char);
     return;
 }
 
-public func Write(string #char*) {
+public func Write(string #u8*) {
     STDOut().Write(string);
     return;
 }
 
-public func Write(string #char*, end #char) {
+public func Write(string #u8*, end #u8) {
     STDOut().Write(string, end);
     return;
 }
 
-public func WriteLine(string #char*) {
+public func WriteLine(string #u8*) {
     STDOut().WriteLine(string);
     return;
 }
 
-public func Input(string #char*) #char* {
+public func Input(string #u8*) #u8* {
     return Input(string, STDOut(), STDIn());
 }
 
-public func Input(string #char*, output #File, input #File) #char* {
+public func Input(string #u8*, output #File, input #File) #u8* {
     output.Write(string, '\0');
     return input.ReadLine();
 }
 
-public func OpenFile(path #char*, mode #char*) #File {
+public func OpenFile(path #u8*, mode #u8*) #File {
     return #File.init(fopen(path, mode));
 }
 
@@ -75,44 +75,44 @@ public struct File {
         return self;
     }
 
-    public func Write(string #char*) {
+    public func Write(string #u8*) {
         fputs(string, self.CFile);
         fflush(self.CFile);
         return;
     }
 
-    public func Write(char #char) {
-        local str #char* = #char*(malloc(1));
+    public func Write(char #u8) {
+        local str #u8* = #u8*(malloc(1));
         sprintf(str, "%c", char);
         self.Write(str);
         return;
     }
 
-    public func Write(string #char*, end #char) {
+    public func Write(string #u8*, end #u8) {
         self.Write(string)
         self.Write(end);
         return;
     }
 
-    public func WriteLine(string #char*) {
+    public func WriteLine(string #u8*) {
         self.Write(string, '\n');
         return;
     }
 
-    public func GetChar() #char {
+    public func GetChar() #u8 {
         local ch #i32 = fgetc(self.CFile);
 
         if !EOF(ch) {
-            return #char(ch);
+            return #u8(ch);
         } else {
             return '\0';
         }
     }
 
-    public func ReadLine() #char* {
+    public func ReadLine() #u8* {
         local size #u32 = 512;
-        local string #char* = malloc(size);
-        local ch #char;
+        local string #u8* = malloc(size);
+        local ch #u8;
         local len #u32 = 0;
 
         if string == null {

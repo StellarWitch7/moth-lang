@@ -7,7 +7,6 @@ public enum TypeTag
     Pointer,
     Void,
     Bool,
-    Char,
     UInt8,
     UInt16,
     UInt32,

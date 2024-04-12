@@ -189,11 +189,21 @@ public sealed class Equal : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
+        if (rightVal.Type.Equals(Primitives.Null))
+        {
+            return compiler.Builder.BuildIsNull(leftVal.LLVMValue);
+        }
+
         return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, leftVal.LLVMValue, rightVal.LLVMValue);
     }
 
     protected override LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
+        if (rightVal.Type.Equals(Primitives.Null))
+        {
+            return compiler.Builder.BuildIsNull(leftVal.LLVMValue);
+        }
+
         return compiler.Builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, leftVal.LLVMValue, rightVal.LLVMValue);
     }
 }

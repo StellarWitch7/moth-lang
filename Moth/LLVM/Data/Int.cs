@@ -63,6 +63,19 @@ public abstract class Int : PrimitiveType
                 : throw e);
         }
 
+        {
+            funcList.Add(ctor.Invoke(new object[]{ retBool ? Primitives.Bool : this, this, new AbstractInt(0) }) is Function func
+                ? func
+                : throw e);
+        }
+
+        if (funcList.Name == Utils.ExpandOpName("=="))
+        {
+            funcList.Add(ctor.Invoke(new object[]{ retBool ? Primitives.Bool : this, this, Primitives.Null }) is Function func
+                ? func
+                : throw e);
+        }
+
         if (this is SignedInt)
         {
             if (Bits < Primitives.Int8.Bits) funcList.Add(ctor.Invoke(new object[]

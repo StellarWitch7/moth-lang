@@ -1127,7 +1127,7 @@ public class LLVMCompiler
     {
         if (literalNode.Value is string str)
         {
-            Struct @struct = GetStruct(Reserved.Char);
+            Struct @struct = GetStruct(Reserved.UInt8);
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
             global.Initializer = constStr;
@@ -1149,7 +1149,7 @@ public class LLVMCompiler
         }
         else if (literalNode.Value is char ch)
         {
-            Struct @struct = Primitives.Char;
+            Struct @struct = Primitives.UInt8;
             return Value.Create(@struct, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
         }
         else if (literalNode.Value == null)
@@ -1176,7 +1176,7 @@ public class LLVMCompiler
             OperationType.NotEqual => Value.Create(Primitives.Bool,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
                     CompileFuncCall(scope,
-                        new FuncCallNode(Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
+                        new FuncCallNode(Utils.ExpandOpName(Utils.OpTypeToString(OperationType.Equal)),
                             new ExpressionNode[]
                             {
                                 binaryOp.Right
@@ -1684,7 +1684,6 @@ public class LLVMCompiler
         @namespace.Structs.Add(Reserved.Float32, Primitives.Float32);
         @namespace.Structs.Add(Reserved.Float64, Primitives.Float64);
         @namespace.Structs.Add(Reserved.Bool, Primitives.Bool);
-        @namespace.Structs.Add(Reserved.Char, Primitives.Char);
         @namespace.Structs.Add(Reserved.UInt8, Primitives.UInt8);
         @namespace.Structs.Add(Reserved.UInt16, Primitives.UInt16);
         @namespace.Structs.Add(Reserved.UInt32, Primitives.UInt32);

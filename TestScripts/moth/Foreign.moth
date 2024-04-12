@@ -4,14 +4,14 @@ foreign func malloc(size #u64) #void*;
 foreign func realloc(ptr #void*, size #u64) #void*;
 foreign func free(pointer #void*) #void;
 
-foreign func printf(text #char*, ...) #i32;
-foreign func sprintf(destination #char*, format #char*, ...) #i32;
+foreign func printf(text #u8*, ...) #i32;
+foreign func sprintf(destination #u8*, format #u8*, ...) #i32;
 foreign func fflush(stream #FILE*) #i32;
-foreign func fputs(string #char*, stream #FILE*) #i32;
-foreign func fgets(str #char*, n #i32, stream #FILE*) #char*;
+foreign func fputs(string #u8*, stream #FILE*) #i32;
+foreign func fgets(str #u8*, n #i32, stream #FILE*) #u8*;
 foreign func fgetc(file #FILE*) #i32;
-foreign func fopen(path #char*, mode #char*) #FILE*;
-foreign func strcpy(destination #char*, source #char*) #char*;
+foreign func fopen(path #u8*, mode #u8*) #FILE*;
+foreign func strcpy(destination #u8*, source #u8*) #u8*;
 
 foreign struct FILE;
 

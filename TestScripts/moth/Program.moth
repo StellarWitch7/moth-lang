@@ -3,7 +3,7 @@ namespace test;
 with core;
 
 foreign func malloc(size #u64) #void*;
-foreign func printf(text #char*, ...) #i32;
+foreign func printf(text #u8*, ...) #i32;
 
 func main() #i32 {
     local v #i8 = 5 + 2;

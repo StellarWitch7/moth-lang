@@ -230,9 +230,6 @@ public unsafe class MetadataDeserializer
                 case Metadata.TypeTag.Bool:
                     result = Primitives.Bool;
                     break;
-                case Metadata.TypeTag.Char:
-                    result = Primitives.Char;
-                    break;
                 case Metadata.TypeTag.UInt8:
                     result = Primitives.UInt8;
                     break;

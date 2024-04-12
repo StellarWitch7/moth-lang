@@ -68,6 +68,8 @@ public class AbstractInt : PrimitiveType
         return _internalImplicits;
     }
 
+    public override bool Equals(object? obj) => obj is AbstractInt;
+
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
         private long _value;

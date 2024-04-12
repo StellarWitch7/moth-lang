@@ -21,6 +21,7 @@ public class OverloadList
     public Function Get(IReadOnlyList<Type> paramTypes)
     {
         Function? sufficient = null;
+        bool hasMultipleCandidates = false;
         
         foreach (var func in _functions)
         {
@@ -34,7 +35,7 @@ public class OverloadList
             {
                 if (sufficient != null)
                 {
-                    throw new Exception($"Cannot infer overload for call to \"{Name}\".");
+                    hasMultipleCandidates = true;
                 }
                 
                 sufficient = func;
@@ -44,6 +45,11 @@ public class OverloadList
         if (sufficient == null)
         {
             throw new Exception($"No candidate definition for call to \"{Name}\".");
+        }
+
+        if (hasMultipleCandidates)
+        {
+            throw new Exception($"Cannot infer overload for call to \"{Name}\".");
         }
 
         return sufficient;
