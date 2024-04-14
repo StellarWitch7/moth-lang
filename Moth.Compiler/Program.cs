@@ -212,6 +212,11 @@ internal class Program
                             {
                                 arguments.Append(" --llegacy_stdio_definitions");
                             }
+
+                            if (OperatingSystem.IsLinux())
+                            {
+                                arguments.Append(" -lpthread");
+                            }
                             
                             if (options.Verbose)
                             {

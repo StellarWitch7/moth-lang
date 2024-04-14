@@ -1,7 +1,6 @@
 ﻿using Moth.AST.Node;
 using System.Reflection;
 using System.Reflection.Emit;
-using Binder = Microsoft.CSharp.RuntimeBinder.Binder;
 
 namespace Moth.LLVM.Data;
 

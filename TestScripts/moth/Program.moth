@@ -6,19 +6,12 @@ foreign func malloc(size #u64) #void*;
 foreign func printf(text #u8*, ...) #i32;
 
 func main() #i32 {
-    local v #i8 = 5 + 2;
-    local v2 #i32 = v;
-    local v3 #i32& = thing();
-    return v2 + v3;
-}
+    local thread #Thread = #Thread.init(func(arg #void*) #void* {
+        printf("Hello threaded world!");
+        return #i32*(&#i32(0));
+    }, null);
+    thread.Start();
 
-func thing() #i32& {
-    local v #i32 = 1;
-    return &v;
-}
-
-struct Test {
-    public func op{*}(right #i32) #i32 {
-        return 0;
-    }
+    Exit();
+    return 0;
 }

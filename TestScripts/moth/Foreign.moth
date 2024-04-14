@@ -4,6 +4,11 @@ foreign func malloc(size #u64) #void*;
 foreign func realloc(ptr #void*, size #u64) #void*;
 foreign func free(pointer #void*) #void;
 
+@TargetOS("linux")
+foreign func pthread_create(pthread_t #void*, attr #void*, start_routine #(#void*) #void*, arg #void*) #i32;
+@TargetOS("linux")
+foreign func pthread_exit(value_ptr #void*);
+
 foreign func printf(text #u8*, ...) #i32;
 foreign func sprintf(destination #u8*, format #u8*, ...) #i32;
 foreign func fflush(stream #FILE*) #i32;
@@ -14,6 +19,8 @@ foreign func fopen(path #u8*, mode #u8*) #FILE*;
 foreign func strcpy(destination #u8*, source #u8*) #u8*;
 
 foreign struct FILE;
+//foreign struct pthread_t;
+//foreign struct pthread_attr_t;
 
 @TargetOS("windows")
 @CallConv("cdecl")

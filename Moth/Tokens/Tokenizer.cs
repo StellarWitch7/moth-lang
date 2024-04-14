@@ -148,7 +148,6 @@ public static class Tokenizer
                         }
                         else
                         {
-                            
                             tokens.Add(new Token
                             {
                                 Text = keyword,
