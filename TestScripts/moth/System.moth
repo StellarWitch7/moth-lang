@@ -145,23 +145,32 @@ public struct File {
 }
 
 public struct Thread {
-    public pthread_t #void*;
-    public pthread_attr_t #void*;
+    public pthread_t #u64;
+    pthread_attr_t #void*;
     pthread_main #(#void*) #void*;
     pthread_arg #void*;
 
     public static func init(main #(#void*) #void*, argument #void*) #Thread {
         self.pthread_main = main;
         self.pthread_arg = argument;
-        self.pthread_t = malloc(16);
         return self;
     }
     
     public func Start() {
         //this (the i32 type) should throw a compiler error
-        //self.pthread_id #i32 = pthread_create(&self.pthread_t, &self.pthread_attr_t, &self.pthread_main, &self.pthread_arg);
-        if pthread_create(self.pthread_t, self.pthread_attr_t, self.pthread_main, self.pthread_arg) != 0 {
+        //self.pthread_id #i32 = pthread_create(self.pthread_t, self.pthread_attr_t, self.pthread_main, self.pthread_arg);
+        if pthread_create(&self.pthread_t, self.pthread_attr_t, self.pthread_main, self.pthread_arg) != 0 {
             STDErr().WriteLine("Failed to start thread.");
+        }
+
+        return;
+    }
+
+    public func Join() {
+        local ret #void*;
+
+        if pthread_join(self.pthread_t, &ret) != 0 {
+            STDErr().WriteLine("Failed to join thread.");
         }
 
         return;

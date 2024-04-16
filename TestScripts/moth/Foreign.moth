@@ -5,7 +5,9 @@ foreign func realloc(ptr #void*, size #u64) #void*;
 foreign func free(pointer #void*) #void;
 
 @TargetOS("linux")
-foreign func pthread_create(pthread_t #void*, attr #void*, start_routine #(#void*) #void*, arg #void*) #i32;
+foreign func pthread_create(pthread_t #u64*, attr #void*, start_routine #(#void*) #void*, arg #void*) #i32;
+@TargetOS("linux")
+foreign func pthread_join(pthread_t #u64, retval #void**) #i32;
 @TargetOS("linux")
 foreign func pthread_exit(value_ptr #void*);
 
