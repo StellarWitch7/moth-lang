@@ -1,6 +1,0 @@
-name = "mothcore"
-version = "1.0"
-type = "exe"
-root = "moth"
-out = "build"
-platforms = [ "linux", "windows" ]

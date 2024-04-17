@@ -237,7 +237,7 @@ internal class Program
             ? source.Source.Remove(source.Source.LastIndexOf('.')).Substring(source.Source.LastIndexOf('/') + 1)
             : throw new Exception("Git source not set.");
         string repoDir = $"{CacheDir}/{repoName}";
-        var args = new StringBuilder("clone ");
+        var args = new StringBuilder();
         
         if (source.Branch != null)
             args.Append($"--branch {source.Branch} ");
@@ -245,13 +245,13 @@ internal class Program
         if (source.Commit != null)
             args.Append("--depth 1 ");
         
-        var gitClone = Process.Start(new ProcessStartInfo("git", $"{args}{source.Source}")
+        var gitClone = Process.Start(new ProcessStartInfo("git-force-clone", $"{args}{source.Source} {repoDir}")
         {
             WorkingDirectory = CacheDir
         });
 
         if (gitClone == null)
-            throw new Exception("Call to git clone failed.");
+            throw new Exception("Call to git-force-clone failed.");
         
         gitClone.WaitForExit();
 
@@ -279,6 +279,6 @@ internal class Program
         build.WaitForExit();
         
         Project project = TomletMain.To<Project>(File.ReadAllText($"{repoDir}/Luna.toml"));
-        return $"{project.FullOutputPath}";
+        return $"{repoDir}/{project.Out}/{project.FullOutputName}";
     }
 }

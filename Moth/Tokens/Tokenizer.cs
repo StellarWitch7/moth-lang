@@ -169,6 +169,7 @@ public static class Tokenizer
                                     "in" => TokenType.In,
                                     "or" => TokenType.Or,
                                     "and" => TokenType.And,
+                                    "root" => TokenType.Root,
                                     "func" => TokenType.Function,
                                     "struct" => TokenType.Struct,
                                     "with" => TokenType.Import,
@@ -258,6 +259,7 @@ public static class Tokenizer
                                 '+' when next is '+' => TokenType.Increment,
                                 '-' when next is '-' => TokenType.Decrement,
                                 '?' when next is '=' => TokenType.InferAssign,
+                                ':' when next is ':' => TokenType.NamespaceSeparator,
                                 '&' => TokenType.Ampersand,
                                 ':' => TokenType.Colon,
                                 '^' => TokenType.Exponential,
@@ -296,7 +298,7 @@ public static class Tokenizer
                             Text = type switch
                             {
                                 TokenType.Variadic => stream.Peek(3),
-                                TokenType.InferAssign
+                                TokenType.InferAssign or TokenType.NamespaceSeparator
                                     or TokenType.AddAssign or TokenType.SubAssign
                                     or TokenType.MulAssign or TokenType.DivAssign
                                     or TokenType.ModAssign or TokenType.ExpAssign

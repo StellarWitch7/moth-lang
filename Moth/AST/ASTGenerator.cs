@@ -11,8 +11,8 @@ public static class ASTGenerator
 {
     public static ScriptAST ProcessScript(ParseContext context)
     {
-        string @namespace;
-        var imports = new List<string>();
+        NamespaceNode @namespace;
+        var imports = new List<NamespaceNode>();
         var funcs = new List<FuncDefNode>();
         var globals = new List<FieldDefNode>();
         var classes = new List<StructNode>();
@@ -21,6 +21,11 @@ public static class ASTGenerator
         {
             context.MoveNext();
             @namespace = ProcessNamespace(context);
+            
+            if (context.Current?.Type != TokenType.Semicolon)
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+
+            context.MoveNext();
         }
         else
         {
@@ -39,6 +44,11 @@ public static class ASTGenerator
                 case TokenType.Import:
                     context.MoveNext();
                     imports.Add(ProcessNamespace(context));
+
+                    if (context.Current?.Type != TokenType.Semicolon)
+                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+
+                    context.MoveNext();
                     break;
                 default:
                     StatementNode result = ProcessDefinition(context, attributes);
@@ -68,27 +78,34 @@ public static class ASTGenerator
         return new ScriptAST(@namespace, imports, classes, funcs, globals);
     }
 
-    public static string ProcessNamespace(ParseContext context)
+    public static NamespaceNode ProcessNamespace(ParseContext context)
     {
-        var builder = new StringBuilder();
+        NamespaceNode nmspace = null;
+        NamespaceNode lastNmspace = null;
 
         while (context.Current != null)
         {
             switch (context.Current?.Type)
             {
-                case TokenType.Period:
-                    builder.Append('.');
+                case TokenType.NamespaceSeparator:
                     context.MoveNext();
                     break;
                 case TokenType.Name:
-                    builder.Append(context.Current.Value.Text.ToString());
+                    if (nmspace == null)
+                    {
+                        nmspace = new NamespaceNode(context.Current.Value.Text.ToString());
+                        lastNmspace = nmspace;
+                    }
+                    else
+                    {
+                        lastNmspace.Child = new NamespaceNode(context.Current.Value.Text.ToString());
+                        lastNmspace = lastNmspace.Child;
+                    }
+                    
                     context.MoveNext();
                     break;
-                case TokenType.Semicolon:
-                    context.MoveNext();
-                    return builder.ToString();
                 default:
-                    throw new UnexpectedTokenException(context.Current.Value);
+                    return nmspace;
             }
         }
 
@@ -860,11 +877,26 @@ public static class ASTGenerator
                     }
 
                     break;
+                case TokenType.Root:
+                    context.MoveNext();
+
+                    var nmspace = ProcessNamespace(context);
+
+                    if (context.Current?.Type == TokenType.TypeRef)
+                    {
+                        var typeRef = ProcessTypeRef(context);
+                        typeRef.Namespace = nmspace;
+                        stack.Push(typeRef);
+                    }
+                    else
+                    {
+                        stack.Push(nmspace);
+                    }
+
+                    break;
                 case TokenType.Period:
                     if (stack.Count == 0)
-                    {
                         throw new UnexpectedTokenException(context.Current.Value);
-                    }
                     
                     if (context.MoveNext()?.Type == TokenType.Name)
                     {
@@ -1045,15 +1077,24 @@ public static class ASTGenerator
                 //         OperationType.Multiplication);
                 //     break;
                 case TokenType.Not:
+                    if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
+                        throw new UnexpectedTokenException(context.Current.Value);
+
                     context.MoveNext();
                     stack.Push(new InverseNode(ProcessExpression(context)));
                     break;
                 case TokenType.Increment:
                 case TokenType.Decrement:
+                    if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
+                        throw new UnexpectedTokenException(context.Current.Value);
+
                     stack.Push(ProcessIncrementDecrement(context));
                     break;
                 case TokenType.TemplateTypeRef:
                 case TokenType.TypeRef:
+                    if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    
                     stack.Push(ProcessTypeRef(context));
                     break;
                 case TokenType.Name:
@@ -1073,6 +1114,9 @@ public static class ASTGenerator
                         break;
                     }
                 case TokenType.This:
+                    if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
+                        throw new UnexpectedTokenException(context.Current.Value);
+
                     stack.Push(new ThisNode());
                     context.MoveNext();
                     break;

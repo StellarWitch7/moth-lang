@@ -280,14 +280,15 @@ public unsafe class MetadataDeserializer
     
     private Namespace GetNamespace(string name)
     {
-        var match = Regex.Match(name, "(?<=root::)(.*)(?=(#|\\.))");
-
-        if (!match.Success)
-        {
-            throw new Exception("Failed to create namespace from metadata, it may be corrupt.");
-        }
-        
-        var cleanName = match.Value;
-        return _compiler.ResolveNamespace(cleanName);
+        throw new NotImplementedException(); //TODO
+        // var match = Regex.Match(name, "(?<=root::)(.*)(?=(#|\\.))");
+        //
+        // if (!match.Success)
+        // {
+        //     throw new Exception("Failed to create namespace from metadata, it may be corrupt.");
+        // }
+        //
+        // var cleanName = match.Value;
+        // return _compiler.ResolveNamespace(cleanName);
     }
 }

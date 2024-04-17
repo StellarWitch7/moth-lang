@@ -6,5 +6,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     msbuild
     clang_16
+    git
+    git-extras
   ];
 }

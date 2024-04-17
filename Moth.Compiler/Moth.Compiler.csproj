@@ -6,7 +6,6 @@
         <PublishSingleFile>true</PublishSingleFile>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <SelfContained>true</SelfContained> 
         <StartupObject>Moth.Compiler.Program</StartupObject>
         <AssemblyName>mothc</AssemblyName>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -19,10 +18,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Moth\Moth.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Properties\" />
     </ItemGroup>
 
 </Project>

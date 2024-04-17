@@ -273,6 +273,11 @@ public unsafe class MetadataSerializer
                 result.Add((byte)Metadata.TypeTag.Bool);
                 type = null;
             }
+            else if (type == Primitives.UInt8)
+            {
+                result.Add((byte)Metadata.TypeTag.UInt8);
+                type = null;
+            }
             else if (type == Primitives.UInt16)
             {
                 result.Add((byte)Metadata.TypeTag.UInt16);

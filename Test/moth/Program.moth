@@ -1,13 +1,12 @@
 namespace test;
 
 with core;
-
-foreign func malloc(size #u64) #void*;
-foreign func printf(text #u8*, ...) #i32;
+with core::io;
+with core::threading;
 
 func main() #i32 {
     local thread #Thread = #Thread.init(func(arg #void*) #void* {
-        printf("Hello threaded world!");
+        STDOut.WriteLine("Hello threaded world!");
         return null;
     }, null);
     thread.Start();

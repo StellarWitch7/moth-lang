@@ -53,7 +53,7 @@ public class Project
     {
         get
         {
-            return $"{Out}/{FullOutputName}";
+            return $"{Environment.CurrentDirectory}/{Out}/{FullOutputName}";
         }
     }
 }

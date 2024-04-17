@@ -113,57 +113,52 @@ public class LLVMCompiler
             ? func
             : CreateIntrinsic(name);
 
-    public Namespace ResolveNamespace(string str) //TODO: improve
+    public Namespace ResolveNamespace(NamespaceNode nmspace) //TODO: improve
     {
         Namespace value = null;
-        string[] names = str.Split("::");
-        uint index = 0;
-        
-        foreach (var name in names) //TODO: is this unnecessary?
-        {
-            names[index] = name.Replace("::", "");
-            index++;
-        }
-        foreach (var name in names)
+
+        while (nmspace != null)
         {
             if (value != null)
             {
-                if (value.Namespaces.TryGetValue(name, out Namespace nmspace))
-                {
-                    value = nmspace;
-                }
-                else
-                {
-                    var @new = new Namespace(value, name);
-                    value.Namespaces.Add(name, @new);
-                    value = @new;
-                }
-            }
-            else
-            {
-                if (GlobalNamespace.Namespaces.TryGetValue(name, out Namespace o))
+                if (value.Namespaces.TryGetValue(nmspace.Name, out Namespace o))
                 {
                     value = o;
                 }
                 else
                 {
-                    var @new = new Namespace(GlobalNamespace, name);
-                    GlobalNamespace.Namespaces.Add(name, @new);
+                    var @new = new Namespace(value, nmspace.Name);
+                    value.Namespaces.Add(nmspace.Name, @new);
                     value = @new;
                 }
             }
+            else
+            {
+                if (GlobalNamespace.Namespaces.TryGetValue(nmspace.Name, out Namespace o))
+                {
+                    value = o;
+                }
+                else
+                {
+                    var @new = new Namespace(GlobalNamespace, nmspace.Name);
+                    GlobalNamespace.Namespaces.Add(nmspace.Name, @new);
+                    value = @new;
+                }
+            }
+
+            nmspace = nmspace.Child;
         }
 
         return value;
     }
 
-    public Namespace[] ResolveImports(string[] importNames)
+    public Namespace[] ResolveImports(NamespaceNode[] imports)
     {
         List<Namespace> result = new List<Namespace>();
 
-        foreach (var importName in importNames)
+        foreach (var import in imports)
         {
-            result.Add(ResolveNamespace(importName));
+            result.Add(ResolveNamespace(import));
         }
 
         return result.ToArray();
@@ -233,7 +228,12 @@ public class LLVMCompiler
                     DefineType(classNode);
                 }
             }
-            
+        }
+
+        foreach (ScriptAST script in scripts)
+        {
+            OpenFile(script.Namespace, script.Imports.ToArray());
+
             foreach (FieldDefNode global in script.GlobalVariables)
             {
                 DefineGlobal(global);
@@ -243,7 +243,7 @@ public class LLVMCompiler
             {
                 DefineFunction(funcDefNode);
             }
-
+            
             foreach (StructNode classNode in script.ClassNodes)
             {
                 if (classNode is not TemplateNode)
@@ -1753,7 +1753,7 @@ public class LLVMCompiler
         return func;
     }
     
-    private void OpenFile(string @namespace, string[] imports)
+    private void OpenFile(NamespaceNode @namespace, NamespaceNode[] imports)
     {
         CurrentNamespace = ResolveNamespace(@namespace);
         _imports = ResolveImports(imports);
