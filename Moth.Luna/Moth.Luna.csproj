@@ -6,6 +6,7 @@
         <PublishSingleFile>true</PublishSingleFile>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <SelfContained>true</SelfContained> 
         <StartupObject>Moth.Luna.Program</StartupObject>
         <AssemblyName>luna</AssemblyName>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
