@@ -11,11 +11,11 @@ internal class Options
         HelpText = "Whether to include extensive logging.")]
     public bool Verbose { get; set; }
     
-    [Option('p',
-        "project",
+    [Option('c',
+        "clear-cache",
         Required = false,
-        HelpText = "The project file to use.")]
-    public string ProjFile { get; set; }
+        HelpText = "Whether to clear dependency cache prior to build.")]
+    public bool ClearCache { get; set; }
 
     [Option('n',
         "no-meta",
@@ -27,6 +27,12 @@ internal class Options
         Required = false,
         HelpText = "Whether to forego advanced optimizations to the IR.")]
     public bool DoNotOptimizeIR { get; set; }
+    
+    [Option('p',
+        "project",
+        Required = false,
+        HelpText = "The project file to use.")]
+    public string ProjFile { get; set; }
     
     [Option("name",
         Required = false,

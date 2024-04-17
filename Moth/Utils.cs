@@ -90,27 +90,36 @@ public static class Utils
             {
                 index++;
                 var hex1 = original[(int)index];
-                index++;
-                var hex2 = original[(int)index];
 
-                var byte1 = hex1 switch
+                if (hex1 == '\\')
                 {
-                    >= '0' and <= '9' => (byte) hex1 - (byte) '0',
-                    >= 'a' and <= 'f' => (byte) hex1 - (byte) 'a' + 10,
-                    >= 'A' and <= 'F' => (byte) hex1 - (byte) 'A' + 10,
-                    _ => throw new ArgumentOutOfRangeException(nameof(hex1)),
-                };
+                    bytes.Add((byte) hex1);
+                    index++;
+                }
+                else
+                {
+                    index++;
+                    var hex2 = original[(int)index];
+
+                    var byte1 = hex1 switch
+                    {
+                        >= '0' and <= '9' => (byte) hex1 - (byte) '0',
+                        >= 'a' and <= 'f' => (byte) hex1 - (byte) 'a' + 10,
+                        >= 'A' and <= 'F' => (byte) hex1 - (byte) 'A' + 10,
+                        _ => throw new ArgumentOutOfRangeException(nameof(hex1)),
+                    };
             
-                var byte2 = hex2 switch
-                {
-                    >= '0' and <= '9' => (byte) hex2 - (byte) '0',
-                    >= 'a' and <= 'f' => (byte) hex2 - (byte) 'a' + 10,
-                    >= 'A' and <= 'F' => (byte) hex2 - (byte) 'A' + 10,
-                    _ => throw new ArgumentOutOfRangeException(nameof(hex2)),
-                };
+                    var byte2 = hex2 switch
+                    {
+                        >= '0' and <= '9' => (byte) hex2 - (byte) '0',
+                        >= 'a' and <= 'f' => (byte) hex2 - (byte) 'a' + 10,
+                        >= 'A' and <= 'F' => (byte) hex2 - (byte) 'A' + 10,
+                        _ => throw new ArgumentOutOfRangeException(nameof(hex2)),
+                    };
 
-                bytes.Add((byte) ((byte1 << 4) | byte2));
-                index++;
+                    bytes.Add((byte) ((byte1 << 4) | byte2));
+                    index++;
+                }
             }
             else
             {

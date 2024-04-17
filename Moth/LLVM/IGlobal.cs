@@ -5,6 +5,7 @@ namespace Moth.LLVM;
 
 public interface IGlobal
 {
+    public Namespace Parent { get; }
     public PrivacyType Privacy { get; }
     public string Name { get; }
     public VarType Type { get; }
@@ -21,5 +22,13 @@ public interface IGlobal
 
         var val = LLVMValue;
         val.Initializer = value.LLVMValue;
+    }
+
+    public string FullName
+    {
+        get
+        {
+            return $"{Parent.FullName}.{Name}";
+        }
     }
 }

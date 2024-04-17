@@ -2,7 +2,7 @@
   "profiles": {
     "luna build test": {
       "commandName": "Project",
-      "commandLineArgs": "build -v --no-advanced-ir-opt",
+      "commandLineArgs": "build -v -c --no-advanced-ir-opt",
       "workingDirectory": "/home/aurora/RiderProjects/moth-lang/Test",
       "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.Luna/bin/Debug/net7.0/luna.exe",
       "externalTerminal": true,
@@ -10,7 +10,7 @@
     },
     "luna run test": {
       "commandName": "Project",
-      "commandLineArgs": "run -v --no-advanced-ir-opt",
+      "commandLineArgs": "run -v -c --no-advanced-ir-opt",
       "workingDirectory": "/home/aurora/RiderProjects/moth-lang/Test",
       "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.Luna/bin/Debug/net7.0/luna.exe",
       "externalTerminal": true,

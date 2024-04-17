@@ -75,19 +75,19 @@ internal class Program
                             catch (Exception e)
                             {
                                 logger.WriteLine($"Failed to parse tokens of \"{filePath}\" due to: {e}");
-                                return;
+                                throw e;
                             }
                         }
                         catch (Exception e)
                         {
                             logger.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e}");
-                            return;
+                            throw e;
                         }
                     }
                     catch (Exception e)
                     {
                         logger.WriteLine($"Failed to get contents of \"{filePath}\" due to: {e}");
-                        return;
+                        throw e;
                     }
                 }
 
@@ -141,7 +141,7 @@ internal class Program
                         }
 
                         Console.WriteLine(e);
-                        return;
+                        throw e;
                     }
 
                     if (options.Verbose)
@@ -253,6 +253,7 @@ internal class Program
 
                             logger.WriteEmptyLine();
                             logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
+                            throw e;
                         }
                     }
                     else if (outputType == OutputType.StaticLib)
@@ -269,6 +270,7 @@ internal class Program
                 catch (Exception e)
                 {
                     logger.WriteLine($"Failed to compile due to: {e}");
+                    throw e;
                 }
             });
         }

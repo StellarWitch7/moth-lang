@@ -64,8 +64,6 @@ internal class Program
                 case "init":
                     ExecuteInit(options);
                     break;
-                case "package":
-                    throw new NotImplementedException();
                 default:
                     throw new NotImplementedException();
             }
@@ -79,9 +77,10 @@ internal class Program
         string projfile = options.ProjFile;
         
         if (projfile == null)
-        {
             projfile = $"{Environment.CurrentDirectory}/Luna.toml";
-        }
+        
+        if (options.ClearCache)
+            Directory.Delete(CacheDir, true);
         
         Project project = TomletMain.To<Project>(File.ReadAllText(projfile));
         CallMothc(options, project);
@@ -206,6 +205,9 @@ internal class Program
             throw new Exception("Call to mothc failed.");
 
         mothc.WaitForExit();
+
+        if (mothc.ExitCode != 0)
+            throw new Exception($"mothc finished with exit code {mothc.ExitCode}");
     }
 
     private static string QueryProjName()
@@ -255,6 +257,9 @@ internal class Program
         
         gitClone.WaitForExit();
 
+        if (gitClone.ExitCode != 0)
+            throw new Exception($"git clone finished with exit code {gitClone.ExitCode}");
+
         if (source.Commit != null)
         {
             var gitCheckout = Process.Start(new ProcessStartInfo("git", $"")
@@ -266,8 +271,12 @@ internal class Program
                 throw new Exception("Call to git checkout failed.");
 
             gitCheckout.WaitForExit();
-        }
 
+            if (gitCheckout.ExitCode != 0)
+                throw new Exception($"git checkout finished with exit code {gitCheckout.ExitCode}");
+        }
+        
+        Project project = TomletMain.To<Project>(File.ReadAllText($"{repoDir}/Luna.toml"));
         var build = Process.Start(new ProcessStartInfo(source.BuildCommand, source.BuildArgs)
         {
             WorkingDirectory = repoDir
@@ -277,8 +286,10 @@ internal class Program
             throw new Exception($"Call to {source.BuildCommand} failed.");
 
         build.WaitForExit();
+
+        if (build.ExitCode != 0)
+            throw new Exception($"{source.BuildCommand} finished with exit code {build.ExitCode}");
         
-        Project project = TomletMain.To<Project>(File.ReadAllText($"{repoDir}/Luna.toml"));
         return $"{repoDir}/{project.Out}/{project.FullOutputName}";
     }
 }

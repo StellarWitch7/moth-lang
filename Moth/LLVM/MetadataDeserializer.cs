@@ -1,3 +1,4 @@
+using Moth.AST.Node;
 using Moth.LLVM.Data;
 using System.Text.RegularExpressions;
 
@@ -12,8 +13,6 @@ public unsafe class MetadataDeserializer
     private Metadata.Type[] _types;
     private Metadata.Field[] _fields;
     private Metadata.Function[] _functions;
-    private Metadata.Function[] _methods;
-    private Metadata.Function[] _staticMethods;
     private Metadata.Global[] _globals;
     private Metadata.FuncType[] _funcTypes;
     private Metadata.Parameter[] _parameters;
@@ -69,7 +68,7 @@ public unsafe class MetadataDeserializer
             _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Field) * _fields.Length));
         }
         
-        _functions = new Metadata.Function[(int)((_header.method_table_offset
+        _functions = new Metadata.Function[(int)((_header.global_variable_table_offset
                 - (ulong)_bytes.Position)
             / (uint)sizeof(Metadata.Function))];
         
@@ -77,8 +76,6 @@ public unsafe class MetadataDeserializer
         {
             _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Length));
         }
-        
-        //TODO: implement reading of method data
         
         _globals = new Metadata.Global[(int)((_header.functype_table_offset
                 - (ulong)_bytes.Position)
@@ -169,8 +166,83 @@ public unsafe class MetadataDeserializer
             var fields = GetFields(type.field_table_index, type.field_table_length);
             result.LLVMType.StructSetBody(fields.AsLLVMTypes(), false);
         }
-        
-        throw new NotImplementedException();
+
+        foreach (var func in _functions)
+        {
+            var name = TrimSigFromName(GetName(func.name_table_index, func.name_table_length, out string fullname));
+            var parentNmspace = GetNamespace(fullname);
+            var overloadList = new OverloadList(name);
+            IContainer parent;
+
+            if (TryGetStructByString(fullname, out Struct @struct))
+            {
+                if (func.is_method)
+                {
+                    @struct.Methods.TryAdd(name, overloadList);
+                }
+                else
+                {
+                    
+                    @struct.StaticMethods.TryAdd(name, overloadList);
+                }
+                
+                parent = @struct;
+            }
+            else
+            {
+                parentNmspace.Functions.TryAdd(name, overloadList);
+                parent = parentNmspace;
+            }
+
+            var funcType = GetType(func.typeref_table_index, func.typeref_table_length) is FuncType fnType
+                ? fnType
+                : throw new Exception("Internal error: function type in metadata is not a valid function type.");
+            Function result = new DefinedFunction(_compiler,
+                parent,
+                name,
+                funcType,
+                null,
+                func.privacy,
+                true,
+                new Dictionary<string, IAttribute>());
+            overloadList.Add(result);
+        }
+
+        foreach (var global in _globals)
+        {
+            var name = GetName(global.name_table_index, global.name_table_length, out string fullname);
+            var nmspace = GetNamespace(fullname);
+            var type = GetType(global.typeref_table_index, global.typeref_table_length);
+            
+            nmspace.GlobalVariables.Add(name, global.is_constant
+                ? new GlobalConstant(nmspace, name, new VarType(type), _compiler.Module.AddGlobal(type.LLVMType, fullname), global.privacy)
+                : new GlobalVariable(nmspace, name, new VarType(type), _compiler.Module.AddGlobal(type.LLVMType, fullname), global.privacy));
+        }
+    }
+
+    private bool TryGetStructByString(string fullname, out Struct @struct)
+    {
+        var match = Regex.Match(fullname, "#(.*)\\.");
+
+        if (!match.Success)
+        {
+            @struct = null;
+            return false;
+        }
+
+        var nmspace = GetNamespace(fullname);
+        @struct = nmspace.Structs[match.Groups[1].Value];
+        return true;
+    }
+
+    private string TrimSigFromName(string name)
+    {
+        var match = Regex.Match(name, "[^\\(]+");
+
+        if (!match.Success)
+            throw new Exception("");
+
+        return match.Value;
     }
 
     private string GetName(ulong index, ulong length, out string fullname)
@@ -210,7 +282,7 @@ public unsafe class MetadataDeserializer
 
     private Type GetType(ulong index, ulong length)
     {
-        uint ptrDepth = 0;
+        var ptrOrRef = new List<bool>();
         Type result = null;
         
         for (ulong i = 0; i < length; i++)
@@ -218,11 +290,52 @@ public unsafe class MetadataDeserializer
             switch ((Metadata.TypeTag)_typeRefs[index + i])
             {
                 case Metadata.TypeTag.Type:
-                    throw new NotImplementedException();
+                    {
+                        var bytes = new MemoryStream(_typeRefs, (int)(index + i + 1), sizeof(ulong), false);
+                        ulong typeIndex;
+                    
+                        bytes.ReadExactly(new Span<byte>((byte*)&typeIndex, sizeof(ulong)));
+                        i += sizeof(ulong);
+                    
+                        var type = _types[typeIndex];
+                        var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
+                        var nmspace = GetNamespace(fullname);
+                        var fields = GetFields(type.field_table_index, type.field_table_length);
+                        Struct @struct;
+                    
+                        if (type.is_foreign)
+                        {
+                            @struct = new OpaqueStruct(_compiler, nmspace, name, type.privacy);
+                        }
+                        else
+                        {
+                            @struct = new Struct(nmspace, name, LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false), type.privacy);
+                        }
+                    
+                        nmspace.Structs.TryAdd(name, @struct);
+                        result = @struct;
+                        break;
+                    }
                 case Metadata.TypeTag.FuncType:
-                    throw new NotImplementedException();
+                    {
+                        var bytes = new MemoryStream(_typeRefs, (int)(index + i + 1), sizeof(ulong), false);
+                        ulong typeIndex;
+                    
+                        bytes.ReadExactly(new Span<byte>((byte*)&typeIndex, sizeof(ulong)));
+                        i += sizeof(ulong);
+                    
+                        var type = _funcTypes[typeIndex];
+                        var retType = GetType(type.return_typeref_table_index, type.return_typeref_table_length);
+                        var paramTypes = GetParamTypes(type.paramtype_table_index, type.paramtype_table_length);
+                        
+                        result = new FuncType(retType, paramTypes, type.is_variadic);
+                        break;
+                    }
                 case Metadata.TypeTag.Pointer:
-                    ptrDepth++;
+                    ptrOrRef.Add(false);
+                    break;
+                case Metadata.TypeTag.Reference:
+                    ptrOrRef.Add(true);
                     break;
                 case Metadata.TypeTag.Void:
                     result = Primitives.Void;
@@ -270,25 +383,52 @@ public unsafe class MetadataDeserializer
             throw new Exception("Failed to parse types within metadata, it may be corrupt.");
         }
 
-        for (var i = ptrDepth; i > 0; i--)
+        foreach (var b in ptrOrRef)
         {
-            result = new PtrType(result);
+            result = b ? new RefType(result) : result = new PtrType(result);
         }
 
         return result;
     }
-    
-    private Namespace GetNamespace(string name)
+
+    private Type[] GetParamTypes(ulong index, ulong length)
     {
-        throw new NotImplementedException(); //TODO
-        // var match = Regex.Match(name, "(?<=root::)(.*)(?=(#|\\.))");
-        //
-        // if (!match.Success)
-        // {
-        //     throw new Exception("Failed to create namespace from metadata, it may be corrupt.");
-        // }
-        //
-        // var cleanName = match.Value;
-        // return _compiler.ResolveNamespace(cleanName);
+        var types = new Type[length];
+
+        for (ulong i = 0; i < length; i++)
+        {
+            var paramType = _paramTypes[index + i];
+            types[i] = GetType(paramType.typeref_table_index, paramType.typeref_table_length);
+        }
+
+        return types;
+    }
+    
+    private Namespace GetNamespace(string fullname)
+    {
+        var match = Regex.Match(fullname, "(?<=root::)[a-zA-Z_:]+");
+        
+        if (!match.Success)
+            throw new Exception("Failed to get namespace from metadata, it may be corrupt.");
+        
+        var cleanName = match.Value;
+        NamespaceNode nmspace = null;
+        NamespaceNode lastNmspace = null;
+
+        foreach (var str in cleanName.Split("::"))
+        {
+            if (nmspace == null)
+            {
+                nmspace = new NamespaceNode(str);
+                lastNmspace = nmspace;
+            }
+            else
+            {
+                lastNmspace.Child = new NamespaceNode(str);
+                lastNmspace = lastNmspace.Child;
+            }
+        }
+        
+        return _compiler.ResolveNamespace(nmspace);
     }
 }

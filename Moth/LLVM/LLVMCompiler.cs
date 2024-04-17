@@ -681,7 +681,7 @@ public class LLVMCompiler
     {
         Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
-        GlobalVariable global = new GlobalVariable(globalDef.Name, new VarType(globalType), globalVal, globalDef.Privacy);
+        GlobalVariable global = new GlobalVariable(CurrentNamespace, globalDef.Name, new VarType(globalType), globalVal, globalDef.Privacy);
         CurrentNamespace.GlobalVariables.Add(globalDef.Name, global);
         Globals.Add(global);
         //TODO: add const support to globals

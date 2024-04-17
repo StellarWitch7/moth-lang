@@ -11,8 +11,6 @@ public unsafe class MetadataSerializer
     private List<Metadata.Type> _types = new List<Metadata.Type>();
     private List<Metadata.Field> _fields = new List<Metadata.Field>();
     private List<Metadata.Function> _functions = new List<Metadata.Function>();
-    private List<Metadata.Function> _methods = new List<Metadata.Function>();
-    private List<Metadata.Function> _staticMethods = new List<Metadata.Function>();
     private List<Metadata.Global> _globals = new List<Metadata.Global>();
     private List<Metadata.FuncType> _funcTypes = new List<Metadata.FuncType>();
     private List<Metadata.Parameter> _params = new List<Metadata.Parameter>();
@@ -75,11 +73,13 @@ public unsafe class MetadataSerializer
         foreach (var func in _compiler.Functions)
         {
             var newFunc = new Metadata.Function();
+            newFunc.is_method = !func.IsStatic;
             newFunc.privacy = func.Privacy;
-            newFunc.functype_table_index = AddTypeRef(func.Type);
+            newFunc.typeref_table_index = _typeRefTablePosition;
+            newFunc.typeref_table_length = AddTypeRef(func.Type);
             newFunc.name_table_index = _nameTablePosition;
-            newFunc.name_table_length = (uint)func.Name.Length; //TODO: is the name broken still?
-            AddName(func.Name);
+            newFunc.name_table_length = (uint)func.FullName.Length;
+            AddName(func.FullName);
 
             foreach (var param in func.Params)
             {
@@ -98,11 +98,12 @@ public unsafe class MetadataSerializer
         {
             var newGlobal = new Metadata.Global();
             newGlobal.privacy = global.Privacy;
+            newGlobal.is_constant = global is GlobalConstant;
             newGlobal.typeref_table_index = _typeRefTablePosition;
-            newGlobal.typeref_table_length = AddTypeRef(global.Type);
+            newGlobal.typeref_table_length = AddTypeRef(global.Type.BaseType);
             newGlobal.name_table_index = _nameTablePosition;
-            newGlobal.name_table_length = (uint)global.Name.Length;
-            AddName(global.Name);
+            newGlobal.name_table_length = (uint)global.FullName.Length;
+            AddName(global.FullName);
             AddGlobal(newGlobal);
         }
         
@@ -131,20 +132,6 @@ public unsafe class MetadataSerializer
         fixed (Metadata.Function* ptr = CollectionsMarshal.AsSpan(_functions))
         {
             _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Count));
-        }
-
-        header.method_table_offset = (ulong)_stream.Position - startPos;
-        
-        fixed (Metadata.Function* ptr = CollectionsMarshal.AsSpan(_methods))
-        {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Function) * _methods.Count));
-        }
-
-        header.static_method_table_offset = (ulong)_stream.Position - startPos;
-        
-        fixed (Metadata.Function* ptr = CollectionsMarshal.AsSpan(_staticMethods))
-        {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Function) * _staticMethods.Count));
         }
 
         header.global_variable_table_offset = (ulong)_stream.Position - startPos;
@@ -254,8 +241,9 @@ public unsafe class MetadataSerializer
         
         while (type != null)
         {
-            if (type is RefType refType)
+            if (type is RefType refType && type.GetType() == typeof(RefType))
             {
+                result.Add((byte)Metadata.TypeTag.Reference);
                 type = refType.BaseType;
             }
             if (type is PtrType ptrType && type.GetType() == typeof(PtrType))

@@ -6,7 +6,7 @@ with core::threading;
 
 func main() #i32 {
     local thread #Thread = #Thread.init(func(arg #void*) #void* {
-        STDOut.WriteLine("Hello threaded world!");
+        STDOut().WriteLine("Hello threaded world!");
         return null;
     }, null);
     thread.Start();
