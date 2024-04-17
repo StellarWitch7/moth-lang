@@ -31,6 +31,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 [Rr]un/
+[Bb]uild/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -354,3 +355,7 @@ MigrationBackup/
 .idea/
 *.iml
 .vscode/
+
+# Core build and cache
+[Cc]ore/[Bb]uild/
+[Cc]ore/[Cc]ache/
