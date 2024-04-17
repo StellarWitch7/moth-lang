@@ -16,7 +16,7 @@ internal class Program
         try
         {
             string dir = Environment.CurrentDirectory;
-            var logger = new Logger("moth/CLI");
+            var logger = new Logger("mothc");
 
             Parser.Default.ParseArguments<Options>(args).WithParsed(options =>
             {
@@ -246,41 +246,6 @@ internal class Program
 
                             linkerLogger.WriteSeparator();
                             linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
-
-                            if (options.RunTest && linker.ExitCode == 0)
-                            {
-                                string? testName = null;
-
-                                try
-                                {
-                                    logger.WriteLine($"Preparing to run test...");
-                                    logger.WriteSeparator();
-                                    testName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                                        ? $"{options.OutputFile}.exe"
-                                        : options.OutputFile;
-
-                                    var testProgram = Process.Start(new ProcessStartInfo
-                                    {
-                                        FileName = Path.Join(dir, testName),
-                                        WorkingDirectory = dir,
-                                    });
-
-                                    _ = testProgram ?? throw new Exception($"Failed to start \"{testName}\".");
-
-                                    var testLogger = new Logger(testName);
-                                    testProgram.WaitForExit();
-                                    testLogger.WriteEmptyLine();
-                                    testLogger.WriteSeparator();
-                                    testLogger.WriteLine($"Exited with code {testProgram.ExitCode}");
-                                }
-                                catch (Exception e)
-                                {
-                                    testName ??= "UNKNOWN";
-
-                                    logger.WriteEmptyLine();
-                                    logger.WriteLine($"Failed to interact with {testName} due to: {e}");
-                                }
-                            }
                         }
                         catch (Exception e)
                         {

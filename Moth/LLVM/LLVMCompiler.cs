@@ -22,7 +22,7 @@ public class LLVMCompiler
     public List<IGlobal> Globals { get; } = new List<IGlobal>();
     public Func<string, IReadOnlyList<object>, IAttribute> MakeAttribute { get; }
 
-    private readonly Logger _logger = new Logger("moth/compiler");
+    private readonly Logger _logger = new Logger("mothc/llvm");
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics = new Dictionary<string, IntrinsicFunction>();
     private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>();
     private Dictionary<string, Type> _anonTypes = new Dictionary<string, Type>();

@@ -6,7 +6,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth", "Moth\Moth.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Test", "Moth.Test\Moth.Test.csproj", "{081AA64B-BC12-4259-81CA-35CD7EB12D5F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.CLI", "Moth.CLI\Moth.CLI\Moth.CLI.csproj", "{2B0FE909-B0F5-4957-905B-19380C521207}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Luna", "Moth.Luna\Moth.Luna.csproj", "{2B0FE909-B0F5-4957-905B-19380C521207}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

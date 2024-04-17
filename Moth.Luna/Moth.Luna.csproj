@@ -6,14 +6,15 @@
         <PublishSingleFile>true</PublishSingleFile>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <StartupObject>Moth.CLI.Program</StartupObject>
-        <AssemblyName>moth</AssemblyName>
+        <StartupObject>Moth.Luna.Program</StartupObject>
+        <AssemblyName>luna</AssemblyName>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <RootNamespace>Moth.CLI</RootNamespace>
+        <RootNamespace>Moth.Luna</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="CommandLineParser" Version="2.9.1" />
+        <PackageReference Include="Samboy063.Tomlet" Version="5.3.1" />
     </ItemGroup>
 
     <ItemGroup>
