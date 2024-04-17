@@ -33,7 +33,7 @@ public class Project
     {
         get
         {
-            return Type == "lib" ? $"{Name}-{Program.CurrentOS}-{Version}" : Name;
+            return Type == "lib" ? $"{Name}-{Version}-{Program.CurrentOS}" : Name;
         }
     }
 
