@@ -39,6 +39,11 @@ internal class Options
         HelpText = "When initializing a new project, pass this option with the name to use.")]
     public string ProjName { get; set; }
     
+    [Option("lib",
+        Required = false,
+        HelpText = "When initializing a new project, pass this option to create a static library instead of an executable project.")]
+    public bool InitLib { get; set; }
+    
     [Option("run-args",
         Required = false,
         HelpText = "When running a project, pass this option with the arguments to use.")]

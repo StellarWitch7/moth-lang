@@ -13,12 +13,12 @@ public class Project
     
     [TomlProperty("type")]
     public string Type { get; set; }
-    
+
     [TomlProperty("root")]
-    public string Root { get; set; }
-    
+    public string Root { get; set; } = "main";
+
     [TomlProperty("out")]
-    public string Out { get; set; }
+    public string Out { get; set; } = "build";
     
     [TomlProperty("platforms")]
     public string[] Platforms { get; set; }
@@ -29,6 +29,7 @@ public class Project
     [TomlProperty("dependencies")]
     public Dependencies Dependencies { get; set; }
 
+    [TomlNonSerialized]
     public string OutputName
     {
         get
@@ -37,6 +38,7 @@ public class Project
         }
     }
 
+    [TomlNonSerialized]
     public string FullOutputName
     {
         get
@@ -49,6 +51,7 @@ public class Project
         }
     }
 
+    [TomlNonSerialized]
     public string FullOutputPath
     {
         get

@@ -10,6 +10,9 @@ public class Dependencies
     [TomlProperty("remote")]
     public Dictionary<string, string> Remote { get; set; }
     
+    [TomlProperty("project")]
+    public Dictionary<string, ProjectSource> Project { get; set; }
+    
     [TomlProperty("git")]
     public Dictionary<string, GitSource> Git { get; set; }
 }

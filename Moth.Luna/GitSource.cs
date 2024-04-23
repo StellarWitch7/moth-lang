@@ -13,9 +13,6 @@ public class GitSource
     [TomlProperty("commit")]
     public string Commit { get; set; }
 
-    [TomlProperty("build-command")]
-    public string BuildCommand { get; set; } = "luna";
-    
-    [TomlProperty("build-args")]
-    public string BuildArgs { get; set; } = "build";
+    [TomlProperty("build")]
+    public Build Build { get; set; } = new Build();
 }

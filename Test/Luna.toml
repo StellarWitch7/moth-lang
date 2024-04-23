@@ -1,9 +1,0 @@
-name = "test"
-version = "1.0"
-type = "exe"
-root = "moth"
-out = "build"
-platforms = [ "linux", "windows" ]
-
-[dependencies.git]
-core = { src = "https://github.com/StellarWitch7/moth-core.git", branch = "os-target-on-struct" }

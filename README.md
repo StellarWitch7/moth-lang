@@ -44,6 +44,23 @@ mothc [-v] [-n] [--no-advanced-ir-opt] [--moth-libs <paths>] [--c-libs <paths>] 
 --c-libs => External C library files to include in the compiled program. 
 ```
 
+### Hello World
+The following is a minimal example that prints "Hello World!" to the terminal. 
+```
+// HelloWorld.moth
+namespace hello; // all files must belong to a namespace
+
+with core; // we are using the core namespace in this file, so we declare our usage here
+
+// the main function is the entrypoint of an executable program
+// it must return a value of type i32
+func main() #i32 {
+    WriteLine("Hello World!"); // we use the core namespace here
+    return 0; // we end the program by returning from the main function with an exit code of zero
+}
+```
+To learn how to run this code, [continue reading](https://github.com/StellarWitch7/moth-lang/wiki/Hello-World). 
+
 ### Tools
 Currently the only aid for coding in Moth is the official [VS Code extension](https://github.com/StellarWitch7/moth-dev). It serves only to provide syntax highlighting. 
 

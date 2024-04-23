@@ -105,6 +105,7 @@ internal class Program
     {
         string projName = options.ProjName == null ? QueryProjName() : options.ProjName;
         string projDir = $"{Environment.CurrentDirectory}/{projName}";
+        string mainDir = $"{projDir}/main";
 
         if (Directory.Exists(projDir))
         {
@@ -112,17 +113,35 @@ internal class Program
         }
         
         Directory.CreateDirectory(projDir);
+        Directory.CreateDirectory(mainDir);
         
         var project = new Project()
         {
-            
-        }; throw new NotImplementedException();
+            Name = projName,
+            Version = "1.0",
+            Type = options.InitLib ? "lib" : "exe",
+            Platforms = new string[]
+            {
+                CurrentOS
+            }
+        };
         
         string tomlString = TomletMain.TomlStringFrom(project);
+        string programString = options.InitLib
+            ? $"namespace {projName};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
+            : $"namespace {projName};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
+        
         using (var file = File.OpenWrite($"{projDir}/Luna.toml"))
         {
             file.Write(Encoding.UTF8.GetBytes(tomlString));
         }
+
+        using (var file = File.OpenWrite($"{mainDir}/main.moth"))
+        {
+            file.Write(Encoding.UTF8.GetBytes(programString));
+        }
+        
+        Console.WriteLine($"Successfully initialized new project: {projName}");
     }
 
     private static void CallMothc(Options options, Project project)
@@ -165,6 +184,14 @@ internal class Program
                 foreach (var lib in project.Dependencies.Remote.Values)
                 {
                     mothlibs.Append($"{FetchRemoteFile(lib)} ");
+                }
+            }
+
+            if (project.Dependencies.Project != null)
+            {
+                foreach (var lib in project.Dependencies.Project.Values)
+                {
+                    mothlibs.Append($"{BuildFromProject(lib)}");
                 }
             }
 
@@ -233,6 +260,25 @@ internal class Program
         return dest;
     }
 
+    private static string BuildFromProject(ProjectSource source)
+    {
+        Project project = TomletMain.To<Project>(File.ReadAllText($"{source.Dir}/Luna.toml"));
+        var build = Process.Start(new ProcessStartInfo(source.Build.Command, source.Build.Args)
+        {
+            WorkingDirectory = source.Dir
+        });
+
+        if (build == null)
+            throw new Exception($"Call to {source.Build.Command} failed.");
+
+        build.WaitForExit();
+
+        if (build.ExitCode != 0)
+            throw new Exception($"{source.Build.Command} finished with exit code {build.ExitCode}");
+        
+        return $"{source.Dir}/{project.Out}/{project.FullOutputName}";
+    }
+    
     private static string BuildFromGit(GitSource source)
     {
         string repoName = source.Source != null
@@ -275,21 +321,11 @@ internal class Program
             if (gitCheckout.ExitCode != 0)
                 throw new Exception($"git checkout finished with exit code {gitCheckout.ExitCode}");
         }
-        
-        Project project = TomletMain.To<Project>(File.ReadAllText($"{repoDir}/Luna.toml"));
-        var build = Process.Start(new ProcessStartInfo(source.BuildCommand, source.BuildArgs)
+
+        return BuildFromProject(new ProjectSource()
         {
-            WorkingDirectory = repoDir
+            Dir = repoDir,
+            Build = source.Build
         });
-
-        if (build == null)
-            throw new Exception($"Call to {source.BuildCommand} failed.");
-
-        build.WaitForExit();
-
-        if (build.ExitCode != 0)
-            throw new Exception($"{source.BuildCommand} finished with exit code {build.ExitCode}");
-        
-        return $"{repoDir}/{project.Out}/{project.FullOutputName}";
     }
 }
