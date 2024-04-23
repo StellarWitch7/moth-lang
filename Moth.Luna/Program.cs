@@ -116,7 +116,7 @@ internal class Program
         var project = new Project()
         {
             
-        };
+        }; throw new NotImplementedException();
         
         string tomlString = TomletMain.TomlStringFrom(project);
         using (var file = File.OpenWrite($"{projDir}/Luna.toml"))
