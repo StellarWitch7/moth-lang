@@ -6,7 +6,7 @@ public class StructNode : DefinitionNode
     public PrivacyType Privacy { get; set; }
     public ScopeNode? Scope { get; set; }
 
-    public StructNode(string name, PrivacyType privacy, ScopeNode? scope) : base(new List<AttributeNode>())
+    public StructNode(string name, PrivacyType privacy, ScopeNode? scope, List<AttributeNode> attributes) : base(attributes)
     {
         Name = name;
         Privacy = privacy;

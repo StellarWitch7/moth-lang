@@ -112,7 +112,7 @@ public static class ASTGenerator
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static StructNode ProcessStruct(ParseContext context, PrivacyType privacy, bool isForeign)
+    public static StructNode ProcessStruct(ParseContext context, PrivacyType privacy, bool isForeign, List<AttributeNode> attributes)
     {
         if (context.MoveNext()?.Type == TokenType.Name)
         {
@@ -136,7 +136,7 @@ public static class ASTGenerator
                     {
                         return context.Current?.Type == TokenType.GreaterThan
                             ? context.MoveNext()?.Type == TokenType.OpeningCurlyBraces
-                                ? (StructNode)new TemplateNode(name, privacy, @params, ProcessScope(context, true))
+                                ? (StructNode)new TemplateNode(name, privacy, @params, ProcessScope(context, true), attributes)
                                 : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces)
                             : throw new UnexpectedTokenException(context.Current.Value);
                     }
@@ -151,7 +151,7 @@ public static class ASTGenerator
                     if (context.Current?.Type == TokenType.Semicolon)
                     {
                         context.MoveNext();
-                        return new StructNode(name, privacy, null);
+                        return new StructNode(name, privacy, null, attributes);
                     }
                     else
                     {
@@ -160,7 +160,7 @@ public static class ASTGenerator
                 }
                 else
                 {
-                    return new StructNode(name, privacy, ProcessScope(context, true));
+                    return new StructNode(name, privacy, ProcessScope(context, true), attributes);
                 }
             }
         }
@@ -330,7 +330,7 @@ public static class ASTGenerator
         throw new NotImplementedException();
     }
 
-    public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode>? attributes = null)
+    public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode>? attributes)
     {
         PrivacyType privacy = PrivacyType.Private;
         bool isForeign = false;
@@ -363,7 +363,7 @@ public static class ASTGenerator
 
         if (context.Current?.Type == TokenType.Struct)
         {
-            return ProcessStruct(context, privacy, isForeign);
+            return ProcessStruct(context, privacy, isForeign, attributes);
         }
         else if (context.Current?.Type == TokenType.Function)
         {

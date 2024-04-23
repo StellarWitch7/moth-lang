@@ -6,6 +6,7 @@ public class Struct : Type, IContainer
 {
     public IContainer? Parent { get; }
     public string Name { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
     public virtual Dictionary<string, OverloadList> Methods { get; } = new Dictionary<string, OverloadList>();
@@ -13,11 +14,12 @@ public class Struct : Type, IContainer
 
     private uint _bitlength;
     
-    public Struct(Namespace? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
+    public Struct(Namespace? parent, string name, LLVMTypeRef llvmType, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
         : base(llvmType, TypeKind.Struct)
     {
         Parent = parent;
         Name = name;
+        Attributes = attributes;
         Privacy = privacy;
     }
 
@@ -215,8 +217,8 @@ public class Struct : Type, IContainer
 
 public class OpaqueStruct : Struct
 {
-    public OpaqueStruct(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy)
-        : base(parent, name, compiler.Context.CreateNamedStruct(name), privacy) { }
+    public OpaqueStruct(LLVMCompiler compiler, Namespace parent, string name, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
+        : base(parent, name, compiler.Context.CreateNamedStruct(name), attributes, privacy) { }
 
     public override Struct AddBuiltins(LLVMCompiler compiler) => this;
 }

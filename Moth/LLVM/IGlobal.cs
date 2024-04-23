@@ -6,6 +6,7 @@ namespace Moth.LLVM;
 public interface IGlobal
 {
     public Namespace Parent { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     public string Name { get; }
     public VarType Type { get; }

@@ -244,17 +244,27 @@ public class LLVMCompiler
                 DefineFunction(funcDefNode);
             }
             
-            foreach (StructNode classNode in script.ClassNodes)
+            foreach (StructNode structNode in script.ClassNodes)
             {
-                if (classNode is not TemplateNode)
+                if (structNode is not TemplateNode)
                 {
-                    Struct @struct = GetStruct(classNode.Name);
-
-                    if (classNode.Scope != null)
+                    var attributes = new Dictionary<string, IAttribute>();
+        
+                    foreach (AttributeNode attribute in structNode.Attributes)
                     {
-                        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+                        attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+                    }
+
+                    if (!(attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())))
+                    {
+                        Struct @struct = GetStruct(structNode.Name);
+
+                        if (structNode.Scope != null)
                         {
-                            DefineFunction(funcDefNode, @struct);
+                            foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
+                            {
+                                DefineFunction(funcDefNode, @struct);
+                            }
                         }
                     }
                 }
@@ -283,17 +293,27 @@ public class LLVMCompiler
                 CompileFunction(funcDefNode);
             }
 
-            foreach (StructNode classNode in script.ClassNodes)
+            foreach (StructNode structNode in script.ClassNodes)
             {
-                if (classNode is not TemplateNode)
+                if (structNode is not TemplateNode)
                 {
-                    Struct @struct = GetStruct(classNode.Name);
-
-                    if (classNode.Scope != null)
+                    var attributes = new Dictionary<string, IAttribute>();
+        
+                    foreach (AttributeNode attribute in structNode.Attributes)
                     {
-                        foreach (FuncDefNode funcDefNode in classNode.Scope.Statements.OfType<FuncDefNode>())
+                        attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+                    }
+
+                    if (!(attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())))
+                    {
+                        Struct @struct = GetStruct(structNode.Name);
+
+                        if (structNode.Scope != null)
                         {
-                            CompileFunction(funcDefNode, @struct);
+                            foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
+                            {
+                                CompileFunction(funcDefNode, @struct);
+                            }
                         }
                     }
                 }
@@ -318,12 +338,13 @@ public class LLVMCompiler
         }
         
         CurrentNamespace.Templates.Add(templateNode.Name,
-            new Template(CurrentNamespace,
+            new Template(this,
+                CurrentNamespace,
                 templateNode.Name,
                 templateNode.Privacy,
                 templateNode.Scope,
                 _imports,
-                attributes,
+                templateNode.Attributes,
                 PrepareTemplateParameters(templateNode.Params)));
     }
 
@@ -394,12 +415,24 @@ public class LLVMCompiler
     public void DefineType(StructNode structNode)
     {
         Struct newStruct;
+        var attributes = new Dictionary<string, IAttribute>();
+        
+        foreach (AttributeNode attribute in structNode.Attributes)
+        {
+            attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+        }
+
+        if (attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS()))
+        {
+            return;
+        }
         
         if (structNode.Scope == null)
         {
             newStruct = new OpaqueStruct(this,
                 CurrentNamespace,
                 structNode.Name,
+                attributes,
                 structNode.Privacy);
         }
         else
@@ -407,6 +440,7 @@ public class LLVMCompiler
             newStruct = new Struct(CurrentNamespace,
                 structNode.Name,
                 Context.CreateNamedStruct(structNode.Name),
+                attributes,
                 structNode.Privacy);
         }
         
@@ -417,6 +451,17 @@ public class LLVMCompiler
     public void CompileType(StructNode structNode, Struct @struct = null)
     {
         var llvmTypes = new List<LLVMTypeRef>();
+        var attributes = new Dictionary<string, IAttribute>();
+        
+        foreach (AttributeNode attribute in structNode.Attributes)
+        {
+            attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+        }
+
+        if (attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS()))
+        {
+            return;
+        }
 
         if (@struct == null)
         {
@@ -679,9 +724,21 @@ public class LLVMCompiler
 
     public void DefineGlobal(FieldDefNode globalDef, Struct? @struct = null)
     {
+        var attributes = new Dictionary<string, IAttribute>();
+        
+        foreach (AttributeNode attribute in globalDef.Attributes)
+        {
+            attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+        }
+
+        if (attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS()))
+        {
+            return;
+        }
+        
         Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
-        GlobalVariable global = new GlobalVariable(CurrentNamespace, globalDef.Name, new VarType(globalType), globalVal, globalDef.Privacy);
+        GlobalVariable global = new GlobalVariable(CurrentNamespace, globalDef.Name, new VarType(globalType), globalVal, attributes, globalDef.Privacy);
         CurrentNamespace.GlobalVariables.Add(globalDef.Name, global);
         Globals.Add(global);
         //TODO: add const support to globals
@@ -848,7 +905,7 @@ public class LLVMCompiler
         else if (typeRef is TemplateTypeRefNode tmplTypeRef)
         {
             Template template = GetTemplate(tmplTypeRef.Name);
-            type = template.Build(this, tmplTypeRef.Arguments);
+            type = template.Build(tmplTypeRef.Arguments);
         }
         else if (typeRef is FuncTypeRefNode fnTypeRef)
         {

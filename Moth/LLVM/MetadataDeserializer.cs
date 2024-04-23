@@ -2,7 +2,7 @@ using Moth.AST.Node;
 using Moth.LLVM.Data;
 using System.Text.RegularExpressions;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM; //TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
 
 public unsafe class MetadataDeserializer
 {
@@ -144,13 +144,14 @@ public unsafe class MetadataDeserializer
 
             if (type.is_foreign)
             {
-                result = new OpaqueStruct(_compiler, parent, name, type.privacy);
+                result = new OpaqueStruct(_compiler, parent, name, new Dictionary<string, IAttribute>(), type.privacy);
             }
             else
             {
                 result = new Struct(parent,
                     name,
                     _compiler.Context.CreateNamedStruct(fullname),
+                    new Dictionary<string, IAttribute>(),
                     type.privacy);
                 result.AddBuiltins(_compiler);
             }
@@ -214,8 +215,18 @@ public unsafe class MetadataDeserializer
             var type = GetType(global.typeref_table_index, global.typeref_table_length);
             
             nmspace.GlobalVariables.Add(name, global.is_constant
-                ? new GlobalConstant(nmspace, name, new VarType(type), _compiler.Module.AddGlobal(type.LLVMType, fullname), global.privacy)
-                : new GlobalVariable(nmspace, name, new VarType(type), _compiler.Module.AddGlobal(type.LLVMType, fullname), global.privacy));
+                ? new GlobalConstant(nmspace,
+                    name,
+                    new VarType(type),
+                    _compiler.Module.AddGlobal(type.LLVMType, fullname),
+                    new Dictionary<string, IAttribute>(),
+                    global.privacy)
+                : new GlobalVariable(nmspace,
+                    name,
+                    new VarType(type),
+                    _compiler.Module.AddGlobal(type.LLVMType, fullname),
+                    new Dictionary<string, IAttribute>(),
+                    global.privacy));
         }
     }
 
@@ -304,11 +315,19 @@ public unsafe class MetadataDeserializer
                     
                         if (type.is_foreign)
                         {
-                            @struct = new OpaqueStruct(_compiler, nmspace, name, type.privacy);
+                            @struct = new OpaqueStruct(_compiler,
+                                nmspace,
+                                name,
+                                new Dictionary<string, IAttribute>(),
+                                type.privacy);
                         }
                         else
                         {
-                            @struct = new Struct(nmspace, name, LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false), type.privacy);
+                            @struct = new Struct(nmspace,
+                                name,
+                                LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false),
+                                new Dictionary<string, IAttribute>(),
+                                type.privacy);
                         }
                     
                         nmspace.Structs.TryAdd(name, @struct);

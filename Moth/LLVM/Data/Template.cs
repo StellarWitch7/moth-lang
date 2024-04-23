@@ -8,26 +8,33 @@ public class Template : CompilerData
     public string Name { get; }
     public PrivacyType Privacy { get; }
     public ScopeNode Contents { get; }
-
     public Namespace[] Imports { get; }
-    public Dictionary<string, IAttribute> Attributes { get; }
+    public Dictionary<string, IAttribute> Attributes { get; } = new Dictionary<string, IAttribute>();
     public TemplateParameter[] Params { get; }
 
+    private LLVMCompiler _compiler;
+    private List<AttributeNode> _attributeList;
     private Dictionary<string, Struct> _builtTypes = new Dictionary<string, Struct>();
 
-    public Template(Namespace parent, string name, PrivacyType privacy, ScopeNode contents,
-        Namespace[] imports, Dictionary<string, IAttribute> attributes, TemplateParameter[] @params)
+    public Template(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, ScopeNode contents,
+        Namespace[] imports, List<AttributeNode> attributes, TemplateParameter[] @params)
     {
+        _compiler = compiler;
+        _attributeList = attributes;
         Parent = parent;
         Name = name;
         Privacy = privacy;
         Contents = contents;
         Imports = imports;
-        Attributes = attributes;
         Params = @params;
+        
+        foreach (AttributeNode attribute in attributes)
+        {
+            Attributes.Add(attribute.Name, _compiler.MakeAttribute(attribute.Name, _compiler.CleanAttributeArgs(attribute.Arguments.ToArray())));
+        }
     }
 
-    public Struct Build(LLVMCompiler compiler, IReadOnlyList<ExpressionNode> args)
+    public Struct Build(IReadOnlyList<ExpressionNode> args)
     {
         string sig = ArgsToSig(args);
         
@@ -64,13 +71,14 @@ public class Template : CompilerData
             }
         }
 
-        var classNode = new StructNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents);
+        var structNode = new StructNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, _attributeList);
         @struct = new Struct(Parent,
-            classNode.Name,
-            compiler.Context.CreateNamedStruct(classNode.Name),
+            structNode.Name,
+            _compiler.Context.CreateNamedStruct(structNode.Name),
+            Attributes,
             Privacy);
         _builtTypes.Add(sig, @struct);
-        @compiler.BuildTemplate(this, classNode, @struct, args);
+        _compiler.BuildTemplate(this, structNode, @struct, args);
         return @struct;
     }
 
