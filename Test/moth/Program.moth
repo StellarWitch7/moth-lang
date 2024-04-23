@@ -5,18 +5,21 @@ with core::io;
 with core::threading;
 
 func main() #i32 {
-    local thread #Thread = #Thread.init(func(arg #void*) #void* {
-        STDOut().WriteLine("Hello threaded world!");
-        return null;
-    }, null);
-    thread.Start();
-    thread.Join();
+    WriteLine("Hello world!");
+    return 0;
+
+    // local thread #Thread = #Thread.init(func(arg #void*) #void* {
+    //     WriteLine("Hello threaded world!");
+    //     return null;
+    // }, null);
+    // thread.Start();
+    // thread.Join();
 
     // Exit();
 
-    while true {
+    // while true {
 
-    }
+    // }
 
-    return 0;
+    // return 0;
 }

@@ -172,7 +172,7 @@ public class LLVMCompiler
     {
         var module = LoadLLVMModule(path);
         var match = Regex.Match(Path.GetFileName(path),
-            "(.*)(?=\\.mothlib)");
+            "(.*)(?=\\.mothlib.bc)");
         
         if (!match.Success)
         {
@@ -1130,6 +1130,7 @@ public class LLVMCompiler
             Struct @struct = GetStruct(Reserved.UInt8);
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
+            global.Linkage = LLVMLinkage.LLVMPrivateLinkage;
             global.Initializer = constStr;
             return Value.Create(new PtrType(@struct), global);
         }

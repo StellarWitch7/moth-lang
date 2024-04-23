@@ -58,9 +58,10 @@ public unsafe class MetadataSerializer
             foreach (var field in @struct.Fields.Values)
             {
                 var newField = new Metadata.Field();
+                (ulong typerefIndex, ulong typerefLength) = AddTypeRef(field.Type);
                 newField.privacy = field.Privacy;
-                newField.typeref_table_index = _typeRefTablePosition;
-                newField.typeref_table_length = AddTypeRef(field.Type);
+                newField.typeref_table_index = typerefIndex;
+                newField.typeref_table_length = typerefLength;
                 newField.name_table_index = _nameTablePosition;
                 newField.name_table_length = (uint)field.Name.Length;
                 AddName(field.Name);
@@ -73,10 +74,11 @@ public unsafe class MetadataSerializer
         foreach (var func in _compiler.Functions)
         {
             var newFunc = new Metadata.Function();
+            (ulong typerefIndex, ulong typerefLength) = AddTypeRef(func.Type);
             newFunc.is_method = !func.IsStatic;
             newFunc.privacy = func.Privacy;
-            newFunc.typeref_table_index = _typeRefTablePosition;
-            newFunc.typeref_table_length = AddTypeRef(func.Type);
+            newFunc.typeref_table_index = typerefIndex;
+            newFunc.typeref_table_length = typerefLength;
             newFunc.name_table_index = _nameTablePosition;
             newFunc.name_table_length = (uint)func.FullName.Length;
             AddName(func.FullName);
@@ -97,10 +99,11 @@ public unsafe class MetadataSerializer
         foreach (var global in _compiler.Globals)
         {
             var newGlobal = new Metadata.Global();
+            (ulong typerefIndex, ulong typerefLength) = AddTypeRef(global.Type.BaseType);
             newGlobal.privacy = global.Privacy;
             newGlobal.is_constant = global is GlobalConstant;
-            newGlobal.typeref_table_index = _typeRefTablePosition;
-            newGlobal.typeref_table_length = AddTypeRef(global.Type.BaseType);
+            newGlobal.typeref_table_index = typerefIndex;
+            newGlobal.typeref_table_length = typerefLength;
             newGlobal.name_table_index = _nameTablePosition;
             newGlobal.name_table_length = (uint)global.FullName.Length;
             AddName(global.FullName);
@@ -192,11 +195,13 @@ public unsafe class MetadataSerializer
         _typeTablePosition++;
     }
 
-    public void AddFuncType(Data.FuncType originalType, Metadata.FuncType type)
+    public uint AddFuncType(Data.FuncType originalType, Metadata.FuncType type)
     {
+        var pos = _functypeTablePosition;
         _functypeIndexes.Add(originalType, _functypeTablePosition);
         _funcTypes.Add(type);
         _functypeTablePosition++;
+        return pos;
     }
 
     public void AddField(Metadata.Field field)
@@ -235,7 +240,7 @@ public unsafe class MetadataSerializer
         _nameTablePosition += (uint)name.Length;
     }
     
-    public ulong AddTypeRef(Type type)
+    public (ulong, ulong) AddTypeRef(Type type)
     {
         var result = new List<byte>();
         
@@ -315,30 +320,30 @@ public unsafe class MetadataSerializer
                     {
                         result.Add((byte)Metadata.TypeTag.FuncType);
                         
-                        if (_functypeIndexes.TryGetValue(fnType, out index))
-                        {
-                            result.AddRange(new ReadOnlySpan<byte>((byte*) &index, sizeof(ulong)).ToArray());
-                            type = null;
-                        }
-                        else
+                        if (!_functypeIndexes.TryGetValue(fnType, out index))
                         {
                             var newFuncType = new Metadata.FuncType();
+                            (ulong retTyperefIndex, ulong retTyperefLength) = AddTypeRef(fnType.ReturnType);
                             newFuncType.is_variadic = fnType.IsVariadic;
-                            newFuncType.return_typeref_table_index = _typeRefTablePosition;
-                            newFuncType.return_typeref_table_length = AddTypeRef(fnType.ReturnType);
+                            newFuncType.return_typeref_table_index = retTyperefIndex;
+                            newFuncType.return_typeref_table_length = retTyperefLength;
                             newFuncType.paramtype_table_index = _paramTypeTablePosition;
                             newFuncType.paramtype_table_length = (uint)fnType.ParameterTypes.Length;
 
                             foreach (var paramType in fnType.ParameterTypes)
                             {
                                 var newParamType = new Metadata.ParamType();
-                                newParamType.typeref_table_index = _typeRefTablePosition;
-                                newParamType.typeref_table_length = AddTypeRef(paramType);
+                                (ulong typerefIndex, ulong typerefLength) = AddTypeRef(paramType);
+                                newParamType.typeref_table_index = typerefIndex;
+                                newParamType.typeref_table_length = typerefLength;
                                 AddParamType(newParamType);
                             }
                             
-                            AddFuncType(fnType, newFuncType);
+                            index = AddFuncType(fnType, newFuncType);
                         }
+                        
+                        result.AddRange(new ReadOnlySpan<byte>((byte*) &index, sizeof(ulong)).ToArray());
+                        type = null;
                     }
                     else
                     {
@@ -349,8 +354,9 @@ public unsafe class MetadataSerializer
             }
         }
 
+        var tableIndex = _typeRefTablePosition;
         _typeRefs.AddRange(result);
         _typeRefTablePosition += (uint)result.Count;
-        return (ulong)result.Count;
+        return (tableIndex, (ulong)result.Count);
     }
 }

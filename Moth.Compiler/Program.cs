@@ -44,7 +44,7 @@ internal class Program
 
                         string fileContents = File.ReadAllText(filePath);
 
-                        //Tokenize the contents of the file
+                        // tokenize the contents of the file
                         try
                         {
                             if (options.Verbose)
@@ -54,7 +54,7 @@ internal class Program
 
                             List<Token> tokens = Tokenizer.Tokenize(fileContents);
 
-                            //Convert to AST
+                            // convert to AST
                             try
                             {
                                 if (options.Verbose)
@@ -99,7 +99,7 @@ internal class Program
                 LLVMSharp.Interop.LLVM.InitializeAllAsmPrinters();
                 var compiler = new LLVMCompiler(options.OutputFile, !options.DoNotOptimizeIR);
                 
-                //Compile
+                // compile
                 try
                 {
                     if (options.MothLibraryFiles.LongCount() > 0)
@@ -157,10 +157,10 @@ internal class Program
 
                     if (outputType == OutputType.Executable)
                     {
-                        //Send to linker
+                        // send to linker
                         try
                         {
-                            string @out = $"{options.OutputFile}.obj";
+                            string @out = $"{options.OutputFile}.bc";
                             string path = Path.Join(dir, @out);
                             var arguments = new StringBuilder($"{path}");
 
@@ -174,38 +174,16 @@ internal class Program
                                 arguments.Append($" {lib}");
                             }
 
-                            logger.WriteLine("(unsafe) Retrieving host machine info...");
-                            
-                            unsafe
-                            {
-                                string cpu = new string(LLVMSharp.Interop.LLVM.GetHostCPUName());
-                                string features = new string(LLVMSharp.Interop.LLVM.GetHostCPUFeatures());
-
-                                //TODO: add argument to configure this level
-                                LLVMCodeGenOptLevel optLevel = LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault;
-                                var target = LLVMTargetRef.GetTargetFromTriple(LLVMTargetRef.DefaultTriple);
-                                LLVMTargetMachineRef machine = target.CreateTargetMachine(LLVMTargetRef.DefaultTriple,
-                                    cpu,
-                                    features,
-                                    optLevel,LLVMRelocMode.LLVMRelocDefault,
-                                    LLVMCodeModel.LLVMCodeModelDefault);
-
-                                logger.WriteLine($"Writing to object file \"{path}\"");
-                                machine.EmitToFile(compiler.Module, path, LLVMCodeGenFileType.LLVMObjectFile);
-                            }
-                            
-                            logger.WriteLine($"Compiling final product...");
+                            logger.WriteLine($"Outputting IR to \"{path}\"");
+                            compiler.Module.WriteBitcodeToFile(path);
+                            logger.WriteLine("Compiling final product...");
                             
                             linkerName = "clang";
                             arguments.Append($" -o {options.OutputFile}");
 
-                            if (OperatingSystem.IsWindows() && outputType == OutputType.Executable)
+                            if (OperatingSystem.IsWindows())
                             {
                                 arguments.Append(".exe");
-                            }
-                            else if (outputType == OutputType.StaticLib)
-                            {
-                                arguments.Append(".mothlib");
                             }
 
                             if (OperatingSystem.IsWindows())
@@ -225,6 +203,7 @@ internal class Program
 
                             logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
                             logger.WriteSeparator();
+                            
                             var linker = Process.Start(new ProcessStartInfo
                             {
                                 FileName = linkerName,
@@ -258,7 +237,7 @@ internal class Program
                     }
                     else if (outputType == OutputType.StaticLib)
                     {
-                        var path = Path.Join(dir, $"{options.OutputFile}.mothlib");
+                        var path = Path.Join(dir, $"{options.OutputFile}.mothlib.bc");
                         logger.WriteLine($"Outputting IR to \"{path}\"");
                         compiler.Module.WriteBitcodeToFile(path);
                     }

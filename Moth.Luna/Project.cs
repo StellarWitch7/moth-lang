@@ -42,7 +42,7 @@ public class Project
         get
         {
             return Type == "lib"
-                ? $"{OutputName}.mothlib"
+                ? $"{OutputName}.mothlib.bc"
                 : OperatingSystem.IsWindows()
                     ? $"{OutputName}.exe"
                     : OutputName;

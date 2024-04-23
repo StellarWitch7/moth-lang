@@ -182,7 +182,6 @@ public unsafe class MetadataDeserializer
                 }
                 else
                 {
-                    
                     @struct.StaticMethods.TryAdd(name, overloadList);
                 }
                 
@@ -199,7 +198,7 @@ public unsafe class MetadataDeserializer
                 : throw new Exception("Internal error: function type in metadata is not a valid function type.");
             Function result = new DefinedFunction(_compiler,
                 parent,
-                name,
+                fullname,
                 funcType,
                 null,
                 func.privacy,
@@ -255,7 +254,7 @@ public unsafe class MetadataDeserializer
         }
 
         fullname = builder.ToString();
-        var match = Regex.Match(fullname, "(?<=(#|\\.))(.*)");
+        var match = Regex.Match(fullname, "((?<=\\.).*$|(?<=#)[^\\.]+$)");
 
         if (!match.Success)
         {
