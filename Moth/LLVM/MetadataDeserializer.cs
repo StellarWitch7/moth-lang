@@ -180,10 +180,12 @@ public unsafe class MetadataDeserializer
                 if (func.is_method)
                 {
                     @struct.Methods.TryAdd(name, overloadList);
+                    overloadList = @struct.Methods[name];
                 }
                 else
                 {
                     @struct.StaticMethods.TryAdd(name, overloadList);
+                    overloadList = @struct.StaticMethods[name];
                 }
                 
                 parent = @struct;
@@ -191,8 +193,10 @@ public unsafe class MetadataDeserializer
             else
             {
                 parentNmspace.Functions.TryAdd(name, overloadList);
+                overloadList = parentNmspace.Functions[name];
                 parent = parentNmspace;
             }
+            
 
             var funcType = GetType(func.typeref_table_index, func.typeref_table_length) is FuncType fnType
                 ? fnType

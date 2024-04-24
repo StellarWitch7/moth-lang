@@ -4,12 +4,22 @@ with core;
 with core::threading;
 
 func main() #i32 {
-    local thread #Thread = #Thread.init(func(arg #void*) #void* {
-        WriteLine("Hello threaded world!");
-        return #i32*(&#i32(0));
-    }, null);
-    
-    thread.Start();
-    Exit();
+    local i #i32 = 1;
+
+    while i != 100 {
+        Write(Replace("$", "$", "t"));
+
+        if i % 3 == 0 {
+            Write("Fizz");
+        }
+        
+        if i % 5 == 0 {
+            Write("Buzz");
+        }
+
+        Write('\n');
+        ++i;
+    }
+
     return 0;
 }
