@@ -7,9 +7,10 @@
 Moth's official compiler, written in C#. It takes Moth code and converts it to LLVM IR, which is then passed to the Clang C compiler. Currently only compatible with the Clang compiler. Read the [wiki](https://github.com/StellarWitch7/Moth/wiki) for Moth's documentation. Please report any bugs to the [issue tracker](https://github.com/StellarWitch7/Moth/issues), as it helps to improve Moth's compiler. 
 
 ### Dependencies
-1. Microsoft .NET Core 7
-2. Clang version >=16
-3. Git and Git Extras
+1. [.NET 7](https://dotnet.microsoft.com/en-us/download/dotnet/7.0)
+2. [Clang 16](https://clang.llvm.org/get_started.html)
+3. [Git](https://git-scm.com/downloads)
+4. [Git Extras](https://github.com/tj/git-extras)
 
 ### Arguments
 
@@ -18,7 +19,7 @@ Moth's official compiler, written in C#. It takes Moth code and converts it to L
 Usage:
 luna build [-v] [-n] [-c] [--no-advanced-ir-opt] [-p <path>] => Builds the project at the path provided or in the current directory if no project file is passed. 
 luna run [-v] [-n] [-c] [--no-advanced-ir-opt] [-p <path>] [--run-args <args>] [--run-dir <path>] => Builds and runs the project at the path provided or in the current directory if no project file is passed. 
-luna init [--name <project-name>] => Initialises a new project in the current directory. 
+luna init [--lib] [--name <project-name>] => Initialises a new project in the current directory. 
 
 -v, --verbose => Logs extra info to console. 
 -n, --no-meta => Strips metadata from the output file. WARNING: disables reflection! 
@@ -26,6 +27,7 @@ luna init [--name <project-name>] => Initialises a new project in the current di
 --no-advanced-ir-opt => Whether to skip IR optimization passes. 
 -p, --project => The project file to use. 
 --name => When initializing a new project, pass this option with the name to use. 
+--lib => When initializing a new project, pass this option to create a static library instead of an executable project. 
 --run-args => When running a project, pass this option with the arguments to use. 
 --run-dir => When running a project, pass this option with the working directory to use. 
 ```
