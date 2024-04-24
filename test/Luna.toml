@@ -4,3 +4,6 @@ type = "exe"
 root = "main"
 out = "build"
 platforms = [ "linux", "windows" ]
+
+[dependencies.project]
+moth-core = { dir = "/home/aurora/MothProjects/moth-core" }

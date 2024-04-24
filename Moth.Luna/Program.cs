@@ -191,7 +191,7 @@ internal class Program
             {
                 foreach (var lib in project.Dependencies.Project.Values)
                 {
-                    mothlibs.Append($"{BuildFromProject(lib)}");
+                    mothlibs.Append($"{BuildFromProject(lib)} ");
                 }
             }
 

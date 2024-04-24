@@ -8,7 +8,7 @@ using Pointer = Moth.LLVM.Data.Pointer;
 
 namespace Moth.LLVM;
 
-public class LLVMCompiler
+public class LLVMCompiler : IDisposable
 {
     public string ModuleName { get; }
     public bool DoOptimize { get; }
@@ -170,45 +170,53 @@ public class LLVMCompiler
     
     public unsafe void LoadLibrary(string path)
     {
-        var module = LoadLLVMModule(path);
-        var match = Regex.Match(Path.GetFileName(path),
-            "(.*)(?=\\.mothlib.bc)");
+        using (var module = LoadLLVMModule(path))
+        {
+            var match = Regex.Match(Path.GetFileName(path),
+                "(.*)(?=\\.mothlib.bc)");
         
-        if (!match.Success)
-        {
-            throw new Exception($"Cannot load mothlibs, \"{path}\" does not have the correct extension.");
+            if (!match.Success)
+            {
+                throw new Exception($"Cannot load mothlibs, \"{path}\" does not have the correct extension.");
+            }
+
+            var libName = match.Value;
+            var global = module.GetNamedGlobal($"<{libName}/metadata>");
+            match = Regex.Match(global.ToString(), "(?<=<metadata>)(.*)(?=<\\/metadata>)");
+
+            if (!match.Success)
+            {
+                throw new Exception($"Cannot load mothlibs, missing metadata for \"{libName}\".");
+            }
+
+            using (var metadata = new MemoryStream(Utils.Unescape(match.Value), false))
+            {
+                var deserializer = new MetadataDeserializer(this, metadata);
+                deserializer.Process(libName);
+            }
         }
-
-        var libName = match.Value;
-        var global = module.GetNamedGlobal($"<{libName}/metadata>");
-        var s = global.GetMDString(out uint len);
-        match = Regex.Match(global.ToString(), "(?<=<metadata>)(.*)(?=<\\/metadata>)");
-
-        if (!match.Success)
-        {
-            throw new Exception($"Cannot load mothlibs, missing metadata for \"{libName}\".");
-        }
-
-        var metadata = new MemoryStream(Utils.Unescape(match.Value), false);
-        var deserializer = new MetadataDeserializer(this, metadata);
-        deserializer.Process(libName);
     }
 
     public unsafe byte[] GenerateMetadata(string assemblyName)
     {
-        MemoryStream bytes = new MemoryStream();
-        MetadataSerializer serializer = new MetadataSerializer(this, bytes);
-        bytes.Write(System.Text.Encoding.UTF8.GetBytes("<metadata>"));
-        serializer.Process();
-        bytes.Write(System.Text.Encoding.UTF8.GetBytes("</metadata>"));
-        var global = Module.AddGlobal(LLVMTypeRef.CreateArray(LLVMTypeRef.Int8,
-                (uint)bytes.Length),
-            $"<{assemblyName}/metadata>");
-        global.Initializer = LLVMValueRef.CreateConstArray(LLVMTypeRef.Int8,
-            bytes.ToArray().AsLLVMValues());
-        global.Linkage = LLVMLinkage.LLVMDLLExportLinkage;
-        global.IsGlobalConstant = true;
-        return bytes.ToArray();
+        using (var bytes = new MemoryStream())
+        {
+            MetadataSerializer serializer = new MetadataSerializer(this, bytes);
+            bytes.Write(System.Text.Encoding.UTF8.GetBytes("<metadata>"));
+            serializer.Process();
+            bytes.Write(System.Text.Encoding.UTF8.GetBytes("</metadata>"));
+            
+            var global = Module.AddGlobal(LLVMTypeRef.CreateArray(LLVMTypeRef.Int8,
+                    (uint)bytes.Length),
+                $"<{assemblyName}/metadata>");
+            
+            global.Initializer = LLVMValueRef.CreateConstArray(LLVMTypeRef.Int8,
+                bytes.ToArray().AsLLVMValues());
+            global.Linkage = LLVMLinkage.LLVMDLLExportLinkage;
+            global.IsGlobalConstant = true;
+            
+            return bytes.ToArray();
+        }
     }
     
     public LLVMCompiler Compile(IReadOnlyCollection<ScriptAST> scripts)
@@ -1187,8 +1195,9 @@ public class LLVMCompiler
             Struct @struct = GetStruct(Reserved.UInt8);
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
-            global.Linkage = LLVMLinkage.LLVMPrivateLinkage;
             global.Initializer = constStr;
+            global.Linkage = LLVMLinkage.LLVMPrivateLinkage;
+            global.IsGlobalConstant = true;
             return Value.Create(new PtrType(@struct), global);
         }
         else if (literalNode.Value is bool @bool)
@@ -1733,6 +1742,13 @@ public class LLVMCompiler
         return result;
     }
 
+    public void Dispose()
+    {
+        FunctionPassManager.Dispose();
+        Builder.Dispose();
+        Module.Dispose();
+    }
+
     private Namespace InitGlobalNamespace()
     {
         var @namespace = new Namespace(null, "root");
@@ -1821,7 +1837,6 @@ public class LLVMCompiler
     {
         var buffer = GetMemoryBufferFromFile(path);
         var module = Context.GetBitcodeModule(buffer);
-        LLVMSharp.Interop.LLVM.DisposeMemoryBuffer(buffer);
         return module;
     }
     

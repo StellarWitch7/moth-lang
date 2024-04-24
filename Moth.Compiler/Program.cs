@@ -91,159 +91,163 @@ internal class Program
                     }
                 }
 
+                // init LLVM stuff
+                // idk what half of these are
                 LLVMSharp.Interop.LLVM.LinkInMCJIT();
                 LLVMSharp.Interop.LLVM.InitializeAllTargetInfos();
                 LLVMSharp.Interop.LLVM.InitializeAllTargets();
                 LLVMSharp.Interop.LLVM.InitializeAllTargetMCs();
                 LLVMSharp.Interop.LLVM.InitializeAllAsmParsers();
                 LLVMSharp.Interop.LLVM.InitializeAllAsmPrinters();
-                var compiler = new LLVMCompiler(options.OutputFile, !options.DoNotOptimizeIR);
-                
+
                 // compile
                 try
                 {
-                    if (options.MothLibraryFiles.LongCount() > 0)
+                    using (var compiler = new LLVMCompiler(options.OutputFile, !options.DoNotOptimizeIR))
                     {
-                        logger.WriteLine("Loading external Moth libraries...");
-
-                        foreach (var path in options.MothLibraryFiles)
+                        if (options.MothLibraryFiles.LongCount() > 0)
                         {
-                            compiler.LoadLibrary(path);
-                        }
-                    }
-                    
-                    logger.WriteLine("Compiling to LLVM IR...");
+                            logger.WriteLine("Loading external Moth libraries...");
 
-                    try
-                    {
-                        compiler.Compile(scripts);
+                            foreach (var path in options.MothLibraryFiles)
+                            {
+                                compiler.LoadLibrary(path);
+                            }
+                        }
+                        
+                        logger.WriteLine("Compiling to LLVM IR...");
 
-                        if (options.NoMetadata)
+                        try
                         {
-                            logger.WriteLine("Skipping generation of assembly metadata...");
+                            compiler.Compile(scripts);
+
+                            if (options.NoMetadata)
+                            {
+                                logger.WriteLine("Skipping generation of assembly metadata...");
+                            }
+                            else
+                            {
+                                logger.WriteLine("(unsafe) Generating assembly metadata...");
+                                var fs = File.Create(Path.Join(Environment.CurrentDirectory, $"{options.OutputFile}.meta"));
+                                fs.Write(compiler.GenerateMetadata(options.OutputFile));
+                                fs.Close();
+                            }
                         }
-                        else
+                        catch (Exception e)
                         {
-                            logger.WriteLine("(unsafe) Generating assembly metadata...");
-                            var fs = File.Create(Path.Join(Environment.CurrentDirectory, $"{options.OutputFile}.meta"));
-                            fs.Write(compiler.GenerateMetadata(options.OutputFile));
-                            fs.Close();
+                            if (options.Verbose)
+                            {
+                                logger.WriteSeparator();
+                                logger.WriteUnsignedLine(compiler.Module.PrintToString());
+                                logger.WriteSeparator();
+                                logger.WriteLine("Dumped LLVM IR for reviewal.");
+                            }
+
+                            Console.WriteLine(e);
+                            throw e;
                         }
-                    }
-                    catch (Exception e)
-                    {
+
                         if (options.Verbose)
                         {
                             logger.WriteSeparator();
                             logger.WriteUnsignedLine(compiler.Module.PrintToString());
                             logger.WriteSeparator();
-                            logger.WriteLine("Dumped LLVM IR for reviewal.");
                         }
 
-                        Console.WriteLine(e);
-                        throw e;
-                    }
+                        logger.WriteLine("Verifying IR validity...");
+                        compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                        string? linkerName = null;
 
-                    if (options.Verbose)
-                    {
-                        logger.WriteSeparator();
-                        logger.WriteUnsignedLine(compiler.Module.PrintToString());
-                        logger.WriteSeparator();
-                    }
-
-                    logger.WriteLine("Verifying IR validity...");
-                    compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
-                    string? linkerName = null;
-
-                    if (outputType == OutputType.Executable)
-                    {
-                        // send to linker
-                        try
+                        if (outputType == OutputType.Executable)
                         {
-                            string @out = $"{options.OutputFile}.bc";
-                            string path = Path.Join(dir, @out);
-                            var arguments = new StringBuilder($"{path}");
-
-                            foreach (var lib in options.MothLibraryFiles)
+                            // send to linker
+                            try
                             {
-                                arguments.Append($" {lib}");
-                            }
-                            
-                            foreach (var lib in options.CLibraryFiles)
-                            {
-                                arguments.Append($" {lib}");
-                            }
+                                string @out = $"{options.OutputFile}.bc";
+                                string path = Path.Join(dir, @out);
+                                var arguments = new StringBuilder($"{path}");
 
+                                foreach (var lib in options.MothLibraryFiles)
+                                {
+                                    arguments.Append($" {lib}");
+                                }
+                                
+                                foreach (var lib in options.CLibraryFiles)
+                                {
+                                    arguments.Append($" {lib}");
+                                }
+
+                                logger.WriteLine($"Outputting IR to \"{path}\"");
+                                compiler.Module.WriteBitcodeToFile(path);
+                                logger.WriteLine("Compiling final product...");
+                                
+                                linkerName = "clang";
+                                arguments.Append($" -o {options.OutputFile}");
+
+                                if (OperatingSystem.IsWindows())
+                                {
+                                    arguments.Append(".exe");
+                                }
+
+                                if (OperatingSystem.IsWindows())
+                                {
+                                    arguments.Append(" --llegacy_stdio_definitions");
+                                }
+
+                                if (OperatingSystem.IsLinux())
+                                {
+                                    arguments.Append(" -lpthread");
+                                }
+                                
+                                if (options.Verbose)
+                                {
+                                    arguments.Append(" -v");
+                                }
+
+                                logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
+                                logger.WriteSeparator();
+                                
+                                var linker = Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = linkerName,
+                                    WorkingDirectory = dir,
+                                    Arguments = arguments.ToString(),
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
+                                });
+
+                                var linkerLogger = new Logger(linkerName);
+
+                                _ = linker ?? throw new Exception($"Linker \"{linkerName}\" failed to start.");
+
+                                while (!linker.HasExited)
+                                {
+                                    linkerLogger.WriteUnsignedLine(linker.StandardOutput.ReadToEnd());
+                                    linkerLogger.WriteUnsignedLine(linker.StandardError.ReadToEnd());
+                                }
+
+                                linkerLogger.WriteSeparator();
+                                linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
+                            }
+                            catch (Exception e)
+                            {
+                                linkerName ??= "UNKNOWN";
+
+                                logger.WriteEmptyLine();
+                                logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
+                                throw e;
+                            }
+                        }
+                        else if (outputType == OutputType.StaticLib)
+                        {
+                            var path = Path.Join(dir, $"{options.OutputFile}.mothlib.bc");
                             logger.WriteLine($"Outputting IR to \"{path}\"");
                             compiler.Module.WriteBitcodeToFile(path);
-                            logger.WriteLine("Compiling final product...");
-                            
-                            linkerName = "clang";
-                            arguments.Append($" -o {options.OutputFile}");
-
-                            if (OperatingSystem.IsWindows())
-                            {
-                                arguments.Append(".exe");
-                            }
-
-                            if (OperatingSystem.IsWindows())
-                            {
-                                arguments.Append(" --llegacy_stdio_definitions");
-                            }
-
-                            if (OperatingSystem.IsLinux())
-                            {
-                                arguments.Append(" -lpthread");
-                            }
-                            
-                            if (options.Verbose)
-                            {
-                                arguments.Append(" -v");
-                            }
-
-                            logger.WriteLine($"Attempting to call {linkerName} with arguments \"{arguments}\"");
-                            logger.WriteSeparator();
-                            
-                            var linker = Process.Start(new ProcessStartInfo
-                            {
-                                FileName = linkerName,
-                                WorkingDirectory = dir,
-                                Arguments = arguments.ToString(),
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                            });
-
-                            var linkerLogger = new Logger(linkerName);
-
-                            _ = linker ?? throw new Exception($"Linker \"{linkerName}\" failed to start.");
-
-                            while (!linker.HasExited)
-                            {
-                                linkerLogger.WriteUnsignedLine(linker.StandardOutput.ReadToEnd());
-                                linkerLogger.WriteUnsignedLine(linker.StandardError.ReadToEnd());
-                            }
-
-                            linkerLogger.WriteSeparator();
-                            linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
                         }
-                        catch (Exception e)
+                        else
                         {
-                            linkerName ??= "UNKNOWN";
-
-                            logger.WriteEmptyLine();
-                            logger.WriteLine($"Failed to interact with {linkerName} due to: {e}");
-                            throw e;
+                            throw new NotImplementedException("Output type not supported.");
                         }
-                    }
-                    else if (outputType == OutputType.StaticLib)
-                    {
-                        var path = Path.Join(dir, $"{options.OutputFile}.mothlib.bc");
-                        logger.WriteLine($"Outputting IR to \"{path}\"");
-                        compiler.Module.WriteBitcodeToFile(path);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException("Output type not supported.");
                     }
                 }
                 catch (Exception e)
