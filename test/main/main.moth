@@ -1,8 +1,15 @@
 namespace test;
 
 with core;
+with core::threading;
 
 func main() #i32 {
-    WriteLine("Hello World!");
+    local thread #Thread = #Thread.init(func(arg #void*) #void* {
+        WriteLine("Hello threaded world!");
+        return #i32*(&#i32(0));
+    }, null);
+    
+    thread.Start();
+    Exit();
     return 0;
 }
