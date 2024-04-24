@@ -127,6 +127,7 @@ internal class Program
         };
         
         string tomlString = TomletMain.TomlStringFrom(project);
+        string gitignoreString = "[Bb]uild/\n[Cc]ache/";
         string programString = options.InitLib
             ? $"namespace {projName};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
             : $"namespace {projName};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
@@ -136,10 +137,56 @@ internal class Program
             file.Write(Encoding.UTF8.GetBytes(tomlString));
         }
 
+        using (var file = File.OpenWrite($"{projDir}/.gitignore"))
+        {
+            file.Write(Encoding.UTF8.GetBytes(gitignoreString));
+        }
+
         using (var file = File.OpenWrite($"{mainDir}/main.moth"))
         {
             file.Write(Encoding.UTF8.GetBytes(programString));
         }
+
+        var init = Process.Start(new ProcessStartInfo("git", "init")
+        {
+            WorkingDirectory = projDir
+        });
+        
+        if (init == null)
+            throw new Exception("Call to git init failed.");
+
+        init.WaitForExit();
+
+        if (init.ExitCode != 0)
+            throw new Exception($"git init finished with exit code {init.ExitCode}");
+
+        var add = Process.Start(new ProcessStartInfo("git", "add --all")
+        {
+            WorkingDirectory = projDir
+        });
+        
+        if (add == null)
+            throw new Exception("Call to git add failed.");
+
+        add.WaitForExit();
+
+        if (add.ExitCode != 0)
+            throw new Exception($"git add finished with exit code {add.ExitCode}");
+
+        Console.WriteLine("Creating initial commit...");
+        
+        var commit = Process.Start(new ProcessStartInfo("git", "commit -m \"Initial Commit\"")
+        {
+            WorkingDirectory = projDir
+        });
+        
+        if (commit == null)
+            throw new Exception("Call to git commit failed.");
+
+        commit.WaitForExit();
+
+        if (commit.ExitCode != 0)
+            throw new Exception($"git commit finished with exit code {commit.ExitCode}");
         
         Console.WriteLine($"Successfully initialized new project: {projName}");
     }
