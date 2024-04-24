@@ -6,18 +6,20 @@ public class Struct : Type, IContainer
 {
     public IContainer? Parent { get; }
     public string Name { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
-    public Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
-    public Dictionary<Signature, Function> Methods { get; } = new Dictionary<Signature, Function>();
-    public Dictionary<Signature, Function> StaticMethods { get; } = new Dictionary<Signature, Function>();
+    public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
+    public virtual Dictionary<string, OverloadList> Methods { get; } = new Dictionary<string, OverloadList>();
+    public virtual Dictionary<string, OverloadList> StaticMethods { get; } = new Dictionary<string, OverloadList>();
 
     private uint _bitlength;
     
-    public Struct(Namespace? parent, string name, LLVMTypeRef llvmType, PrivacyType privacy)
-        : base(llvmType, TypeKind.Class)
+    public Struct(Namespace? parent, string name, LLVMTypeRef llvmType, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
+        : base(llvmType, TypeKind.Struct)
     {
         Parent = parent;
         Name = name;
+        Attributes = attributes;
         Privacy = privacy;
     }
 
@@ -76,7 +78,8 @@ public class Struct : Type, IContainer
 
             var value = Value.Create(Primitives.UInt64, retValue);
             var func = new ConstRetFn(Reserved.SizeOf, value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.SizeOf, System.Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(Reserved.SizeOf, new OverloadList(Reserved.SizeOf));
+            StaticMethods[Reserved.SizeOf].Add(func);
         }
 
         // alignof()
@@ -87,26 +90,28 @@ public class Struct : Type, IContainer
 
             var value = Value.Create(Primitives.UInt64, retValue);
             var func = new ConstRetFn(Reserved.AlignOf, value, compiler.Module);
-            StaticMethods.TryAdd(new Signature(Reserved.AlignOf, System.Array.Empty<Type>()), func);
+            StaticMethods.TryAdd(Reserved.AlignOf, new OverloadList(Reserved.AlignOf));
+            StaticMethods[Reserved.AlignOf].Add(func);
         }
 
         return this;
     }
     
-    public Function GetMethod(Signature sig, Struct? currentStruct)
+    public Function GetMethod(string name, IReadOnlyList<Type> paramTypes, Struct? currentStruct)
     {
-        if (Methods.TryGetValue(sig, out Function func))
+        if (Methods.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func))
         {
             if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private && currentStruct != this)
             {
-                throw new Exception($"Cannot access private method \"{sig}\" on type \"{Name}\".");
+                throw new Exception($"Cannot access private method \"{name}\" on type \"{Name}\".");
             }
 
             return func;
         }
         else
         {
-            throw new Exception($"Method \"{sig}\" does not exist on type \"{Name}\".");
+            throw new Exception($"Method \"{name}\" does not exist on type \"{Name}\".");
         }
     }
 
@@ -147,13 +152,14 @@ public class Struct : Type, IContainer
         }
     }
 
-    public virtual Function GetFunction(Signature sig, Struct? currentStruct, bool recursive)
+    public virtual Function GetFunction(string name, IReadOnlyList<Type> paramTypes, Struct? currentStruct, bool recursive)
     {
-        if (StaticMethods.TryGetValue(sig, out Function func))
+        if (StaticMethods.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func))
         {
             if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private && currentStruct != this)
             {
-                throw new Exception($"Cannot access private function \"{sig}\" on type \"{Name}\".");
+                throw new Exception($"Cannot access private function \"{name}\" on type \"{Name}\".");
             }
 
             return func;
@@ -162,20 +168,20 @@ public class Struct : Type, IContainer
         {
             if (recursive)
             {
-                return ParentNamespace.GetFunction(sig);
+                return ParentNamespace.GetFunction(name, paramTypes);
             }
             else
             {
-                throw new Exception($"Function \"{sig}\" does not exist on type \"{Name}\".");
+                throw new Exception($"Function \"{name}\" does not exist on type \"{Name}\".");
             }
         }
     }
 
-    public bool TryGetFunction(Signature sig, Struct? currentStruct, bool recursive, out Function func)
+    public bool TryGetFunction(string name, IReadOnlyList<Type> paramTypes, Struct? currentStruct, bool recursive, out Function func)
     {
         try
         {
-            func = GetFunction(sig, currentStruct, recursive);
+            func = GetFunction(name, paramTypes, currentStruct, recursive);
 
             if (func == null)
             {
@@ -194,7 +200,7 @@ public class Struct : Type, IContainer
     public virtual Variable Init(LLVMCompiler compiler)
     {
         return new Variable(Reserved.Self,
-            compiler.WrapAsRef(this),
+            new VarType(this),
             compiler.Builder.BuildAlloca(LLVMType));
     }
     
@@ -211,8 +217,8 @@ public class Struct : Type, IContainer
 
 public class OpaqueStruct : Struct
 {
-    public OpaqueStruct(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy)
-        : base(parent, name, compiler.Context.CreateNamedStruct(name), privacy) { }
+    public OpaqueStruct(LLVMCompiler compiler, Namespace parent, string name, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
+        : base(parent, name, compiler.Context.CreateNamedStruct(name), attributes, privacy) { }
 
     public override Struct AddBuiltins(LLVMCompiler compiler) => this;
 }

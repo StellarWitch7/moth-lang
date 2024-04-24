@@ -1,13 +1,13 @@
 namespace Moth.LLVM.Metadata;
 
-public enum TypeTag
+public enum TypeTag : byte
 {
     Type,
     FuncType,
     Pointer,
+    Reference,
     Void,
     Bool,
-    Char,
     UInt8,
     UInt16,
     UInt32,

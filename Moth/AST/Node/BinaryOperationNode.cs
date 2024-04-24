@@ -26,7 +26,7 @@ public enum OperationType
     GreaterThanOrEqual,
     Equal,
     NotEqual,
-    Modulo,
+    Modulus,
     Assignment,
     Or,
     And,

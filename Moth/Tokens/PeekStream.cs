@@ -24,9 +24,7 @@ public struct PeekStream
     {
         get
         {
-            return Position < Length
-        ? _text[Position]
-        : null;
+            return Position < Length ? _text[Position] : null;
         }
     }
 

@@ -1,7 +1,7 @@
 ﻿using CommandLine;
 using System.ComponentModel.Design.Serialization;
 
-namespace Moth.CLI;
+namespace Moth.Compiler;
 
 internal class Options
 {
@@ -14,13 +14,8 @@ internal class Options
     [Option('n',
         "no-meta",
         Required = false,
-        HelpText = "Whether to strip metadata from the output file. WARNING: makes libraries act like C libraries!")]
+        HelpText = "Whether to strip metadata from the output file. WARNING: disables reflection!")]
     public bool NoMetadata { get; set; }
-    
-    [Option("debug-test",
-        Required = false,
-        HelpText = "Whether to run the output on success.")]
-    public bool RunTest { get; set; }
 
     [Option("no-advanced-ir-opt",
         Required = false,

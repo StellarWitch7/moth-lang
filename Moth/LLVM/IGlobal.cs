@@ -5,9 +5,11 @@ namespace Moth.LLVM;
 
 public interface IGlobal
 {
+    public Namespace Parent { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     public string Name { get; }
-    public RefType Type { get; }
+    public VarType Type { get; }
     public LLVMValueRef LLVMValue { get; }
 
     public string GetInvalidTypeErrorMsg(Value value);
@@ -21,5 +23,13 @@ public interface IGlobal
 
         var val = LLVMValue;
         val.Initializer = value.LLVMValue;
+    }
+
+    public string FullName
+    {
+        get
+        {
+            return $"{Parent.FullName}.{Name}";
+        }
     }
 }

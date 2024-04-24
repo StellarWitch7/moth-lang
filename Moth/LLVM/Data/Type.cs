@@ -1,11 +1,12 @@
 ﻿using Moth.AST.Node;
 using Moth.LLVM.Data;
+using System.Linq.Expressions;
 
 namespace Moth.LLVM.Data;
 
 public enum TypeKind
 {
-    Class,
+    Struct,
     Function,
     Pointer,
     Reference,
@@ -30,7 +31,15 @@ public class Type : CompilerData
             throw new NotImplementedException();
         }
     }
-
+    
+    public bool CanConvertTo(Type other)
+    {
+        if (Equals(other)) return true;
+        return GetImplicitConversions().Contains(other);
+    }
+    
+    public virtual ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
+    
     public override string ToString() => throw new NotImplementedException();
 
     public override bool Equals(object? obj) => throw new NotImplementedException();

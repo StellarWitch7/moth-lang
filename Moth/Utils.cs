@@ -7,6 +7,32 @@ namespace Moth;
 
 public static class Utils
 {
+    public static string ExpandOpName(string op)
+    {
+        return $"__operator{{{op}}}";
+    }
+
+    public static string OpTypeToString(OperationType opType)
+    {
+        return opType switch
+        {
+            OperationType.Addition => "+",
+            OperationType.Subtraction => "-",
+            OperationType.Multiplication => "*",
+            OperationType.Division => "/",
+            OperationType.Exponential => "^",
+            OperationType.Modulus => "%",
+            OperationType.LesserThan => "<",
+            OperationType.GreaterThan => ">",
+            OperationType.LesserThanOrEqual => "<=",
+            OperationType.GreaterThanOrEqual => ">=",
+            OperationType.Equal => "==",
+            //OperationType.Range => "..",
+            
+            _ => throw new NotImplementedException($"Unsupported operation type: \"{opType}\"")
+        };
+    }
+    
     public static LLVMCallConv StringToCallConv(string str)
     {
         return str switch
@@ -64,27 +90,36 @@ public static class Utils
             {
                 index++;
                 var hex1 = original[(int)index];
-                index++;
-                var hex2 = original[(int)index];
 
-                var byte1 = hex1 switch
+                if (hex1 == '\\')
                 {
-                    >= '0' and <= '9' => (byte) hex1 - (byte) '0',
-                    >= 'a' and <= 'f' => (byte) hex1 - (byte) 'a' + 10,
-                    >= 'A' and <= 'F' => (byte) hex1 - (byte) 'A' + 10,
-                    _ => throw new ArgumentOutOfRangeException(nameof(hex1)),
-                };
+                    bytes.Add((byte) hex1);
+                    index++;
+                }
+                else
+                {
+                    index++;
+                    var hex2 = original[(int)index];
+
+                    var byte1 = hex1 switch
+                    {
+                        >= '0' and <= '9' => (byte) hex1 - (byte) '0',
+                        >= 'a' and <= 'f' => (byte) hex1 - (byte) 'a' + 10,
+                        >= 'A' and <= 'F' => (byte) hex1 - (byte) 'A' + 10,
+                        _ => throw new ArgumentOutOfRangeException(nameof(hex1)),
+                    };
             
-                var byte2 = hex2 switch
-                {
-                    >= '0' and <= '9' => (byte) hex2 - (byte) '0',
-                    >= 'a' and <= 'f' => (byte) hex2 - (byte) 'a' + 10,
-                    >= 'A' and <= 'F' => (byte) hex2 - (byte) 'A' + 10,
-                    _ => throw new ArgumentOutOfRangeException(nameof(hex2)),
-                };
+                    var byte2 = hex2 switch
+                    {
+                        >= '0' and <= '9' => (byte) hex2 - (byte) '0',
+                        >= 'a' and <= 'f' => (byte) hex2 - (byte) 'a' + 10,
+                        >= 'A' and <= 'F' => (byte) hex2 - (byte) 'A' + 10,
+                        _ => throw new ArgumentOutOfRangeException(nameof(hex2)),
+                    };
 
-                bytes.Add((byte) ((byte1 << 4) | byte2));
-                index++;
+                    bytes.Add((byte) ((byte1 << 4) | byte2));
+                    index++;
+                }
             }
             else
             {
@@ -158,14 +193,14 @@ public static class ArrayExtensions
         return result;
     }
 
-    public static Value[] SafeLoadAll(this Value[] values, LLVMCompiler compiler)
+    public static Value[] ImplicitConvertAll(this Value[] values, LLVMCompiler compiler, Type target)
     {
         var result = new Value[values.Length];
         uint index = 0;
 
         foreach (Value value in values)
         {
-            result[index] = compiler.SafeLoad(value);
+            result[index] = value.ImplicitConvertTo(compiler, target);
             index++;
         }
 
@@ -251,13 +286,14 @@ public static class ArrayExtensions
         }
     }
 
-    public static bool TryGetFunction(this Namespace[] imports, Signature sig, out Function func)
+    public static bool TryGetFunction(this Namespace[] imports, string name, IReadOnlyList<Type> paramTypes, out Function func)
     {
         func = null;
         
         foreach (var import in imports)
         {
-            if (import.Functions.TryGetValue(sig, out func))
+            if (import.Functions.TryGetValue(name, out OverloadList overloads)
+                && overloads.TryGet(paramTypes, out func))
             {
                 if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private)
                 {

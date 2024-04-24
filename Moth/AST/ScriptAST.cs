@@ -4,14 +4,14 @@ namespace Moth.AST;
 
 public class ScriptAST : ASTNode
 {
-    public string Namespace { get; }
-    public List<string> Imports { get; }
+    public NamespaceNode Namespace { get; }
+    public List<NamespaceNode> Imports { get; }
     public List<StructNode> ClassNodes { get; }
     public List<FuncDefNode> GlobalFunctions { get; }
     public List<FieldDefNode> GlobalVariables { get; }
 
-    public ScriptAST(string @namespace,
-        List<string> imports,
+    public ScriptAST(NamespaceNode @namespace,
+        List<NamespaceNode> imports,
         List<StructNode> classNodes,
         List<FuncDefNode> globalFuncs,
         List<FieldDefNode> globalVariables)

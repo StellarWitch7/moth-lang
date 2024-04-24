@@ -4,11 +4,15 @@ namespace Moth.LLVM.Data;
 
 public sealed class GlobalConstant : ConstVar, IGlobal
 {
+    public Namespace Parent { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     
-    public GlobalConstant(string name, RefType type, LLVMValueRef llvmVariable, PrivacyType privacy)
+    public GlobalConstant(Namespace parent, string name, VarType type, LLVMValueRef llvmVariable, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
         : base(name, type, llvmVariable)
     {
+        Parent = parent;
+        Attributes = attributes;
         Privacy = privacy;
     }
 }

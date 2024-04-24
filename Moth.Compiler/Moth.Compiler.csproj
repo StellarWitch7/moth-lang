@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <PublishSingleFile>true</PublishSingleFile>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <StartupObject>Moth.Compiler.Program</StartupObject>
+        <AssemblyName>mothc</AssemblyName>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>Moth.Compiler</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Moth\Moth.csproj" />
+    </ItemGroup>
+
+</Project>

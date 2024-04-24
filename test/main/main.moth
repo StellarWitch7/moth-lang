@@ -1,0 +1,8 @@
+namespace test;
+
+with core;
+
+func main() #i32 {
+    WriteLine("Hello World!");
+    return 0;
+}

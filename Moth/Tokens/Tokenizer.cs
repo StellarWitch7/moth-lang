@@ -91,42 +91,99 @@ public static class Tokenizer
                 case '_':
                     {
                         ReadOnlyMemory<char> keyword = stream.Peek(c => char.IsLetterOrDigit(c) || c == '_');
-                        tokens.Add(new Token
-                        {
-                            Text = keyword,
-                            Type = keyword.Span switch
-                            {
-                                "if" => TokenType.If,
-                                "addrof" => TokenType.AddressOf,
-                                "load" => TokenType.DeRef,
-                                "null" => TokenType.Null,
-                                "local" => TokenType.Local,
-                                "self" => TokenType.This,
-                                "namespace" => TokenType.Namespace,
-                                "then" => TokenType.Then,
-                                "constant" => TokenType.Constant,
-                                "while" => TokenType.While,
-                                "true" => TokenType.True,
-                                "pi" => TokenType.Pi,
-                                "else" => TokenType.Else,
-                                "false" => TokenType.False,
-                                "every" => TokenType.For,
-                                "in" => TokenType.In,
-                                "or" => TokenType.Or,
-                                "and" => TokenType.And,
-                                "func" => TokenType.Function,
-                                "struct" => TokenType.Struct,
-                                "with" => TokenType.Import,
-                                "public" => TokenType.Public,
-                                "static" => TokenType.Static,
-                                "return" => TokenType.Return,
-                                "foreign" => TokenType.Foreign,
-                                _ => TokenType.Name,
-                            },
-                        });
 
-                        stream.Position += keyword.Length - 1;
-                        break;
+                        if (keyword.Span.ToString() == "op")
+                        {
+                            stream.Position += keyword.Length - 1;
+
+                            if (stream.Next != '{')
+                            {
+                                throw new Exception();
+                            }
+
+                            stream.Position++;
+
+                            char? current = stream.Next;
+                            char? next = stream.Next2;
+                            string name;
+
+                            switch (current)
+                            {
+                                case '.' when next is '.':
+                                case '=' when next is '=':
+                                case '<' when next is '=':
+                                case '>' when next is '=':
+                                    name = Utils.ExpandOpName($"{current}{next}");
+                                    stream.Position += 2;
+                                    break;
+                                case '^':
+                                case '>':
+                                case '<':
+                                case '+':
+                                case '/':
+                                case '-':
+                                case '*':
+                                case '%':
+                                    name = Utils.ExpandOpName($"{current}");
+                                    stream.Position++;
+                                    break;
+                                default:
+                                    throw new Exception();
+                            };
+                            
+                            if (stream.Next != '}')
+                            {
+                                throw new Exception();
+                            }
+
+                            stream.Position++;
+
+                            tokens.Add(new Token
+                            {
+                                Text = name.AsMemory(),
+                                Type = TokenType.Name,
+                            });
+                            
+                            break;
+                        }
+                        else
+                        {
+                            tokens.Add(new Token
+                            {
+                                Text = keyword,
+                                Type = keyword.Span switch
+                                {
+                                    "if" => TokenType.If,
+                                    "null" => TokenType.Null,
+                                    "local" => TokenType.Local,
+                                    "self" => TokenType.This,
+                                    "namespace" => TokenType.Namespace,
+                                    "then" => TokenType.Then,
+                                    "constant" => TokenType.Constant,
+                                    "while" => TokenType.While,
+                                    "true" => TokenType.True,
+                                    "pi" => TokenType.Pi,
+                                    "else" => TokenType.Else,
+                                    "false" => TokenType.False,
+                                    "every" => TokenType.For,
+                                    "in" => TokenType.In,
+                                    "or" => TokenType.Or,
+                                    "and" => TokenType.And,
+                                    "root" => TokenType.Root,
+                                    "func" => TokenType.Function,
+                                    "struct" => TokenType.Struct,
+                                    "with" => TokenType.Import,
+                                    "public" => TokenType.Public,
+                                    "static" => TokenType.Static,
+                                    "return" => TokenType.Return,
+                                    "foreign" => TokenType.Foreign,
+                                    _ => TokenType.Name,
+                                },
+                            });
+
+                            stream.Position += keyword.Length - 1;
+                            break;
+                        }
                     }
 
                 //Parse strings
@@ -202,6 +259,8 @@ public static class Tokenizer
                                 '+' when next is '+' => TokenType.Increment,
                                 '-' when next is '-' => TokenType.Decrement,
                                 '?' when next is '=' => TokenType.InferAssign,
+                                ':' when next is ':' => TokenType.NamespaceSeparator,
+                                '&' => TokenType.Ampersand,
                                 ':' => TokenType.Colon,
                                 '^' => TokenType.Exponential,
                                 ',' => TokenType.Comma,
@@ -215,8 +274,6 @@ public static class Tokenizer
                                 ']' => TokenType.ClosingSquareBrackets,
                                 '>' => TokenType.GreaterThan,
                                 '<' => TokenType.LesserThan,
-                                '|' => TokenType.Or,
-                                '&' => TokenType.And,
                                 '!' => TokenType.Not,
                                 '+' => TokenType.Plus,
                                 '/' => TokenType.ForwardSlash,
@@ -241,7 +298,7 @@ public static class Tokenizer
                             Text = type switch
                             {
                                 TokenType.Variadic => stream.Peek(3),
-                                TokenType.InferAssign
+                                TokenType.InferAssign or TokenType.NamespaceSeparator
                                     or TokenType.AddAssign or TokenType.SubAssign
                                     or TokenType.MulAssign or TokenType.DivAssign
                                     or TokenType.ModAssign or TokenType.ExpAssign

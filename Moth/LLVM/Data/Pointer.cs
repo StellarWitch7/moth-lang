@@ -21,34 +21,16 @@ public class Pointer : Value
         compiler.Builder.BuildStore(value.LLVMValue, LLVMValue);
         return this;
     }
-
-    public override Value SafeLoad(LLVMCompiler compiler)
+    
+    public override Value DeRef(LLVMCompiler compiler) //TODO: might need adjusting for the new type engine
     {
-        try {
-            if (Type is RefType) {
-                return Load(compiler);
-            }
-        }
-        catch { }
-
-        return this;
-    }
-
-    public Value Load(LLVMCompiler compiler)
-    {
-        if (Type.BaseType is FuncType fnT)
-        {
-            return new Function(fnT,
-                compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue),
-                new Parameter[0]);
-        }
-        else if (!Type.BaseType.Equals(Primitives.Void))
+        if (!Type.BaseType.Equals(Primitives.Void))
         {
             return Value.Create(Type.BaseType, compiler.Builder.BuildLoad2(Type.BaseType.LLVMType, LLVMValue));
         }
         else
         {
-            throw new Exception("Failed to load pointer!");
+            throw new Exception("Cannot load pointer to void.");
         }
     }
 
