@@ -1,15 +1,15 @@
 namespace Moth.LLVM.Data;
 
-public class TemplateParameter : CompilerData
+public class TemplateParameter
 {
     public string Name { get; }
     public TemplateParameterBound[] Bounds { get; }
-    public Type TypeOfConst { get => IsConst ? _typeOfConst : null; }
+    public InternalType TypeOfConst { get => IsConst ? _typeOfConst : null; }
     public bool IsConst { get; }
 
-    private Type _typeOfConst;
+    private InternalType _typeOfConst;
 
-    public TemplateParameter(string name, TemplateParameterBound[] bounds, bool isConst, Type typeOfConst = null)
+    public TemplateParameter(string name, TemplateParameterBound[] bounds, bool isConst, InternalType typeOfConst = null)
     {
         Name = name;
         Bounds = bounds;

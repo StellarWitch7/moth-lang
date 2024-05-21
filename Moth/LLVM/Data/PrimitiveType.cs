@@ -5,13 +5,13 @@ using System.Runtime.Serialization;
 
 namespace Moth.LLVM.Data;
 
-public abstract class PrimitiveType : Struct
+public abstract class PrimitiveType : Type
 {
     private uint _bitlength;
     private bool _methodsGenerated = false;
     
     protected PrimitiveType(string name, LLVMTypeRef llvmType, uint bitlength)
-        : base(null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Public)
+        : base(null, null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Public)
     {
         _bitlength = bitlength;
     }
@@ -20,7 +20,7 @@ public abstract class PrimitiveType : Struct
     {
         get
         {
-            return $"#{Name}";
+            return $"root#{Name}";
         }
     }
 
@@ -64,11 +64,11 @@ public abstract class PrimitiveType : Struct
 
 public sealed class ArrType : PrimitiveType
 {
-    public Type ElementType { get; }
+    public InternalType ElementType { get; }
 
     private LLVMCompiler _compiler;
     
-    public ArrType(LLVMCompiler compiler, Type elementType)
+    public ArrType(LLVMCompiler compiler, InternalType elementType)
         : base($"[{elementType}]",
             compiler.Context.GetStructType(new []
             {
@@ -124,12 +124,12 @@ public class Void : PrimitiveType
 
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public override bool Contains(Type key)
+        public override bool Contains(InternalType key)
         {
             return key is PtrType;
         }
         
-        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(InternalType key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
         {
             if (key is PtrType ptrType)
             {
@@ -161,12 +161,12 @@ public class Null : PrimitiveType
     
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public override bool Contains(Type key)
+        public override bool Contains(InternalType key)
         {
             return true;
         }
         
-        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(InternalType key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
         {
             if (key is PtrType)
             {

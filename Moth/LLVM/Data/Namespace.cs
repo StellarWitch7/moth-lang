@@ -2,13 +2,15 @@
 
 namespace Moth.LLVM.Data;
 
-public class Namespace : CompilerData, IContainer
+public class Namespace : IContainer
 {
+    public bool IsExternal { get; init; }
     public IContainer? Parent { get; }
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
     public Dictionary<string, OverloadList> Functions { get; } = new Dictionary<string, OverloadList>();
-    public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
+    public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
+    public Dictionary<string, Trait> Traits { get; } = new Dictionary<string, Trait>();
     public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
     public Dictionary<string, Template> Templates { get; } = new Dictionary<string, Template>();
 
@@ -75,7 +77,7 @@ public class Namespace : CompilerData, IContainer
         }
     }
 
-    public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
+    public Function GetFunction(string name, IReadOnlyList<InternalType> paramTypes)
     {
         if (Functions.TryGetValue(name, out OverloadList overloads)
             && overloads.TryGet(paramTypes, out Function func))
@@ -90,7 +92,7 @@ public class Namespace : CompilerData, IContainer
         }
     }
 
-    public bool TryGetFunction(string name, IReadOnlyList<Type> paramTypes, out Function func)
+    public bool TryGetFunction(string name, IReadOnlyList<InternalType> paramTypes, out Function func)
     {
         try
         {
@@ -110,27 +112,27 @@ public class Namespace : CompilerData, IContainer
         }
     }
 
-    public Struct GetStruct(string name)
+    public Type GetType(string name)
     {
-        if (Structs.TryGetValue(name, out Struct @struct))
+        if (Types.TryGetValue(name, out Type type))
         {
-            return @struct;
+            return type;
         }
         else
         {
             return ParentNamespace != null
-                ? ParentNamespace.GetStruct(name)
+                ? ParentNamespace.GetType(name)
                 : throw new Exception($"Type \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
     
-    public bool TryGetStruct(string name, out Struct @struct)
+    public bool TryGetType(string name, out Type type)
     {
         try
         {
-            @struct = GetStruct(name);
+            type = GetType(name);
 
-            if (@struct == null)
+            if (type == null)
             {
                 throw new Exception();
             }
@@ -139,7 +141,41 @@ public class Namespace : CompilerData, IContainer
         }
         catch
         {
-            @struct = null;
+            type = null;
+            return false;
+        }
+    }
+    
+    public Trait GetTrait(string name)
+    {
+        if (Traits.TryGetValue(name, out Trait trait))
+        {
+            return trait;
+        }
+        else
+        {
+            return ParentNamespace != null
+                ? ParentNamespace.GetTrait(name)
+                : throw new Exception($"Trait \"{name}\" was not found in namespace \"{Name}\"");
+        }
+    }
+    
+    public bool TryGetTrait(string name, out Trait trait)
+    {
+        try
+        {
+            trait = GetTrait(name);
+
+            if (trait == null)
+            {
+                throw new Exception();
+            }
+            
+            return true;
+        }
+        catch
+        {
+            trait = null;
             return false;
         }
     }

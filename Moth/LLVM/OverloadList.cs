@@ -18,7 +18,7 @@ public class OverloadList
         _functions.Add(func);
     }
 
-    public Function Get(IReadOnlyList<Type> paramTypes)
+    public Function Get(IReadOnlyList<InternalType> paramTypes)
     {
         Function? sufficient = null;
         bool hasMultipleCandidates = false;
@@ -55,7 +55,7 @@ public class OverloadList
         return sufficient;
     }
 
-    public bool TryGet(IReadOnlyList<Type> paramTypes, out Function func)
+    public bool TryGet(IReadOnlyList<InternalType> paramTypes, out Function func)
     {
         try
         {
@@ -75,7 +75,7 @@ public class OverloadList
         }
     }
 
-    private MatchResult CompareParams(IReadOnlyList<Type> definition, IReadOnlyList<Type> call, bool isVariadic)
+    private MatchResult CompareParams(IReadOnlyList<InternalType> definition, IReadOnlyList<InternalType> call, bool isVariadic)
     {
         if (isVariadic)
         {
@@ -104,7 +104,7 @@ public class OverloadList
         return MatchResult.Insufficient;
     }
 
-    private bool ParamsAreEqual(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    private bool ParamsAreEqual(IReadOnlyList<InternalType> definition, IReadOnlyList<InternalType> call)
     {
         int index = 0;
         
@@ -121,7 +121,7 @@ public class OverloadList
         return true;
     }
     
-    private bool ParamsAreSuitable(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    private bool ParamsAreSuitable(IReadOnlyList<InternalType> definition, IReadOnlyList<InternalType> call)
     {
         int index = 0;
         

@@ -57,7 +57,7 @@ public sealed class Division : IntrinsicOperator
         
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.Type is SignedInt)
+        if (leftVal.InternalType is SignedInt)
         {
             return compiler.Builder.BuildSDiv(leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -84,7 +84,7 @@ public sealed class Modulus : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.Type is SignedInt)
+        if (leftVal.InternalType is SignedInt)
         {
             return compiler.Builder.BuildSRem(leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -105,7 +105,7 @@ public sealed class LesserThan : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.Type is SignedInt)
+        if (leftVal.InternalType is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSLT, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -126,7 +126,7 @@ public sealed class LesserThanOrEqual : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.Type is SignedInt)
+        if (leftVal.InternalType is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSLE, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -147,7 +147,7 @@ public sealed class GreaterThan : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.Type is SignedInt)
+        if (leftVal.InternalType is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSGT, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -168,7 +168,7 @@ public sealed class GreaterThanOrEqual : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.Type is SignedInt)
+        if (leftVal.InternalType is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSGE, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -189,7 +189,7 @@ public sealed class Equal : IntrinsicOperator
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (rightVal.Type.Equals(Primitives.Null))
+        if (rightVal.InternalType.Equals(Primitives.Null))
         {
             return compiler.Builder.BuildIsNull(leftVal.LLVMValue);
         }
@@ -199,7 +199,7 @@ public sealed class Equal : IntrinsicOperator
 
     protected override LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (rightVal.Type.Equals(Primitives.Null))
+        if (rightVal.InternalType.Equals(Primitives.Null))
         {
             return compiler.Builder.BuildIsNull(leftVal.LLVMValue);
         }

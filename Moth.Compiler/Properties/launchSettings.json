@@ -11,7 +11,7 @@
     "mothc test": {
       "commandName": "Project",
       "commandLineArgs": "-v --no-advanced-ir-opt -t exe -o test --moth-libs /home/aurora/MothProjects/moth-core/build/mothcore-1.0-linux.mothlib.bc -i /home/aurora/RiderProjects/moth-lang/test/main/main.moth",
-      "workingDirectory": "/home/aurora/MothProjects/moth-core/build",
+      "workingDirectory": "/home/aurora/RiderProjects/moth-lang/test/build",
       "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net7.0/mothc.exe",
       "externalTerminal": true,
       "leaveRunningOnClose": true

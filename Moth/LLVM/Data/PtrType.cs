@@ -1,12 +1,13 @@
 using Moth.AST.Node;
+using System.Runtime.InteropServices;
 
 namespace Moth.LLVM.Data;
 
-public class PtrType : Type
+public class PtrType : InternalType
 {
-    public virtual Type BaseType { get; }
+    public virtual InternalType BaseType { get; }
 
-    protected PtrType(Type baseType, TypeKind kind)
+    protected PtrType(InternalType baseType, TypeKind kind)
         : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind)
     {
         if (baseType is VarType)
@@ -17,11 +18,11 @@ public class PtrType : Type
         BaseType = baseType;
     }
     
-    public PtrType(Type baseType) : this(baseType, TypeKind.Pointer) { }
+    public PtrType(InternalType baseType) : this(baseType, TypeKind.Pointer) { }
 
     public uint GetDepth()
     {
-        Type? type = BaseType;
+        InternalType? type = BaseType;
         uint depth = 0;
 
         while (type != null)
@@ -37,23 +38,23 @@ public class PtrType : Type
     {
         get
         {
-            return 32;
+            return (uint)(IntPtr.Size * 8); //TODO: this might be very bad
         }
     }
 
-    public override ImplicitConversionTable GetImplicitConversions()
+    public override ImplicitConversionTable GetImplicitConversions() //TODO: no implicit casting between pointer types
     {
-        if (BaseType.Equals(Primitives.Void))
-        {
-            return new Void.ImplicitConversionTable();
-        }
+        // if (BaseType.Equals(Primitives.Void))
+        // {
+        //     return new Void.ImplicitConversionTable();
+        // }
 
         var table = new ImplicitConversionTable();
         
-        table.Add(new PtrType(Primitives.Void), (compiler, prev) =>
-        {
-            return new Pointer(new PtrType(Primitives.Void), prev.LLVMValue);
-        });
+        // table.Add(new PtrType(Primitives.Void), (compiler, prev) =>
+        // {
+        //     return new Pointer(new PtrType(Primitives.Void), prev.LLVMValue);
+        // });
         
         return table;
     }
@@ -65,9 +66,25 @@ public class PtrType : Type
     public override int GetHashCode() => BaseType.GetHashCode();
 }
 
+public class AspectPtrType : PtrType
+{
+    public override Trait BaseType { get; }
+    public override LLVMTypeRef LLVMType { get => llvmType; }
+    
+    private static LLVMTypeRef llvmType = LLVMTypeRef.CreateStruct(new LLVMTypeRef[]
+    {
+        LLVMTypeRef.CreatePointer(Primitives.Int8.LLVMType, 0),
+        LLVMTypeRef.CreatePointer(Primitives.Int8.LLVMType, 0)
+    }, false);
+
+    public AspectPtrType(Trait baseType) : base(baseType, TypeKind.Pointer) { }
+    
+    public override bool Equals(object? obj) => obj is AspectPtrType && base.Equals(obj);
+}
+
 public class RefType : PtrType
 {
-    public RefType(Type baseType) : base(baseType, TypeKind.Reference)
+    public RefType(InternalType baseType) : base(baseType, TypeKind.Reference)
     {
         if (baseType.Equals(Primitives.Void))
         {
@@ -99,7 +116,7 @@ public class RefType : PtrType
 
 public sealed class VarType : RefType
 {
-    public VarType(Type baseType) : base(baseType) { }
+    public VarType(InternalType baseType) : base(baseType) { }
 
     public override ImplicitConversionTable GetImplicitConversions()
     {

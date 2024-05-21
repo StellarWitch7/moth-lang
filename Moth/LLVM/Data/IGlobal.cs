@@ -1,22 +1,22 @@
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM.Data;
 
-public interface IGlobal
+public interface IGlobal : ICompilerData
 {
     public Namespace Parent { get; }
     public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     public string Name { get; }
-    public VarType Type { get; }
+    public VarType InternalType { get; }
     public LLVMValueRef LLVMValue { get; }
 
     public string GetInvalidTypeErrorMsg(Value value);
 
     public void SetInitializer(LLVMCompiler compiler, Value value)
     {
-        if (!Type.BaseType.Equals(value.Type))
+        if (!InternalType.BaseType.Equals(value.InternalType))
         {
             throw new Exception(GetInvalidTypeErrorMsg(value));
         }

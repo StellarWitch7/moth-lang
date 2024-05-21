@@ -6,8 +6,6 @@ namespace Moth.LLVM.Data;
 
 public abstract class Int : PrimitiveType
 {
-    protected ImplicitConversionTable internalImplicits = null;
-    
     protected Int(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
     
     public override ImplicitConversionTable GetImplicitConversions()

@@ -4,24 +4,24 @@ namespace Moth.LLVM.Data;
 
 public class Array : Value
 {
-    public static Dictionary<Type, ArrType> ArrayTypes { get; } = new Dictionary<Type, ArrType>();
+    public static Dictionary<InternalType, ArrType> ArrayTypes { get; } = new Dictionary<InternalType, ArrType>();
     
-    public override ArrType Type { get; }
+    public override ArrType InternalType { get; }
     public override LLVMValueRef LLVMValue { get; }
 
     private LLVMCompiler _compiler;
 
-    public Array(LLVMCompiler compiler, Type elementType, Value[] elements)
+    public Array(LLVMCompiler compiler, InternalType elementType, Value[] elements)
         : base(null, null)
     {
         _compiler = compiler;
-        Type = ResolveType(compiler, elementType);
-        LLVMValue = compiler.Builder.BuildAlloca(Type.LLVMType);
+        InternalType = ResolveType(compiler, elementType);
+        LLVMValue = compiler.Builder.BuildAlloca(InternalType.LLVMType);
 
         var arrLLVMType = LLVMTypeRef.CreateArray(elementType.LLVMType,
             (uint)elements.Length);
-        var arr = compiler.Builder.BuildStructGEP2(Type.LLVMType, LLVMValue, 0);
-        var length = compiler.Builder.BuildStructGEP2(Type.LLVMType, LLVMValue, 1);
+        var arr = compiler.Builder.BuildStructGEP2(InternalType.LLVMType, LLVMValue, 0);
+        var length = compiler.Builder.BuildStructGEP2(InternalType.LLVMType, LLVMValue, 1);
         
         LLVMValueRef values = compiler.Builder.BuildAlloca(arrLLVMType);
         compiler.Builder.BuildStore(LLVMValueRef.CreateConstArray(elementType.LLVMType,
@@ -35,7 +35,7 @@ public class Array : Value
             length);
     }
 
-    public static ArrType ResolveType(LLVMCompiler compiler, Type elementType)
+    public static ArrType ResolveType(LLVMCompiler compiler, InternalType elementType)
     {
         if (Array.ArrayTypes.TryGetValue(elementType, out ArrType type))
         {
@@ -53,8 +53,8 @@ public class Array : Value
 
 public class ArrayIndexerFunction : DefinedFunction
 {
-    public ArrayIndexerFunction(LLVMCompiler compiler, ArrType internalArrayStruct, Type elementType)
-        : base(compiler, internalArrayStruct, Reserved.Indexer, new FuncType(new RefType(elementType), new Type[]
+    public ArrayIndexerFunction(LLVMCompiler compiler, ArrType internalArrayStruct, InternalType elementType)
+        : base(compiler, internalArrayStruct, Reserved.Indexer, new FuncType(new RefType(elementType), new InternalType[]
         {
             new PtrType(internalArrayStruct),
             Primitives.UInt32

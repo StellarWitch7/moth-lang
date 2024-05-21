@@ -59,7 +59,7 @@ public enum TokenType
     GreaterThanOrEqual,
     Equal,
     NotEqual,
-    Struct,
+    Type,
     If,
     Local,
     Else,
@@ -86,7 +86,6 @@ public enum TokenType
     DoubleQuote,
     Foreign,
     Function,
-    Pi,
     Range,
     Variadic,
     Static,
@@ -102,5 +101,7 @@ public enum TokenType
     ModAssign,
     ExpAssign,
     Ampersand,
-    ScientificNotation
+    ScientificNotation,
+    Trait,
+    Implement
 }

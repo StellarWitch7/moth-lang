@@ -2,18 +2,18 @@
 
 namespace Moth.LLVM.Data;
 
-public class Field : CompilerData
+public class Field
 {
     public string Name { get; }
     public uint FieldIndex { get; }
-    public Type Type { get; }
+    public InternalType InternalType { get; }
     public PrivacyType Privacy { get; }
 
-    public Field(string name, uint index, Type type, PrivacyType privacy)
+    public Field(string name, uint index, InternalType type, PrivacyType privacy)
     {
         Name = name;
         FieldIndex = index;
-        Type = type;
+        InternalType = type;
         Privacy = privacy;
     }
 }

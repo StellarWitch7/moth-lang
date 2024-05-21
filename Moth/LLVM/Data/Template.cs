@@ -2,8 +2,9 @@
 
 namespace Moth.LLVM.Data;
 
-public class Template : CompilerData
+public class Template : ICompilerData
 {
+    public bool IsExternal { get; init; }
     public Namespace Parent { get; }
     public string Name { get; }
     public PrivacyType Privacy { get; }
@@ -14,7 +15,7 @@ public class Template : CompilerData
 
     private LLVMCompiler _compiler;
     private List<AttributeNode> _attributeList;
-    private Dictionary<string, Struct> _builtTypes = new Dictionary<string, Struct>();
+    private Dictionary<string, Type> _builtTypes = new Dictionary<string, Type>();
 
     public Template(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, ScopeNode contents,
         Namespace[] imports, List<AttributeNode> attributes, TemplateParameter[] @params)
@@ -34,7 +35,7 @@ public class Template : CompilerData
         }
     }
 
-    public Struct Build(IReadOnlyList<ExpressionNode> args)
+    public Type Build(IReadOnlyList<ExpressionNode> args)
     {
         string sig = ArgsToSig(args);
         
@@ -43,7 +44,7 @@ public class Template : CompilerData
             throw new Exception($"Template arguments are {args.Count} long, expected {Params.Length} arguments for template \"{Name}\".");
         }
 
-        if (_builtTypes.TryGetValue(sig, out Struct @struct))
+        if (_builtTypes.TryGetValue(sig, out Type @struct))
         {
             return @struct;
         }
@@ -71,8 +72,9 @@ public class Template : CompilerData
             }
         }
 
-        var structNode = new StructNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, _attributeList);
-        @struct = new Struct(Parent,
+        var structNode = new TypeNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, _attributeList);
+        @struct = new Type(_compiler,
+            Parent,
             structNode.Name,
             _compiler.Context.CreateNamedStruct(structNode.Name),
             Attributes,

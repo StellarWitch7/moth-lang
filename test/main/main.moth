@@ -1,25 +1,47 @@
 namespace test;
 
-with core;
-with core::threading;
+foreign fn printf(text #u8*, ...) #i32;
 
-func main() #i32 {
-    local i #i32 = 1;
+fn main() #i32 {
+    var i #i32 = 1;
 
-    while i != 100 {
-        Write(Replace("$", "$", "t"));
+    while i != 101 {
+        printf("%d\r", i);
 
         if i % 3 == 0 {
-            Write("Fizz");
+            printf("Fizz");
         }
         
         if i % 5 == 0 {
-            Write("Buzz");
+            printf("Buzz");
         }
 
-        Write('\n');
+        printf("\n");
         ++i;
     }
 
-    return 0;
+    ret 0
+}
+
+type Thing {
+}
+
+impl root::test#Disposable for root::test#Thing {
+    fn Dispose() {
+        ret
+    }
+}
+
+impl root::test#Animal for root::test#Thing {
+    fn Eat() {
+        ret
+    }
+}
+
+trait Disposable {
+    fn Dispose();
+}
+
+trait Animal {
+    fn Eat();
 }

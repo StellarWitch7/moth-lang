@@ -1,6 +1,7 @@
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 using System.Text.RegularExpressions;
+using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM; //TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
 
@@ -140,30 +141,37 @@ public unsafe class MetadataDeserializer
         {
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
             var parent = GetNamespace(fullname);
-            Struct result;
+            Type result;
 
             if (type.is_foreign)
             {
-                result = new OpaqueStruct(_compiler, parent, name, new Dictionary<string, IAttribute>(), type.privacy);
+                result = new OpaqueType(_compiler, parent, name, new Dictionary<string, IAttribute>(), type.privacy)
+                {
+                    IsExternal = true
+                };
             }
             else
             {
-                result = new Struct(parent,
+                result = new Type(_compiler,
+                    parent,
                     name,
                     _compiler.Context.CreateNamedStruct(fullname),
                     new Dictionary<string, IAttribute>(),
-                    type.privacy);
+                    type.privacy)
+                {
+                    IsExternal = true
+                };
                 result.AddBuiltins(_compiler);
             }
             
-            parent.Structs.Add(name, result);
+            parent.Types.Add(name, result);
         }
 
         foreach (var type in _types)
         {
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
             var parent = GetNamespace(fullname);
-            var result = parent.Structs[name];
+            var result = parent.Types[name];
             var fields = GetFields(type.field_table_index, type.field_table_length);
             result.LLVMType.StructSetBody(fields.AsLLVMTypes(), false);
         }
@@ -175,7 +183,7 @@ public unsafe class MetadataDeserializer
             var overloadList = new OverloadList(name);
             IContainer parent;
 
-            if (TryGetStructByString(fullname, out Struct @struct))
+            if (TryGetStructByString(fullname, out Type @struct))
             {
                 if (func.is_method)
                 {
@@ -208,7 +216,10 @@ public unsafe class MetadataDeserializer
                 null,
                 func.privacy,
                 true,
-                new Dictionary<string, IAttribute>());
+                new Dictionary<string, IAttribute>())
+            {
+                IsExternal = true
+            };
             overloadList.Add(result);
         }
 
@@ -217,35 +228,41 @@ public unsafe class MetadataDeserializer
             var name = GetName(global.name_table_index, global.name_table_length, out string fullname);
             var nmspace = GetNamespace(fullname);
             var type = GetType(global.typeref_table_index, global.typeref_table_length);
-            
-            nmspace.GlobalVariables.Add(name, global.is_constant
+            IGlobal result = global.is_constant
                 ? new GlobalConstant(nmspace,
                     name,
                     new VarType(type),
                     _compiler.Module.AddGlobal(type.LLVMType, fullname),
                     new Dictionary<string, IAttribute>(),
                     global.privacy)
+                {
+                    IsExternal = true
+                }
                 : new GlobalVariable(nmspace,
                     name,
                     new VarType(type),
                     _compiler.Module.AddGlobal(type.LLVMType, fullname),
                     new Dictionary<string, IAttribute>(),
-                    global.privacy));
+                    global.privacy)
+                {
+                    IsExternal = true
+                };
+            nmspace.GlobalVariables.Add(name, result);
         }
     }
 
-    private bool TryGetStructByString(string fullname, out Struct @struct)
+    private bool TryGetStructByString(string fullname, out Type type)
     {
         var match = Regex.Match(fullname, "#(.*)\\.");
 
         if (!match.Success)
         {
-            @struct = null;
+            type = null;
             return false;
         }
 
         var nmspace = GetNamespace(fullname);
-        @struct = nmspace.Structs[match.Groups[1].Value];
+        type = nmspace.Types[match.Groups[1].Value];
         return true;
     }
 
@@ -294,10 +311,10 @@ public unsafe class MetadataDeserializer
         return result.ToArray();
     }
 
-    private Type GetType(ulong index, ulong length)
+    private InternalType GetType(ulong index, ulong length)
     {
         var ptrOrRef = new List<bool>();
-        Type result = null;
+        InternalType result = null;
         
         for (ulong i = 0; i < length; i++)
         {
@@ -315,11 +332,11 @@ public unsafe class MetadataDeserializer
                         var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
                         var nmspace = GetNamespace(fullname);
                         var fields = GetFields(type.field_table_index, type.field_table_length);
-                        Struct @struct;
+                        Type newType;
                     
                         if (type.is_foreign)
                         {
-                            @struct = new OpaqueStruct(_compiler,
+                            newType = new OpaqueType(_compiler,
                                 nmspace,
                                 name,
                                 new Dictionary<string, IAttribute>(),
@@ -327,15 +344,16 @@ public unsafe class MetadataDeserializer
                         }
                         else
                         {
-                            @struct = new Struct(nmspace,
+                            newType = new Type(_compiler,
+                                nmspace,
                                 name,
                                 LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false),
                                 new Dictionary<string, IAttribute>(),
                                 type.privacy);
                         }
                     
-                        nmspace.Structs.TryAdd(name, @struct);
-                        result = @struct;
+                        nmspace.Types.TryAdd(name, newType);
+                        result = newType;
                         break;
                     }
                 case Metadata.TypeTag.FuncType:
@@ -413,9 +431,9 @@ public unsafe class MetadataDeserializer
         return result;
     }
 
-    private Type[] GetParamTypes(ulong index, ulong length)
+    private InternalType[] GetParamTypes(ulong index, ulong length)
     {
-        var types = new Type[length];
+        var types = new InternalType[length];
 
         for (ulong i = 0; i < length; i++)
         {

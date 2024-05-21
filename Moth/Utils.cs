@@ -1,7 +1,9 @@
 ﻿using Moth.AST.Node;
 using Moth.LLVM;
 using Moth.LLVM.Data;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Type = Moth.LLVM.Data.Type;
 
 namespace Moth;
 
@@ -140,11 +142,11 @@ public static class ListExtensions
         return span[..list.Count];
     }
 
-    public static List<LLVMTypeRef> AsLLVMTypes(this List<Type> types)
+    public static List<LLVMTypeRef> AsLLVMTypes(this List<InternalType> types)
     {
         var result = new List<LLVMTypeRef>();
 
-        foreach (Type type in types)
+        foreach (InternalType type in types)
         {
             result.Add(type.LLVMType);
         }
@@ -193,7 +195,7 @@ public static class ArrayExtensions
         return result;
     }
 
-    public static Value[] ImplicitConvertAll(this Value[] values, LLVMCompiler compiler, Type target)
+    public static Value[] ImplicitConvertAll(this Value[] values, LLVMCompiler compiler, InternalType target)
     {
         var result = new Value[values.Length];
         uint index = 0;
@@ -223,22 +225,22 @@ public static class ArrayExtensions
 
     public static LLVMTypeRef[] AsLLVMTypes(this Field[] fields)
     {
-        var types = new List<Type>();
+        var types = new List<InternalType>();
 
         foreach (var field in fields)
         {
-            types.Add(field.Type);
+            types.Add(field.InternalType);
         }
 
         return types.ToArray().AsLLVMTypes();
     }
     
-    public static LLVMTypeRef[] AsLLVMTypes(this Type[] types)
+    public static LLVMTypeRef[] AsLLVMTypes(this InternalType[] types)
     {
         var result = new LLVMTypeRef[types.Length];
         uint index = 0;
 
-        foreach (Type type in types)
+        foreach (InternalType type in types)
         {
             result[index] = type.LLVMType;
             index++;
@@ -247,18 +249,26 @@ public static class ArrayExtensions
         return result;
     }
 
-    public static int GetHashes(this Type[] types)
+    public static int GetHashes(this InternalType[] types)
     {
         int hash = 3;
 
-        foreach (Type type in types)
+        foreach (InternalType type in types)
         {
             hash *= 31 + type.GetHashCode();
         }
 
         return hash;
     }
-
+    
+    public static ulong[] ToULong(this byte[] bytes)
+    {
+        var values = new ulong[bytes.Length / 8];
+        for (var i = 0; i < values.Length; i++)
+            values[i] = Unsafe.ReadUnaligned<ulong>(ref bytes[i * 8]);
+        return values;
+    }
+    
     public static bool TryGetNamespace(this Namespace[] imports, string name, out Namespace nmspace)
     {
         nmspace = null;
@@ -286,7 +296,7 @@ public static class ArrayExtensions
         }
     }
 
-    public static bool TryGetFunction(this Namespace[] imports, string name, IReadOnlyList<Type> paramTypes, out Function func)
+    public static bool TryGetFunction(this Namespace[] imports, string name, IReadOnlyList<InternalType> paramTypes, out Function func)
     {
         func = null;
         
@@ -316,17 +326,17 @@ public static class ArrayExtensions
         }
     }
 
-    public static bool TryGetStruct(this Namespace[] imports, string name, out Struct @struct)
+    public static bool TryGetType(this Namespace[] imports, string name, out Type type)
     {
-        @struct = null;
+        type = null;
         
         foreach (var import in imports)
         {
-            if (import.Structs.TryGetValue(name, out @struct))
+            if (import.Types.TryGetValue(name, out type))
             {
-                if (@struct.Privacy == PrivacyType.Private)
+                if (type.Privacy == PrivacyType.Private)
                 {
-                    @struct = null;
+                    type = null;
                 }
                 else
                 {
@@ -335,7 +345,36 @@ public static class ArrayExtensions
             }
         }
 
-        if (@struct != null)
+        if (type != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    
+    public static bool TryGetTrait(this Namespace[] imports, string name, out Trait trait)
+    {
+        trait = null;
+        
+        foreach (var import in imports)
+        {
+            if (import.Traits.TryGetValue(name, out trait))
+            {
+                if (trait.Privacy == PrivacyType.Private)
+                {
+                    trait = null;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        if (trait != null)
         {
             return true;
         }
