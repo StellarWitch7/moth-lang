@@ -56,9 +56,10 @@ with core; // we are using the core namespace in this file, so we declare our us
 
 // the main function is the entrypoint of an executable program
 // it must return a value of type i32
-func main() #i32 {
-    WriteLine("Hello World!"); // we use the core namespace here
-    return 0; // we end the program by returning from the main function with an exit code of zero
+fn main() #i32 {
+    WriteLine("Hello World!"); // we use the core namespace here to call the WriteLine(#u8*) function
+    // we end the program by returning from the main function with an exit code of zero
+    ret 0 // note that unlike other lines, return lines do not have semicolons
 }
 ```
 To learn how to run this code, [continue reading](https://github.com/StellarWitch7/moth-lang/wiki/Hello-World). 
