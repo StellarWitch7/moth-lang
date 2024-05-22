@@ -14,7 +14,7 @@ public static class ASTGenerator
         NamespaceNode @namespace;
         var imports = new List<NamespaceNode>();
         var funcs = new List<FuncDefNode>();
-        var globals = new List<FieldDefNode>();
+        var globals = new List<GlobalVarNode>();
         var types = new List<TypeNode>();
         var traits = new List<TraitNode>();
         var implements = new List<ImplementNode>();
@@ -78,7 +78,7 @@ public static class ASTGenerator
                         }
 
                         var error = $"Implementation \"{fnDef.Name}\" of trait \"{trait.Name}\" for type \"{type.Name}\"";
-                        fnDef.Privacy = PrivacyType.Public;
+                        fnDef.Privacy = PrivacyType.Pub;
                             
                         if (fnDef.IsStatic)
                             throw new Exception($"{error} cannot be static.");
@@ -108,7 +108,7 @@ public static class ASTGenerator
                     {
                         funcs.Add(func);
                     }
-                    else if (result is FieldDefNode global)
+                    else if (result is GlobalVarNode global)
                     {
                         globals.Add(global);
                     }
@@ -210,7 +210,7 @@ public static class ASTGenerator
                     }
 
                     var error = $"Definition \"{fnDef.Name}\" of trait \"{name}\"";
-                    fnDef.Privacy = PrivacyType.Public;
+                    fnDef.Privacy = PrivacyType.Pub;
                             
                     if (fnDef.IsStatic)
                         throw new Exception($"{error} cannot be static.");
@@ -448,7 +448,7 @@ public static class ASTGenerator
 
     public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode>? attributes)
     {
-        PrivacyType privacy = PrivacyType.Private;
+        PrivacyType privacy = PrivacyType.Priv;
         bool isForeign = false;
         bool isStatic = false;
         
@@ -459,8 +459,8 @@ public static class ASTGenerator
             switch (context.Current?.Type)
             {
                 case TokenType.Public:
-                    if (privacy != PrivacyType.Private) throw new UnexpectedTokenException(context.Current.Value);
-                    privacy = PrivacyType.Public;
+                    if (privacy != PrivacyType.Priv) throw new UnexpectedTokenException(context.Current.Value);
+                    privacy = PrivacyType.Pub;
                     break;
                 case TokenType.Foreign:
                     if (isForeign) throw new UnexpectedTokenException(context.Current.Value);
@@ -543,7 +543,7 @@ public static class ASTGenerator
             if (context.Current?.Type == TokenType.Semicolon)
             {
                 context.MoveNext();
-                return new FieldDefNode(name, privacy, typeRef, attributes);
+                return new GlobalVarNode(name, typeRef, privacy, false/*TODO*/, isForeign, attributes);
             }
             else
             {

@@ -9,6 +9,6 @@ public class DefinitionNode : StatementNode
 
 public enum PrivacyType
 {
-    Private,
-    Public,
+    Priv,
+    Pub,
 }

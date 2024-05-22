@@ -3,6 +3,7 @@ version = "1.0"
 type = "exe"
 root = "main"
 out = "build"
+include = "include"
 platforms = [ "linux", "windows" ]
 
 [dependencies.project]

@@ -7,7 +7,21 @@ public class Type : InternalType, IContainer
     public IContainer? Parent { get; }
     public Guid UUID { get; }
     public string Name { get; }
-    public TInfo? TInfo { get; } = null;
+    public TInfo? TInfo
+    {
+        get
+        {
+            if (_compiler == default || IsExternal)
+                return null;
+            
+            if (_internalTInfo == null)
+            {
+                _internalTInfo = new TInfo(_compiler, this);
+            }
+
+            return _internalTInfo;
+        }
+    }
     public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
@@ -16,20 +30,20 @@ public class Type : InternalType, IContainer
     public Dictionary<Trait, VTableInst> VTables { get; } = new Dictionary<Trait, VTableInst>();
 
     protected ImplicitConversionTable internalImplicits = null;
-    
+
+    private LLVMCompiler? _compiler;
     private uint _bitlength;
+    private TInfo? _internalTInfo;
     
     public Type(LLVMCompiler? compiler, Namespace? parent, string name, LLVMTypeRef llvmType, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
         : base(llvmType, TypeKind.Struct)
     {
+        _compiler = compiler;
         UUID = Guid.NewGuid();
         Parent = parent;
         Name = name;
         Attributes = attributes;
         Privacy = privacy;
-
-        if (compiler != null)
-            TInfo = new TInfo(compiler, this);
     }
 
     public Namespace ParentNamespace
@@ -123,7 +137,7 @@ public class Type : InternalType, IContainer
         if (Methods.TryGetValue(name, out OverloadList overloads)
             && overloads.TryGet(paramTypes, out Function func))
         {
-            if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private && currentStruct != this)
+            if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Priv && currentStruct != this)
             {
                 throw new Exception($"Cannot access private method \"{name}\" on type \"{Name}\".");
             }
@@ -140,7 +154,7 @@ public class Type : InternalType, IContainer
     {
         if (Fields.TryGetValue(name, out Field field))
         {
-            if (field.Privacy == PrivacyType.Private && currentType != this)
+            if (field.Privacy == PrivacyType.Priv && currentType != this)
             {
                 throw new Exception($"Cannot access private field \"{name}\" on type \"{Name}\".");
             }
@@ -178,7 +192,7 @@ public class Type : InternalType, IContainer
         if (StaticMethods.TryGetValue(name, out OverloadList overloads)
             && overloads.TryGet(paramTypes, out Function func))
         {
-            if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private && currentStruct != this)
+            if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Priv && currentStruct != this)
             {
                 throw new Exception($"Cannot access private function \"{name}\" on type \"{Name}\".");
             }

@@ -11,7 +11,7 @@ public abstract class PrimitiveType : Type
     private bool _methodsGenerated = false;
     
     protected PrimitiveType(string name, LLVMTypeRef llvmType, uint bitlength)
-        : base(null, null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Public)
+        : base(null, null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Pub)
     {
         _bitlength = bitlength;
     }
@@ -78,7 +78,7 @@ public sealed class ArrType : PrimitiveType
             }, false), 64)
     {
         _compiler = compiler;
-        Fields.Add("Length", new Field("Length", 1, Primitives.UInt32, PrivacyType.Public));
+        Fields.Add("Length", new Field("Length", 1, Primitives.UInt32, PrivacyType.Pub));
         ElementType = elementType;
     }
 

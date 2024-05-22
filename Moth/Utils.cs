@@ -305,7 +305,7 @@ public static class ArrayExtensions
             if (import.Functions.TryGetValue(name, out OverloadList overloads)
                 && overloads.TryGet(paramTypes, out func))
             {
-                if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Private)
+                if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Priv)
                 {
                     func = null;
                 }
@@ -334,7 +334,7 @@ public static class ArrayExtensions
         {
             if (import.Types.TryGetValue(name, out type))
             {
-                if (type.Privacy == PrivacyType.Private)
+                if (type.Privacy == PrivacyType.Priv)
                 {
                     type = null;
                 }
@@ -363,7 +363,7 @@ public static class ArrayExtensions
         {
             if (import.Traits.TryGetValue(name, out trait))
             {
-                if (trait.Privacy == PrivacyType.Private)
+                if (trait.Privacy == PrivacyType.Priv)
                 {
                     trait = null;
                 }
@@ -392,7 +392,7 @@ public static class ArrayExtensions
         {
             if (import.Templates.TryGetValue(name, out template))
             {
-                if (template.Privacy == PrivacyType.Private)
+                if (template.Privacy == PrivacyType.Priv)
                 {
                     template = null;
                 }

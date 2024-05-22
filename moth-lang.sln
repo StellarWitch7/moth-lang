@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Test", "Moth.Test\Moth
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Luna", "Moth.Luna\Moth.Luna.csproj", "{2B0FE909-B0F5-4957-905B-19380C521207}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moth.Silk", "Moth.Silk\Moth.Silk.csproj", "{E77EC549-B50A-4E2C-B5DC-B75D2FFE6C38}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{2B0FE909-B0F5-4957-905B-19380C521207}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B0FE909-B0F5-4957-905B-19380C521207}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B0FE909-B0F5-4957-905B-19380C521207}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E77EC549-B50A-4E2C-B5DC-B75D2FFE6C38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E77EC549-B50A-4E2C-B5DC-B75D2FFE6C38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E77EC549-B50A-4E2C-B5DC-B75D2FFE6C38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E77EC549-B50A-4E2C-B5DC-B75D2FFE6C38}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

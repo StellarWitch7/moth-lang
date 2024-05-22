@@ -58,7 +58,7 @@ public class ArrayIndexerFunction : DefinedFunction
         {
             new PtrType(internalArrayStruct),
             Primitives.UInt32
-        }, false), new Parameter[0], PrivacyType.Public, false, new Dictionary<string, IAttribute>())
+        }, false), new Parameter[0], PrivacyType.Pub, false, new Dictionary<string, IAttribute>())
     {
         using LLVMBuilderRef builder = compiler.Module.Context.CreateBuilder();
         

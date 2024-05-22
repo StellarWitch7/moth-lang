@@ -12,4 +12,21 @@ public class TypeNode : DefinitionNode
         Privacy = privacy;
         Scope = scope;
     }
+
+    public override string GetSource()
+    {
+        var builder = new StringBuilder();
+
+        if (Privacy != PrivacyType.Priv)
+            builder.Append($"{Privacy} ".ToLower());
+
+        builder.Append($"type {Name}");
+
+        if (Scope != default)
+            builder.Append($" {Scope.GetSource()}");
+        else
+            builder.Append(";");
+        
+        return builder.ToString();
+    }
 }

@@ -109,6 +109,149 @@ public class LLVMCompiler : IDisposable
             }
         }
     }
+    
+    public LLVMCompiler Compile(IReadOnlyCollection<ScriptAST> scripts)
+    {
+        foreach (ScriptAST script in scripts)
+        {
+            OpenFile(script.Namespace, script.Imports.ToArray());
+
+            foreach (TypeNode typeNode in script.TypeNodes)
+            {
+                if (typeNode is TypeTemplateNode typeTemplateNode)
+                {
+                    PrepareTypeTemplate(typeTemplateNode);
+                }
+                else
+                {
+                    DefineType(typeNode);
+                }
+            }
+
+            foreach (TraitNode traitNode in script.TraitNodes)
+            {
+                if (traitNode is TraitTemplateNode traitTemplateNode)
+                {
+                    PrepareTraitTemplate(traitTemplateNode);
+                }
+                else
+                {
+                    DefineTrait(traitNode);
+                }
+            }
+        }
+
+        foreach (ScriptAST script in scripts)
+        {
+            OpenFile(script.Namespace, script.Imports.ToArray());
+
+            foreach (GlobalVarNode global in script.GlobalVariables)
+            {
+                DefineGlobal(global);
+            }
+
+            foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
+            {
+                DefineFunction(funcDefNode);
+            }
+            
+            foreach (TypeNode structNode in script.TypeNodes)
+            {
+                if (structNode is not TypeTemplateNode)
+                {
+                    var attributes = new Dictionary<string, IAttribute>();
+        
+                    foreach (AttributeNode attribute in structNode.Attributes)
+                    {
+                        attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+                    }
+
+                    if (!(attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())))
+                    {
+                        Type type = GetType(structNode.Name);
+
+                        if (structNode.Scope != null)
+                        {
+                            foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
+                            {
+                                DefineFunction(funcDefNode, type);
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (ImplementNode implementNode in script.ImplementNodes)
+            {
+                var trait = GetTrait(implementNode.Trait.Name); //TODO: traits should be treated like types, *mostly*
+
+                if (ResolveType(implementNode.Type) is not Type type)
+                    throw new Exception($"Cannot implement non-trait \"{implementNode.Type}\".");
+
+                if (trait.IsExternal && type.IsExternal)
+                    throw new Exception($"Cannot implement external trait \"{trait.FullName}\" for external type \"{type.FullName}\".");
+                
+                ImplementTraitForType(trait, type, implementNode.Implementations);
+            }
+        }
+
+        foreach (ScriptAST script in scripts)
+        {
+            OpenFile(script.Namespace, script.Imports.ToArray());
+
+            foreach (TypeNode @struct in script.TypeNodes)
+            {
+                if (@struct is not TypeTemplateNode)
+                {
+                    CompileType(@struct);
+                }
+            }
+        }
+
+        foreach (ScriptAST script in scripts)
+        {
+            OpenFile(script.Namespace, script.Imports.ToArray());
+
+            foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
+            {
+                CompileFunction(funcDefNode);
+            }
+
+            foreach (TypeNode structNode in script.TypeNodes)
+            {
+                if (structNode is not TypeTemplateNode)
+                {
+                    var attributes = new Dictionary<string, IAttribute>();
+        
+                    foreach (AttributeNode attribute in structNode.Attributes)
+                    {
+                        attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
+                    }
+
+                    if (!(attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())))
+                    {
+                        Type type = GetType(structNode.Name);
+
+                        if (structNode.Scope != null)
+                        {
+                            foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
+                            {
+                                CompileFunction(funcDefNode, type);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (var type in Types)
+        {
+            if (type.TInfo == null && !type.IsExternal)
+                Warn($"Type \"{type.FullName}\" has no registered TypeInfo constant.");
+        }
+        
+        return this;
+    }
 
     public IntrinsicFunction GetIntrinsic(string name)
         => _intrinsics.TryGetValue(name, out IntrinsicFunction? func)
@@ -219,143 +362,6 @@ public class LLVMCompiler : IDisposable
             
             return bytes.ToArray();
         }
-    }
-    
-    public LLVMCompiler Compile(IReadOnlyCollection<ScriptAST> scripts)
-    {
-        foreach (ScriptAST script in scripts)
-        {
-            OpenFile(script.Namespace, script.Imports.ToArray());
-
-            foreach (TypeNode typeNode in script.TypeNodes)
-            {
-                if (typeNode is TypeTemplateNode typeTemplateNode)
-                {
-                    PrepareTypeTemplate(typeTemplateNode);
-                }
-                else
-                {
-                    DefineType(typeNode);
-                }
-            }
-
-            foreach (TraitNode traitNode in script.TraitNodes)
-            {
-                if (traitNode is TraitTemplateNode traitTemplateNode)
-                {
-                    PrepareTraitTemplate(traitTemplateNode);
-                }
-                else
-                {
-                    DefineTrait(traitNode);
-                }
-            }
-        }
-
-        foreach (ScriptAST script in scripts)
-        {
-            OpenFile(script.Namespace, script.Imports.ToArray());
-
-            foreach (FieldDefNode global in script.GlobalVariables)
-            {
-                DefineGlobal(global);
-            }
-
-            foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
-            {
-                DefineFunction(funcDefNode);
-            }
-            
-            foreach (TypeNode structNode in script.TypeNodes)
-            {
-                if (structNode is not TypeTemplateNode)
-                {
-                    var attributes = new Dictionary<string, IAttribute>();
-        
-                    foreach (AttributeNode attribute in structNode.Attributes)
-                    {
-                        attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
-                    }
-
-                    if (!(attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())))
-                    {
-                        Type type = GetType(structNode.Name);
-
-                        if (structNode.Scope != null)
-                        {
-                            foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
-                            {
-                                DefineFunction(funcDefNode, type);
-                            }
-                        }
-                    }
-                }
-            }
-
-            foreach (ImplementNode implementNode in script.ImplementNodes)
-            {
-                var trait = GetTrait(implementNode.Trait.Name); //TODO: traits should be treated like types, *mostly*
-
-                if (ResolveType(implementNode.Type) is not Type type)
-                    throw new Exception($"Cannot implement non-trait \"{implementNode.Type}\".");
-
-                if (trait.IsExternal && type.IsExternal)
-                    throw new Exception($"Cannot implement external trait \"{trait.FullName}\" for external type \"{type.FullName}\".");
-                
-                ImplementTraitForType(trait, type, implementNode.Implementations);
-            }
-        }
-
-        foreach (ScriptAST script in scripts)
-        {
-            OpenFile(script.Namespace, script.Imports.ToArray());
-
-            foreach (TypeNode @struct in script.TypeNodes)
-            {
-                if (@struct is not TypeTemplateNode)
-                {
-                    CompileType(@struct);
-                }
-            }
-        }
-
-        foreach (ScriptAST script in scripts)
-        {
-            OpenFile(script.Namespace, script.Imports.ToArray());
-
-            foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
-            {
-                CompileFunction(funcDefNode);
-            }
-
-            foreach (TypeNode structNode in script.TypeNodes)
-            {
-                if (structNode is not TypeTemplateNode)
-                {
-                    var attributes = new Dictionary<string, IAttribute>();
-        
-                    foreach (AttributeNode attribute in structNode.Attributes)
-                    {
-                        attributes.Add(attribute.Name, MakeAttribute(attribute.Name, CleanAttributeArgs(attribute.Arguments.ToArray())));
-                    }
-
-                    if (!(attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS) && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())))
-                    {
-                        Type type = GetType(structNode.Name);
-
-                        if (structNode.Scope != null)
-                        {
-                            foreach (FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>())
-                            {
-                                CompileFunction(funcDefNode, type);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return this;
     }
 
     public void PrepareTypeTemplate(TypeTemplateNode typeTemplateNode)
@@ -782,7 +788,7 @@ public class LLVMCompiler : IDisposable
         return ResolveType(param.TypeRef);
     }
 
-    public void DefineGlobal(FieldDefNode globalDef, Type? @struct = null)
+    public void DefineGlobal(GlobalVarNode globalDef, Type? @struct = null)
     {
         var attributes = new Dictionary<string, IAttribute>();
         
@@ -799,6 +805,7 @@ public class LLVMCompiler : IDisposable
         InternalType globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
         GlobalVariable global = new GlobalVariable(CurrentNamespace, globalDef.Name, new VarType(globalType), globalVal, attributes, globalDef.Privacy);
+        globalVal.IsExternallyInitialized = globalDef.IsForeign;
         CurrentNamespace.GlobalVariables.Add(globalDef.Name, global);
         Globals.Add(global);
         //TODO: add const support to globals

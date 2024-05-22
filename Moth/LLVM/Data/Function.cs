@@ -138,7 +138,7 @@ public class DefinedFunction : Function
 public class AspectMethod : DefinedFunction
 {
     public AspectMethod(LLVMCompiler compiler, Trait parent, string name, FuncType type, PrivacyType privacy, Dictionary<string, IAttribute> attributes)
-        : base(compiler, parent, name, type, new Parameter[0], PrivacyType.Public, false, attributes) { }
+        : base(compiler, parent, name, type, new Parameter[0], PrivacyType.Pub, false, attributes) { }
 
     public override LLVMValueRef LLVMValue
     {
