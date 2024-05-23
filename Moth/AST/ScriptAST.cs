@@ -1,4 +1,5 @@
 ﻿using Moth.AST.Node;
+using Moth.LLVM;
 
 namespace Moth.AST;
 
@@ -7,6 +8,7 @@ public class ScriptAST : ASTNode
     public NamespaceNode Namespace { get; }
     public List<NamespaceNode> Imports { get; }
     public List<TypeNode> TypeNodes { get; }
+    public List<EnumNode> EnumNodes { get; }
     public List<TraitNode> TraitNodes { get; }
     public List<FuncDefNode> GlobalFunctions { get; }
     public List<GlobalVarNode> GlobalVariables { get; }
@@ -15,6 +17,7 @@ public class ScriptAST : ASTNode
     public ScriptAST(NamespaceNode @namespace,
         List<NamespaceNode> imports,
         List<TypeNode> typeNodes,
+        List<EnumNode> enumNodes,
         List<TraitNode> traitNodes,
         List<FuncDefNode> globalFuncs,
         List<GlobalVarNode> globalVariables,
@@ -23,6 +26,7 @@ public class ScriptAST : ASTNode
         Namespace = @namespace;
         Imports = imports;
         TypeNodes = typeNodes;
+        EnumNodes = enumNodes;
         TraitNodes = traitNodes;
         GlobalFunctions = globalFuncs;
         GlobalVariables = globalVariables;
@@ -31,11 +35,11 @@ public class ScriptAST : ASTNode
 
     public override string GetSource()
     {
-        var builder = new StringBuilder($"namespace {Namespace.GetSource()};\n\n");
+        var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n\n");
 
         foreach (NamespaceNode import in Imports)
         {
-            builder.Append($"with {import.GetSource()}\n");
+            builder.Append($"{Reserved.With} {import.GetSource()};\n");
         }
 
         if (Imports.Count > 0)
@@ -57,6 +61,11 @@ public class ScriptAST : ASTNode
         foreach (TypeNode type in TypeNodes)
         {
             builder.Append($"{type.GetSource()}\n\n");
+        }
+
+        foreach (EnumNode @enum in EnumNodes)
+        {
+            builder.Append($"{@enum.GetSource()}\n\n");
         }
 
         foreach (TraitNode trait in TraitNodes)

@@ -50,6 +50,7 @@ public unsafe class MetadataSerializer
             var newType = new Metadata.Type();
             newType.privacy = @struct.Privacy;
             newType.is_foreign = @struct is OpaqueType;
+            newType.is_union = @struct.IsUnion;
             newType.field_table_index = _fieldTablePosition;
             newType.field_table_length = (uint)@struct.Fields.Count;
             newType.name_table_index = _nameTablePosition;

@@ -23,8 +23,8 @@ public class Options
     public string? OutputDir { get; set; }
 
     [Option('i',
-        "input",
+        "include",
         Required = true,
-        HelpText = "The files to generate bindings for.")]
-    public IEnumerable<string>? InputFiles { get; set; }
+        HelpText = "The directory to process.")]
+    public string? Include { get; set; }
 }

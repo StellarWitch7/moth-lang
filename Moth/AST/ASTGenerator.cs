@@ -2,6 +2,7 @@
 using Moth.LLVM;
 using Moth.LLVM.Data;
 using Moth.Tokens;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Xml;
 
@@ -13,9 +14,10 @@ public static class ASTGenerator
     {
         NamespaceNode @namespace;
         var imports = new List<NamespaceNode>();
+        var types = new List<TypeNode>();
+        var enums = new List<EnumNode>();
         var funcs = new List<FuncDefNode>();
         var globals = new List<GlobalVarNode>();
-        var types = new List<TypeNode>();
         var traits = new List<TraitNode>();
         var implements = new List<ImplementNode>();
 
@@ -100,17 +102,21 @@ public static class ASTGenerator
                     {
                         types.Add(typeNode);
                     }
+                    else if (result is EnumNode enumNode)
+                    {
+                        enums.Add(enumNode);
+                    }
                     else if (result is TraitNode traitNode)
                     {
                         traits.Add(traitNode);
                     }
-                    else if (result is FuncDefNode func)
+                    else if (result is FuncDefNode funcDefNode)
                     {
-                        funcs.Add(func);
+                        funcs.Add(funcDefNode);
                     }
-                    else if (result is GlobalVarNode global)
+                    else if (result is GlobalVarNode globalVarNode)
                     {
-                        globals.Add(global);
+                        globals.Add(globalVarNode);
                     }
                     else
                     {
@@ -121,7 +127,7 @@ public static class ASTGenerator
             }
         }
 
-        return new ScriptAST(@namespace, imports, types, traits, funcs, globals, implements);
+        return new ScriptAST(@namespace, imports, types, enums, traits, funcs, globals, implements);
     }
 
     public static NamespaceNode ProcessNamespace(ParseContext context)
@@ -231,14 +237,14 @@ public static class ASTGenerator
         }
     }
     
-    public static TypeNode ProcessTypeDef(ParseContext context, PrivacyType privacy, bool isForeign, List<AttributeNode> attributes)
+    public static TypeNode ProcessTypeDef(ParseContext context, PrivacyType privacy, bool isUnion, List<AttributeNode> attributes)
     {
         if (context.MoveNext()?.Type == TokenType.Name)
         {
             string name = context.Current.Value.Text.ToString();
             context.MoveNext();
             
-            if (!isForeign && context.Current?.Type == TokenType.LesserThan)
+            if (context.Current?.Type == TokenType.LesserThan)
             {
                 var @params = new List<TemplateParameterNode>();
                 context.MoveNext();
@@ -255,7 +261,7 @@ public static class ASTGenerator
                     {
                         return context.Current?.Type == TokenType.GreaterThan
                             ? context.MoveNext()?.Type == TokenType.OpeningCurlyBraces
-                                ? (TypeNode)new TypeTemplateNode(name, privacy, @params, ProcessScope(context, true), attributes)
+                                ? (TypeNode)new TypeTemplateNode(name, privacy, @params, ProcessScope(context, true), isUnion, attributes)
                                 : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces)
                             : throw new UnexpectedTokenException(context.Current.Value);
                     }
@@ -263,24 +269,14 @@ public static class ASTGenerator
 
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.GreaterThan);
             }
+            else if (context.Current?.Type == TokenType.Semicolon)
+            {
+                context.MoveNext();
+                return new TypeNode(name, privacy, null, isUnion, attributes);
+            }
             else
             {
-                if (isForeign)
-                {
-                    if (context.Current?.Type == TokenType.Semicolon)
-                    {
-                        context.MoveNext();
-                        return new TypeNode(name, privacy, null, attributes);
-                    }
-                    else
-                    {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
-                    }
-                }
-                else
-                {
-                    return new TypeNode(name, privacy, ProcessScope(context, true), attributes);
-                }
+                return new TypeNode(name, privacy, ProcessScope(context, true), isUnion, attributes);
             }
         }
         else
@@ -451,10 +447,12 @@ public static class ASTGenerator
         PrivacyType privacy = PrivacyType.Priv;
         bool isForeign = false;
         bool isStatic = false;
+        bool isUnion = false;
         
         while (context.Current?.Type == TokenType.Public
             || context.Current?.Type == TokenType.Foreign
-            || context.Current?.Type == TokenType.Static)
+            || context.Current?.Type == TokenType.Static
+            || context.Current?.Type == TokenType.Union)
         {
             switch (context.Current?.Type)
             {
@@ -470,6 +468,10 @@ public static class ASTGenerator
                     if (isStatic) throw new UnexpectedTokenException(context.Current.Value);
                     isStatic = true;
                     break;
+                case TokenType.Union:
+                    if (isUnion) throw new UnexpectedTokenException(context.Current.Value);
+                    isUnion = true;
+                    break;
                 default:
                     throw new NotImplementedException();
             }
@@ -479,7 +481,11 @@ public static class ASTGenerator
 
         if (context.Current?.Type == TokenType.Type)
         {
-            return ProcessTypeDef(context, privacy, isForeign, attributes);
+            return ProcessTypeDef(context, privacy, isUnion, attributes);
+        }
+        else if (context.Current?.Type == TokenType.Enum)
+        {
+            return ProcessEnumDef(context, privacy, attributes);
         }
         else if (context.Current?.Type == TokenType.Trait)
         {
@@ -534,6 +540,29 @@ public static class ASTGenerator
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
             }
         }
+        else if (context.Current?.Type == TokenType.Global)
+        {
+            if (context.MoveNext()?.Type == TokenType.Name)
+            {
+                string name = context.Current.Value.Text.ToString();
+                context.MoveNext();
+                TypeRefNode typeRef = ProcessTypeRef(context);
+
+                if (context.Current?.Type == TokenType.Semicolon)
+                {
+                    context.MoveNext();
+                    return new GlobalVarNode(name, typeRef, privacy, false/*TODO*/, isForeign, attributes);
+                }
+                else
+                {
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                }
+            }
+            else
+            {
+                throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+            }
+        }
         else if (context.Current?.Type == TokenType.Name)
         {
             string name = context.Current.Value.Text.ToString();
@@ -543,7 +572,7 @@ public static class ASTGenerator
             if (context.Current?.Type == TokenType.Semicolon)
             {
                 context.MoveNext();
-                return new GlobalVarNode(name, typeRef, privacy, false/*TODO*/, isForeign, attributes);
+                return new FieldDefNode(name, privacy, typeRef, attributes);
             }
             else
             {
@@ -556,6 +585,43 @@ public static class ASTGenerator
         }
     }
 
+    public static EnumNode ProcessEnumDef(ParseContext context, PrivacyType privacy, List<AttributeNode> attributes)
+    {
+        if (context.Current?.Type != TokenType.Enum)
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Enum);
+
+        if (context.MoveNext()?.Type != TokenType.Name)
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+        
+        string name = context.Current.Value.Text.ToString();
+
+        if (context.MoveNext()?.Type != TokenType.OpeningCurlyBraces)
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+
+        var enumFlags = new List<EnumFlagNode>();
+        
+        while (context.Current != null)
+        {
+            if (context.MoveNext()?.Type != TokenType.Name)
+                break;
+            
+            string entryName = context.Current.Value.Text.ToString();
+            enumFlags.Add(new EnumFlagNode(entryName));
+            
+            if (context.MoveNext()?.Type != TokenType.Comma)
+                break;
+        }
+
+        if (context.Current?.Type != TokenType.ClosingCurlyBraces)
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingCurlyBraces);
+
+        if (context.MoveNext()?.Type != TokenType.Extend)
+            return new EnumNode(name, privacy, enumFlags, null, attributes);
+
+        context.MoveNext();
+        return new EnumNode(name, privacy, enumFlags, ProcessScope(context, true), attributes);
+    }
+    
     public static List<ParameterNode> ProcessParameterList(ParseContext context, out bool isVariadic)
     {
         var @params = new List<ParameterNode>();

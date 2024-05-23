@@ -383,6 +383,7 @@ public class LLVMCompiler : IDisposable
                 CurrentNamespace,
                 typeTemplateNode.Name,
                 typeTemplateNode.Privacy,
+                typeTemplateNode.IsUnion,
                 typeTemplateNode.Scope,
                 _imports,
                 typeTemplateNode.Attributes,
@@ -479,7 +480,8 @@ public class LLVMCompiler : IDisposable
                 CurrentNamespace,
                 typeNode.Name,
                 attributes,
-                typeNode.Privacy);
+                typeNode.Privacy,
+                typeNode.IsUnion);
         }
         else
         {
@@ -488,7 +490,8 @@ public class LLVMCompiler : IDisposable
                 typeNode.Name,
                 Context.CreateNamedStruct(typeNode.Name),
                 attributes,
-                typeNode.Privacy);
+                typeNode.Privacy,
+                typeNode.IsUnion);
         }
         
         CurrentNamespace.Types.Add(typeNode.Name, newType);
@@ -516,7 +519,6 @@ public class LLVMCompiler : IDisposable
 
     public void CompileType(TypeNode typeNode, Type type = null)
     {
-        var llvmTypes = new List<LLVMTypeRef>();
         var attributes = new Dictionary<string, IAttribute>();
         
         foreach (AttributeNode attribute in typeNode.Attributes)
@@ -539,17 +541,36 @@ public class LLVMCompiler : IDisposable
             return;
         }
         
+        var fieldTypes = new List<InternalType>();
         uint index = 0;
 
         foreach (FieldDefNode field in typeNode.Scope.Statements.OfType<FieldDefNode>())
         {
             InternalType fieldType = ResolveType(field.TypeRef);
-            llvmTypes.Add(fieldType.LLVMType);
             type.Fields.Add(field.Name, new Field(field.Name, index, fieldType, field.Privacy));
-            index++;
+
+            if (type.IsUnion)
+            {
+                if (fieldTypes.Count == 0)
+                {
+                    fieldTypes.Add(fieldType);
+                }
+                else
+                {
+                    var currentLargest = fieldTypes[0];
+
+                    if (fieldType.Bits > currentLargest.Bits)
+                        fieldTypes[0] = fieldType;
+                }
+            }
+            else
+            {
+                fieldTypes.Add(fieldType);
+                index++;
+            }
         }
 
-        type.LLVMType.StructSetBody(llvmTypes.AsReadonlySpan(), false);
+        type.LLVMType.StructSetBody(fieldTypes.AsLLVMTypes().AsReadonlySpan(), false);
     }
 
     public void DefineFunction(FuncDefNode funcDefNode, Type? @struct = null)
@@ -984,7 +1005,7 @@ public class LLVMCompiler : IDisposable
             InternalType retType = ResolveType(fnTypeRef.ReturnType);
             var paramTypes = new List<InternalType>();
 
-            foreach (TypeRefNode param in fnTypeRef.ParamterTypes)
+            foreach (TypeRefNode param in fnTypeRef.ParameterTypes)
             {
                 InternalType paramType = ResolveType(param);
                 paramTypes.Add(paramType);
@@ -1913,10 +1934,12 @@ public class LLVMCompiler : IDisposable
         @namespace.Types.Add(Reserved.UInt16, Primitives.UInt16);
         @namespace.Types.Add(Reserved.UInt32, Primitives.UInt32);
         @namespace.Types.Add(Reserved.UInt64, Primitives.UInt64);
+        @namespace.Types.Add(Reserved.UInt128, Primitives.UInt128);
         @namespace.Types.Add(Reserved.Int8, Primitives.Int8);
         @namespace.Types.Add(Reserved.Int16, Primitives.Int16);
         @namespace.Types.Add(Reserved.Int32, Primitives.Int32);
         @namespace.Types.Add(Reserved.Int64, Primitives.Int64);
+        @namespace.Types.Add(Reserved.Int128, Primitives.Int128);
 
         foreach (Type @struct in @namespace.Types.Values)
         {

@@ -1,3 +1,5 @@
+using Moth.LLVM;
+
 namespace Moth.AST.Node;
 
 public class GlobalVarNode : DefinitionNode
@@ -25,12 +27,12 @@ public class GlobalVarNode : DefinitionNode
             builder.Append($"{Privacy} ".ToLower());
         
         if (IsForeign)
-            builder.Append("foreign ");
+            builder.Append($"{Reserved.Foreign} ");
 
         if (IsConstant)
-            builder.Append("const ");
+            builder.Append($"{Reserved.Constant} ");
 
-        builder.Append($"{Name} ");
+        builder.Append($"{Reserved.Global} {Name} ");
         builder.Append($"{TypeRef.GetSource()};");
         return builder.ToString();
     }

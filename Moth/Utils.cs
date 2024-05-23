@@ -11,7 +11,7 @@ public static class Utils
 {
     public static string ExpandOpName(string op)
     {
-        return $"__operator{{{op}}}";
+        return $"{Reserved.Operator}{{{op}}}";
     }
 
     public static string OpTypeToString(OperationType opType)
@@ -48,9 +48,9 @@ public static class Utils
     {
         return str switch
         {
-            "windows" => OS.Windows,
-            "linux" => OS.Linux,
-            "macos" => OS.MacOS,
+            Reserved.Windows => OS.Windows,
+            Reserved.Linux => OS.Linux,
+            Reserved.MacOS => OS.MacOS,
             _ => throw new Exception($"Invalid OS: \"{str}\".")
         };
     }

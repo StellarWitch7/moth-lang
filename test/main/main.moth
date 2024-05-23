@@ -1,47 +1,37 @@
 namespace test;
 
-foreign fn printf(text #u8*, ...) #i32;
-
 fn main() #i32 {
-    var i #i32 = 1;
-
-    while i != 101 {
-        printf("%d\r", i);
-
-        if i % 3 == 0 {
-            printf("Fizz");
-        }
-        
-        if i % 5 == 0 {
-            printf("Buzz");
-        }
-
-        printf("\n");
-        ++i;
-    }
-
     ret 0
 }
 
-type Thing {
-}
-
-impl root::test#Disposable for root::test#Thing {
-    fn Dispose() {
-        ret
+enum Privacy {
+    Priv,
+    Pub,
+} extend {
+    pub fn DoSomething() #i32 {
+        ret 0
     }
 }
 
-impl root::test#Animal for root::test#Thing {
-    fn Eat() {
-        ret
-    }
-}
+// type Thing {
+// }
 
-trait Disposable {
-    fn Dispose();
-}
+// impl root::test#Disposable for root::test#Thing {
+//     fn Dispose() {
+//         ret
+//     }
+// }
 
-trait Animal {
-    fn Eat();
-}
+// impl root::test#Animal for root::test#Thing {
+//     fn Eat() {
+//         ret
+//     }
+// }
+
+// trait Disposable {
+//     fn Dispose();
+// }
+
+// trait Animal {
+//     fn Eat();
+// }

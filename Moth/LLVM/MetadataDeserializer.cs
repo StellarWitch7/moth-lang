@@ -145,7 +145,7 @@ public unsafe class MetadataDeserializer
 
             if (type.is_foreign)
             {
-                result = new OpaqueType(_compiler, parent, name, new Dictionary<string, IAttribute>(), type.privacy)
+                result = new OpaqueType(_compiler, parent, name, new Dictionary<string, IAttribute>(), type.privacy, type.is_union)
                 {
                     IsExternal = true
                 };
@@ -157,7 +157,8 @@ public unsafe class MetadataDeserializer
                     name,
                     _compiler.Context.CreateNamedStruct(fullname),
                     new Dictionary<string, IAttribute>(),
-                    type.privacy)
+                    type.privacy,
+                    type.is_union)
                 {
                     IsExternal = true
                 };
@@ -340,7 +341,8 @@ public unsafe class MetadataDeserializer
                                 nmspace,
                                 name,
                                 new Dictionary<string, IAttribute>(),
-                                type.privacy);
+                                type.privacy,
+                                type.is_union);
                         }
                         else
                         {
@@ -349,7 +351,8 @@ public unsafe class MetadataDeserializer
                                 name,
                                 LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false),
                                 new Dictionary<string, IAttribute>(),
-                                type.privacy);
+                                type.privacy,
+                                type.is_union);
                         }
                     
                         nmspace.Types.TryAdd(name, newType);

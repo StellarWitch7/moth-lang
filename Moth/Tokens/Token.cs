@@ -103,5 +103,9 @@ public enum TokenType
     Ampersand,
     ScientificNotation,
     Trait,
-    Implement
+    Implement,
+    Union,
+    Global,
+    Extend,
+    Enum
 }

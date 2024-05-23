@@ -8,6 +8,7 @@ public class Template : ICompilerData
     public Namespace Parent { get; }
     public string Name { get; }
     public PrivacyType Privacy { get; }
+    public bool IsUnion { get; }
     public ScopeNode Contents { get; }
     public Namespace[] Imports { get; }
     public Dictionary<string, IAttribute> Attributes { get; } = new Dictionary<string, IAttribute>();
@@ -17,7 +18,7 @@ public class Template : ICompilerData
     private List<AttributeNode> _attributeList;
     private Dictionary<string, Type> _builtTypes = new Dictionary<string, Type>();
 
-    public Template(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, ScopeNode contents,
+    public Template(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, bool isUnion, ScopeNode contents,
         Namespace[] imports, List<AttributeNode> attributes, TemplateParameter[] @params)
     {
         _compiler = compiler;
@@ -25,6 +26,7 @@ public class Template : ICompilerData
         Parent = parent;
         Name = name;
         Privacy = privacy;
+        IsUnion = isUnion;
         Contents = contents;
         Imports = imports;
         Params = @params;
@@ -72,13 +74,14 @@ public class Template : ICompilerData
             }
         }
 
-        var structNode = new TypeNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, _attributeList);
+        var structNode = new TypeNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, IsUnion, _attributeList);
         @struct = new Type(_compiler,
             Parent,
             structNode.Name,
             _compiler.Context.CreateNamedStruct(structNode.Name),
             Attributes,
-            Privacy);
+            Privacy,
+            IsUnion);
         _builtTypes.Add(sig, @struct);
         _compiler.BuildTemplate(this, structNode, @struct, args);
         return @struct;

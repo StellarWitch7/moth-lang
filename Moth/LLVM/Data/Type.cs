@@ -7,6 +7,32 @@ public class Type : InternalType, IContainer
     public IContainer? Parent { get; }
     public Guid UUID { get; }
     public string Name { get; }
+    public Dictionary<string, IAttribute> Attributes { get; }
+    public PrivacyType Privacy { get; }
+    public bool IsUnion { get; }
+    public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
+    public virtual Dictionary<string, OverloadList> Methods { get; } = new Dictionary<string, OverloadList>();
+    public virtual Dictionary<string, OverloadList> StaticMethods { get; } = new Dictionary<string, OverloadList>();
+    public Dictionary<Trait, VTableInst> VTables { get; } = new Dictionary<Trait, VTableInst>();
+
+    protected ImplicitConversionTable internalImplicits = null;
+
+    private LLVMCompiler? _compiler;
+    private uint _bitlength;
+    private TInfo? _internalTInfo;
+    
+    public Type(LLVMCompiler? compiler, Namespace? parent, string name, LLVMTypeRef llvmType, Dictionary<string, IAttribute> attributes, PrivacyType privacy, bool isUnion)
+        : base(llvmType, TypeKind.Struct)
+    {
+        _compiler = compiler;
+        UUID = Guid.NewGuid();
+        Parent = parent;
+        Name = name;
+        Attributes = attributes;
+        Privacy = privacy;
+        IsUnion = isUnion;
+    }
+    
     public TInfo? TInfo
     {
         get
@@ -22,30 +48,7 @@ public class Type : InternalType, IContainer
             return _internalTInfo;
         }
     }
-    public Dictionary<string, IAttribute> Attributes { get; }
-    public PrivacyType Privacy { get; }
-    public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
-    public virtual Dictionary<string, OverloadList> Methods { get; } = new Dictionary<string, OverloadList>();
-    public virtual Dictionary<string, OverloadList> StaticMethods { get; } = new Dictionary<string, OverloadList>();
-    public Dictionary<Trait, VTableInst> VTables { get; } = new Dictionary<Trait, VTableInst>();
-
-    protected ImplicitConversionTable internalImplicits = null;
-
-    private LLVMCompiler? _compiler;
-    private uint _bitlength;
-    private TInfo? _internalTInfo;
     
-    public Type(LLVMCompiler? compiler, Namespace? parent, string name, LLVMTypeRef llvmType, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
-        : base(llvmType, TypeKind.Struct)
-    {
-        _compiler = compiler;
-        UUID = Guid.NewGuid();
-        Parent = parent;
-        Name = name;
-        Attributes = attributes;
-        Privacy = privacy;
-    }
-
     public Namespace ParentNamespace
     {
         get
@@ -77,14 +80,21 @@ public class Type : InternalType, IContainer
         {
             if (_bitlength == default)
             {
-                uint i = 0;
-
-                foreach (var field in Fields.Values)
+                if (IsUnion)
                 {
-                    i += field.InternalType.Bits;
+                    throw new NotImplementedException(); //TODO
                 }
+                else
+                {
+                    uint i = 0;
 
-                _bitlength = i;
+                    foreach (var field in Fields.Values)
+                    {
+                        i += field.InternalType.Bits;
+                    }
+
+                    _bitlength = i;
+                }
             }
 
             return _bitlength;
@@ -252,8 +262,8 @@ public class Type : InternalType, IContainer
 
 public class OpaqueType : Type
 {
-    public OpaqueType(LLVMCompiler compiler, Namespace parent, string name, Dictionary<string, IAttribute> attributes, PrivacyType privacy)
-        : base(compiler, parent, name, compiler.Context.CreateNamedStruct(name), attributes, privacy) { }
+    public OpaqueType(LLVMCompiler compiler, Namespace parent, string name, Dictionary<string, IAttribute> attributes, PrivacyType privacy, bool isUnion)
+        : base(compiler, parent, name, compiler.Context.CreateNamedStruct(name), attributes, privacy, isUnion) { }
 
     public override Type AddBuiltins(LLVMCompiler compiler) => this;
 }

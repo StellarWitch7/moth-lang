@@ -11,7 +11,7 @@ public abstract class PrimitiveType : Type
     private bool _methodsGenerated = false;
     
     protected PrimitiveType(string name, LLVMTypeRef llvmType, uint bitlength)
-        : base(null, null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Pub)
+        : base(null, null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Pub, false)
     {
         _bitlength = bitlength;
     }

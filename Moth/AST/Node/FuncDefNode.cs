@@ -1,4 +1,6 @@
-﻿namespace Moth.AST.Node;
+﻿using Moth.LLVM;
+
+namespace Moth.AST.Node;
 
 public class FuncDefNode : DefinitionNode
 {
@@ -33,12 +35,12 @@ public class FuncDefNode : DefinitionNode
             builder.Append($"{Privacy} ".ToLower());
 
         if (IsForeign)
-            builder.Append("foreign ");
+            builder.Append($"{Reserved.Foreign} ");
 
         if (IsStatic)
-            builder.Append("static ");
+            builder.Append($"{Reserved.Static} ");
 
-        builder.Append($"fn {Name}{GetSourceForParams()} {ReturnTypeRef.GetSource()}");
+        builder.Append($"{Reserved.Function} {Name}{GetSourceForParams()} {ReturnTypeRef.GetSource()}");
 
         if (ExecutionBlock != default)
             builder.Append($" {ExecutionBlock.GetSource()}");
@@ -57,7 +59,9 @@ public class FuncDefNode : DefinitionNode
             builder.Append($"{param.GetSource()}, ");
         }
 
-        if (builder.Length > 1)
+        if (IsVariadic)
+            builder.Append($"{Reserved.Variadic}");
+        else if (builder.Length > 1)
             builder.Remove(builder.Length - 2, 2);
         
         builder.Append(")");
