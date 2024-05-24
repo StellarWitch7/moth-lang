@@ -4,12 +4,12 @@ public class TemplateParameter
 {
     public string Name { get; }
     public TemplateParameterBound[] Bounds { get; }
-    public InternalType TypeOfConst { get => IsConst ? _typeOfConst : null; }
+    public Type TypeOfConst { get => IsConst ? _typeOfConst : null; }
     public bool IsConst { get; }
 
-    private InternalType _typeOfConst;
+    private Type _typeOfConst;
 
-    public TemplateParameter(string name, TemplateParameterBound[] bounds, bool isConst, InternalType typeOfConst = null)
+    public TemplateParameter(string name, TemplateParameterBound[] bounds, bool isConst, Type typeOfConst = null)
     {
         Name = name;
         Bounds = bounds;

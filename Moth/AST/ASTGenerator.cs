@@ -599,6 +599,7 @@ public static class ASTGenerator
             throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
 
         var enumFlags = new List<EnumFlagNode>();
+        ulong index = 0;
         
         while (context.Current != null)
         {
@@ -606,9 +607,19 @@ public static class ASTGenerator
                 break;
             
             string entryName = context.Current.Value.Text.ToString();
-            enumFlags.Add(new EnumFlagNode(entryName));
+
+            if (context.MoveNext()?.Type == TokenType.Assign)
+                if (context.MoveNext()?.Type == TokenType.LiteralInt)
+                {
+                    index = UInt64.Parse(context.Current.Value.Text.ToString());
+                    context.MoveNext();
+                }
+                else
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.LiteralInt);
             
-            if (context.MoveNext()?.Type != TokenType.Comma)
+            enumFlags.Add(new EnumFlagNode(entryName, index));
+            
+            if (context.Current?.Type != TokenType.Comma)
                 break;
         }
 

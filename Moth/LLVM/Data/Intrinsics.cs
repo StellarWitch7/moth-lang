@@ -4,23 +4,23 @@ namespace Moth.LLVM.Data;
 
 public abstract class IntrinsicOperator : IntrinsicFunction
 {
-    protected PrimitiveType RetType { get; }
-    protected PrimitiveType LeftType { get; }
-    protected PrimitiveType RightType { get; }
+    protected PrimitiveStructDecl RetStructDecl { get; }
+    protected PrimitiveStructDecl LeftStructDecl { get; }
+    protected PrimitiveStructDecl RightStructDecl { get; }
 
-    public IntrinsicOperator(OperationType opType, PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
+    public IntrinsicOperator(OperationType opType, PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
         : base(Utils.ExpandOpName(Utils.OpTypeToString(opType)),
-            new FuncType(retType,
-                new InternalType[]
+            new FuncType(retStructDecl,
+                new Type[]
                 {
-                    new PtrType(leftType),
-                    rightType
+                    new PtrType(leftStructDecl),
+                    rightStructDecl
                 },
                 false))
     {
-        RetType = retType;
-        LeftType = leftType;
-        RightType = rightType;
+        RetStructDecl = retStructDecl;
+        LeftStructDecl = leftStructDecl;
+        RightStructDecl = rightStructDecl;
     }
     
     protected override LLVMValueRef GenerateLLVMData() => throw new NotImplementedException("Intrinsic operator does not return function.");
@@ -35,31 +35,31 @@ public abstract class IntrinsicOperator : IntrinsicFunction
         var leftVal = args[0].DeRef(compiler);
         var rightVal = args[1];
 
-        if (!leftVal.InternalType.Equals(LeftType))
+        if (!leftVal.Type.Equals(LeftStructDecl))
         {
             throw new Exception("Left operand of intrinsic operator is not of the expected type.");
         }
 
-        if (!rightVal.InternalType.Equals(RightType))
+        if (!rightVal.Type.Equals(RightStructDecl))
         {
             throw new Exception("Right operand of intrinsic operator is not of the expected type.");
         }
 
-        if (rightVal.InternalType.CanConvertTo(leftVal.InternalType))
+        if (rightVal.Type.CanConvertTo(leftVal.Type))
         {
-            rightVal = rightVal.ImplicitConvertTo(compiler, leftVal.InternalType);
+            rightVal = rightVal.ImplicitConvertTo(compiler, leftVal.Type);
         }
-        else if (leftVal.InternalType.CanConvertTo(rightVal.InternalType))
+        else if (leftVal.Type.CanConvertTo(rightVal.Type))
         {
-            leftVal = leftVal.ImplicitConvertTo(compiler, rightVal.InternalType);
+            leftVal = leftVal.ImplicitConvertTo(compiler, rightVal.Type);
         }
         else
         {
             throw new Exception("Intrinsic operator's operand type cannot be made to match using implicit conversions.");
         }
         
-        var leftType = leftVal.InternalType;
-        var rightType = rightVal.InternalType;
+        var leftType = leftVal.Type;
+        var rightType = rightVal.Type;
         LLVMValueRef value;
 
         if (leftType is Float)
@@ -75,7 +75,7 @@ public abstract class IntrinsicOperator : IntrinsicFunction
             throw new NotImplementedException("Unsupported primitive type for intrinsic operator.");
         }
 
-        return Value.Create(RetType, value);
+        return Value.Create(RetStructDecl, value);
     }
 
     protected abstract LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal);
@@ -88,7 +88,7 @@ public sealed class ConstRetFn : IntrinsicFunction
     private LLVMModuleRef _module { get; }
     
     public ConstRetFn(string name, Value value, LLVMModuleRef module)
-        : base(name, new FuncType(value.InternalType, new InternalType[]{}, false))
+        : base(name, new FuncType(value.Type, new Type[]{}, false))
     {
         if (!value.LLVMValue.IsConstant)
         {
@@ -103,7 +103,7 @@ public sealed class ConstRetFn : IntrinsicFunction
 
     protected override LLVMValueRef GenerateLLVMData()
     {
-        LLVMValueRef func = _module.AddFunction(Name, _value.InternalType.LLVMType);
+        LLVMValueRef func = _module.AddFunction(Name, _value.Type.LLVMType);
 
         using LLVMBuilderRef builder = _module.Context.CreateBuilder();
         builder.PositionAtEnd(func.AppendBasicBlock("entry"));
@@ -117,8 +117,8 @@ public sealed class Pow : IntrinsicFunction
 {
     private LLVMModuleRef _module { get; }
 
-    public Pow(string name, LLVMModuleRef module, InternalType retType, InternalType left, InternalType right)
-        : base(name, new FuncType(retType, new InternalType[] { left, right }, false))
+    public Pow(string name, LLVMModuleRef module, Type retType, Type left, Type right)
+        : base(name, new FuncType(retType, new Type[] { left, right }, false))
     {
         _module = module;
     }
@@ -131,7 +131,7 @@ public sealed class Pow : IntrinsicFunction
         }
         catch
         {
-            return _module.AddFunction(Name, InternalType.LLVMType);
+            return _module.AddFunction(Name, Type.LLVMType);
         }
     }
 }

@@ -68,7 +68,7 @@ public class PtrType : InternalType
 
 public class AspectPtrType : PtrType
 {
-    public override Trait BaseType { get; }
+    public override TraitDecl BaseType { get; }
     public override LLVMTypeRef LLVMType { get => llvmType; }
     
     private static LLVMTypeRef llvmType = LLVMTypeRef.CreateStruct(new LLVMTypeRef[]
@@ -77,7 +77,7 @@ public class AspectPtrType : PtrType
         LLVMTypeRef.CreatePointer(Primitives.Int8.LLVMType, 0)
     }, false);
 
-    public AspectPtrType(Trait baseType) : base(baseType, TypeKind.Pointer) { }
+    public AspectPtrType(TraitDecl baseType) : base(baseType, TypeKind.Pointer) { }
     
     public override bool Equals(object? obj) => obj is AspectPtrType && base.Equals(obj);
 }

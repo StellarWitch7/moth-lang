@@ -2,12 +2,12 @@ namespace Moth.LLVM.Data;
 
 public class FuncType : PtrType
 {
-    public InternalType ReturnType { get; }
-    public InternalType[] ParameterTypes { get; }
+    public Type ReturnType { get; }
+    public Type[] ParameterTypes { get; }
     public bool IsVariadic { get; }
 
-    public FuncType(InternalType retType, InternalType[] paramTypes, bool isVariadic)
-        : base(new InternalType(LLVMTypeRef.CreateFunction(retType.LLVMType, paramTypes.AsLLVMTypes(), isVariadic), TypeKind.Function))
+    public FuncType(Type retType, Type[] paramTypes, bool isVariadic)
+        : base(new Type(LLVMTypeRef.CreateFunction(retType.LLVMType, paramTypes.AsLLVMTypes(), isVariadic), TypeKind.Function))
     {
         ReturnType = retType;
         ParameterTypes = paramTypes;
@@ -38,7 +38,7 @@ public class FuncType : PtrType
 
         uint index = 0;
 
-        foreach (InternalType param in ParameterTypes)
+        foreach (Type param in ParameterTypes)
         {
             if (!param.Equals(fnType.ParameterTypes[index]))
             {
@@ -77,16 +77,16 @@ public class FuncType : PtrType
 
 public sealed class MethodType : FuncType
 {
-    public Type OwnerType { get; }
+    public TypeDecl OwnerTypeDecl { get; }
     public bool IsStatic { get; }
     
-    public MethodType(InternalType retType, InternalType[] paramTypes, Type ownerType, bool isStatic = false)
+    public MethodType(Type retType, Type[] paramTypes, TypeDecl ownerTypeDecl, bool isStatic = false)
         : base(retType, paramTypes, false)
     {
-        OwnerType = ownerType;
+        OwnerTypeDecl = ownerTypeDecl;
         IsStatic = isStatic;
         
-        if (ownerType == null)
+        if (ownerTypeDecl == null)
         {
             throw new Exception($"Could not create new method because methods must have a non-null parent struct!");
         }
@@ -104,7 +104,7 @@ public sealed class MethodType : FuncType
             return false;
         }
 
-        if (!OwnerType.Equals(methodType.OwnerType))
+        if (!OwnerTypeDecl.Equals(methodType.OwnerTypeDecl))
         {
             return false;
         }
@@ -115,6 +115,6 @@ public sealed class MethodType : FuncType
 
 public sealed class LocalFuncType : FuncType
 {
-    public LocalFuncType(InternalType retType, InternalType[] paramTypes)
+    public LocalFuncType(Type retType, Type[] paramTypes)
         : base(retType, paramTypes, false) { }
 }

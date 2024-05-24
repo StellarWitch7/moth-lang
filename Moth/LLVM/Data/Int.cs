@@ -4,18 +4,18 @@ using System.Reflection.Emit;
 
 namespace Moth.LLVM.Data;
 
-public abstract class Int : PrimitiveType
+public abstract class Int : PrimitiveStructDecl
 {
     protected Int(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
     
     public override ImplicitConversionTable GetImplicitConversions()
     {
-        if (internalImplicits == null)
+        if (_internalImplicits == null)
         {
-            internalImplicits = GenerateImplicitConversions();
+            _internalImplicits = GenerateImplicitConversions();
         }
         
-        return internalImplicits;
+        return _internalImplicits;
     }
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
@@ -47,9 +47,9 @@ public abstract class Int : PrimitiveType
         var e = new Exception("Internal error: function constructor didn't return function.");
         var ctor = operation.GetConstructor(new SystemType[]
         {
-            typeof(PrimitiveType),
-            typeof(PrimitiveType),
-            typeof(PrimitiveType)
+            typeof(PrimitiveStructDecl),
+            typeof(PrimitiveStructDecl),
+            typeof(PrimitiveStructDecl)
         });
 
         if (ctor is null) throw new Exception("Internal error: function constructor cannot be found.");

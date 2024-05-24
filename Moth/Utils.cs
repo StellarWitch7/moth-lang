@@ -3,7 +3,6 @@ using Moth.LLVM;
 using Moth.LLVM.Data;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Type = Moth.LLVM.Data.Type;
 
 namespace Moth;
 
@@ -229,7 +228,7 @@ public static class ArrayExtensions
 
         foreach (var field in fields)
         {
-            types.Add(field.InternalType);
+            types.Add(field.Type);
         }
 
         return types.ToArray().AsLLVMTypes();
@@ -326,17 +325,17 @@ public static class ArrayExtensions
         }
     }
 
-    public static bool TryGetType(this Namespace[] imports, string name, out Type type)
+    public static bool TryGetType(this Namespace[] imports, string name, out TypeDecl typeDecl)
     {
-        type = null;
+        typeDecl = null;
         
         foreach (var import in imports)
         {
-            if (import.Types.TryGetValue(name, out type))
+            if (import.Types.TryGetValue(name, out typeDecl))
             {
-                if (type.Privacy == PrivacyType.Priv)
+                if (typeDecl.Privacy == PrivacyType.Priv)
                 {
-                    type = null;
+                    typeDecl = null;
                 }
                 else
                 {
@@ -345,7 +344,7 @@ public static class ArrayExtensions
             }
         }
 
-        if (type != null)
+        if (typeDecl != null)
         {
             return true;
         }
@@ -355,17 +354,17 @@ public static class ArrayExtensions
         }
     }
     
-    public static bool TryGetTrait(this Namespace[] imports, string name, out Trait trait)
+    public static bool TryGetTrait(this Namespace[] imports, string name, out TraitDecl traitDecl)
     {
-        trait = null;
+        traitDecl = null;
         
         foreach (var import in imports)
         {
-            if (import.Traits.TryGetValue(name, out trait))
+            if (import.Traits.TryGetValue(name, out traitDecl))
             {
-                if (trait.Privacy == PrivacyType.Priv)
+                if (traitDecl.Privacy == PrivacyType.Priv)
                 {
-                    trait = null;
+                    traitDecl = null;
                 }
                 else
                 {
@@ -374,7 +373,7 @@ public static class ArrayExtensions
             }
         }
 
-        if (trait != null)
+        if (traitDecl != null)
         {
             return true;
         }

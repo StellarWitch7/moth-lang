@@ -2,7 +2,7 @@
 
 namespace Moth.LLVM.Data;
 
-public class Float : PrimitiveType
+public class Float : PrimitiveStructDecl
 {
     public Float(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
 

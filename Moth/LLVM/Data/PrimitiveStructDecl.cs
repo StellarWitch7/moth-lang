@@ -5,13 +5,13 @@ using System.Runtime.Serialization;
 
 namespace Moth.LLVM.Data;
 
-public abstract class PrimitiveType : Type
+public abstract class PrimitiveStructDecl : StructDecl
 {
     private uint _bitlength;
     private bool _methodsGenerated = false;
     
-    protected PrimitiveType(string name, LLVMTypeRef llvmType, uint bitlength)
-        : base(null, null, name, llvmType, new Dictionary<string, IAttribute>(), PrivacyType.Pub, false)
+    protected PrimitiveStructDecl(LLVMCompiler compiler, string name, LLVMTypeRef llvmType, uint bitlength)
+        : base(compiler, null, name, PrivacyType.Pub, false, new Dictionary<string, IAttribute>(), null)
     {
         _bitlength = bitlength;
     }
@@ -62,14 +62,12 @@ public abstract class PrimitiveType : Type
     protected abstract Dictionary<string, OverloadList> GenerateDefaultMethods();
 }
 
-public sealed class ArrType : PrimitiveType
+public sealed class ArrStructDecl : PrimitiveStructDecl
 {
-    public InternalType ElementType { get; }
-
-    private LLVMCompiler _compiler;
+    public Type ElementType { get; }
     
-    public ArrType(LLVMCompiler compiler, InternalType elementType)
-        : base($"[{elementType}]",
+    public ArrStructDecl(LLVMCompiler compiler, Type elementType)
+        : base(compiler, $"[{elementType}]",
             compiler.Context.GetStructType(new []
             {
                 new PtrType(elementType).LLVMType,
@@ -78,7 +76,7 @@ public sealed class ArrType : PrimitiveType
             }, false), 64)
     {
         _compiler = compiler;
-        Fields.Add("Length", new Field("Length", 1, Primitives.UInt32, PrivacyType.Pub));
+        Fields.Add("Length", new Field(compiler, this, "Length", 1, compiler.UInt32, PrivacyType.Pub));
         ElementType = elementType;
     }
 
@@ -86,7 +84,7 @@ public sealed class ArrType : PrimitiveType
 
     public override bool Equals(object? obj)
     {
-        if (obj is not ArrType arrType)
+        if (obj is not ArrStructDecl arrType)
         {
             return false;
         }
@@ -113,9 +111,9 @@ public sealed class ArrType : PrimitiveType
     }
 }
 
-public class Void : PrimitiveType
+public class Void : PrimitiveStructDecl
 {
-    public Void() : base(Reserved.Void, LLVMTypeRef.Void, 0) { }
+    public Void(LLVMCompiler compiler) : base(compiler, Reserved.Void, LLVMTypeRef.Void, 0) { }
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
     {
@@ -124,12 +122,12 @@ public class Void : PrimitiveType
 
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public override bool Contains(InternalType key)
+        public override bool Contains(Type key)
         {
             return key is PtrType;
         }
         
-        public override bool TryGetValue(InternalType key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
         {
             if (key is PtrType ptrType)
             {
@@ -148,9 +146,9 @@ public class Void : PrimitiveType
     }
 }
 
-public class Null : PrimitiveType
+public class Null : PrimitiveStructDecl
 {
-    public Null() : base(Reserved.Null, LLVMTypeRef.Int8, 8) { }
+    public Null(LLVMCompiler compiler) : base(compiler, Reserved.Null, LLVMTypeRef.Int8, 8) { }
 
     public override ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
 
@@ -161,12 +159,12 @@ public class Null : PrimitiveType
     
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public override bool Contains(InternalType key)
+        public override bool Contains(Type key)
         {
             return true;
         }
         
-        public override bool TryGetValue(InternalType key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
         {
             if (key is PtrType)
             {

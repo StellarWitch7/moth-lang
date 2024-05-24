@@ -3,28 +3,28 @@
 public class Value : ICompilerData
 {
     public bool IsExternal { get; init; }
-    public virtual InternalType InternalType { get; }
+    public virtual Type Type { get; }
     public virtual LLVMValueRef LLVMValue { get; }
 
-    protected Value(InternalType type, LLVMValueRef value)
+    protected Value(Type type, LLVMValueRef value)
     {
-        InternalType = type;
+        Type = type;
         LLVMValue = value;
     }
 
-    public Value ImplicitConvertTo(LLVMCompiler compiler, InternalType target)
+    public Value ImplicitConvertTo(LLVMCompiler compiler, Type target)
     {
-        if (InternalType.Equals(target))
+        if (Type.Equals(target))
         {
             return this;
         }
 
-        if (InternalType is VarType)
+        if (Type is VarType)
         {
             return DeRef(compiler).ImplicitConvertTo(compiler, target);
         }
 
-        var implicits = InternalType.GetImplicitConversions();
+        var implicits = Type.GetImplicitConversions();
 
         if (implicits.TryGetValue(target, out Func<LLVMCompiler, Value, Value> convert))
         {
@@ -32,20 +32,20 @@ public class Value : ICompilerData
         }
         else
         {
-            throw new Exception($"Cannot implicitly convert value of type \"{InternalType}\" to \"{target}\".");
+            throw new Exception($"Cannot implicitly convert value of type \"{Type}\" to \"{target}\".");
         }
     }
 
     public Pointer GetRef(LLVMCompiler compiler)
     {
-        if (InternalType is VarType)
+        if (Type is VarType)
         {
             return DeRef(compiler).GetRef(compiler);
         }
         
-        LLVMValueRef newVal = compiler.Builder.BuildAlloca(InternalType.LLVMType);
+        LLVMValueRef newVal = compiler.Builder.BuildAlloca(Type.LLVMType);
         compiler.Builder.BuildStore(LLVMValue, newVal);
-        return new Pointer(new RefType(InternalType), newVal);
+        return new Pointer(new RefType(Type), newVal);
     }
 
     public virtual Value DeRef(LLVMCompiler compiler)
@@ -53,7 +53,7 @@ public class Value : ICompilerData
         throw new Exception("Cannot dereference value as it is not a pointer!");
     }
 
-    public static Value Create(InternalType type, LLVMValueRef value)
+    public static Value Create(Type type, LLVMValueRef value)
     {
         if (type is FuncType fnT)
         {
@@ -75,8 +75,8 @@ public class Value : ICompilerData
 
     public static Pointer CreatePtrToTemp(LLVMCompiler compiler, Value temporary)
     {
-        var tempPtr = compiler.Builder.BuildAlloca(temporary.InternalType.LLVMType);
+        var tempPtr = compiler.Builder.BuildAlloca(temporary.Type.LLVMType);
         compiler.Builder.BuildStore(temporary.LLVMValue, tempPtr);
-        return new Pointer(new PtrType(temporary.InternalType), tempPtr);
+        return new Pointer(new PtrType(temporary.Type), tempPtr);
     }
 }

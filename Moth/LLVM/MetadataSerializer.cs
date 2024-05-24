@@ -2,7 +2,6 @@ using LLVMSharp;
 using Moth.LLVM.Data;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
-using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM;
 
@@ -18,7 +17,7 @@ public unsafe class MetadataSerializer
     private List<Metadata.ParamType> _paramTypes = new List<Metadata.ParamType>();
     private List<byte> _typeRefs = new List<byte>();
     private List<string> _names = new List<string>();
-    private Dictionary<Data.InternalType, ulong> _typeIndexes = new Dictionary<Data.InternalType, ulong>();
+    private Dictionary<Data.Type, ulong> _typeIndexes = new Dictionary<Data.Type, ulong>();
     private Dictionary<Data.FuncType, ulong> _functypeIndexes = new Dictionary<Data.FuncType, ulong>();
     private uint _typeTablePosition = 0;
     private uint _fieldTablePosition = 0;
@@ -49,7 +48,7 @@ public unsafe class MetadataSerializer
         {
             var newType = new Metadata.Type();
             newType.privacy = @struct.Privacy;
-            newType.is_foreign = @struct is OpaqueType;
+            newType.is_foreign = @struct is OpaqueStructDecl;
             newType.is_union = @struct.IsUnion;
             newType.field_table_index = _fieldTablePosition;
             newType.field_table_length = (uint)@struct.Fields.Count;
@@ -60,7 +59,7 @@ public unsafe class MetadataSerializer
             foreach (var field in @struct.Fields.Values)
             {
                 var newField = new Metadata.Field();
-                (ulong typerefIndex, ulong typerefLength) = AddTypeRef(field.InternalType);
+                (ulong typerefIndex, ulong typerefLength) = AddTypeRef(field.Type);
                 newField.privacy = field.Privacy;
                 newField.typeref_table_index = typerefIndex;
                 newField.typeref_table_length = typerefLength;
@@ -76,7 +75,7 @@ public unsafe class MetadataSerializer
         foreach (var func in _compiler.Functions)
         {
             var newFunc = new Metadata.Function();
-            (ulong typerefIndex, ulong typerefLength) = AddTypeRef(func.InternalType);
+            (ulong typerefIndex, ulong typerefLength) = AddTypeRef(func.Type);
             newFunc.is_method = !func.IsStatic;
             newFunc.privacy = func.Privacy;
             newFunc.typeref_table_index = typerefIndex;
@@ -190,9 +189,9 @@ public unsafe class MetadataSerializer
         return _stream;
     }
     
-    public void AddType(Type type, Metadata.Type metaType)
+    public void AddType(StructDecl structDecl, Metadata.Type metaType)
     {
-        _typeIndexes.Add(type, _typeTablePosition);
+        _typeIndexes.Add(structDecl, _typeTablePosition);
         _types.Add(metaType);
         _typeTablePosition++;
     }

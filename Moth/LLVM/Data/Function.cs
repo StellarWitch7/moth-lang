@@ -4,13 +4,13 @@ namespace Moth.LLVM.Data;
 
 public class Function : Value
 {
-    public override FuncType InternalType { get; }
+    public override FuncType Type { get; }
     public Parameter[] Params { get; }
     public Scope? OpeningScope { get; set; }
 
     public Function(FuncType type, LLVMValueRef value, Parameter[] @params) : base(type, value)
     {
-        InternalType = type;
+        Type = type;
         Params = @params;
     }
 
@@ -30,19 +30,19 @@ public class Function : Value
         }
     }
     
-    public InternalType ReturnType
+    public Type ReturnType
     {
         get
         {
-            return InternalType.ReturnType;
+            return Type.ReturnType;
         }
     }
 
-    public InternalType[] ParameterTypes
+    public Type[] ParameterTypes
     {
         get
         {
-            return InternalType.ParameterTypes;
+            return Type.ParameterTypes;
         }
     }
 
@@ -50,15 +50,15 @@ public class Function : Value
     {
         get
         {
-            return InternalType.IsVariadic;
+            return Type.IsVariadic;
         }
     }
     
-    public Type? OwnerStruct
+    public StructDecl? OwnerStruct
     {
         get
         {
-            return InternalType is MethodType methodType ? methodType.OwnerType : null;
+            return Type is MethodType methodType ? methodType.OwnerTypeDecl : null;
         }
     }
 
@@ -66,11 +66,11 @@ public class Function : Value
     {
         get
         {
-            return InternalType is MethodType methodType ? methodType.IsStatic : true;
+            return Type is MethodType methodType ? methodType.IsStatic : true;
         }
     }
 
-    public virtual Value Call(LLVMCompiler compiler, Value[] args) => InternalType.Call(compiler, LLVMValue, args);
+    public virtual Value Call(LLVMCompiler compiler, Value[] args) => Type.Call(compiler, LLVMValue, args);
 }
 
 public class DefinedFunction : Function
@@ -107,8 +107,8 @@ public class DefinedFunction : Function
                     ? FullName
                     : Name;
                 _internalValue = IsForeign
-                    ? _compiler.HandleForeign(Name, InternalType)
-                    : _compiler.Module.AddFunction(llvmFuncName, InternalType.BaseType.LLVMType);
+                    ? _compiler.HandleForeign(Name, Type)
+                    : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
             }
 
             return _internalValue;
@@ -119,13 +119,13 @@ public class DefinedFunction : Function
     {
         get
         {
-            if (Parent is Type @struct)
+            if (Parent is StructDecl @struct)
             {
-                return $"{@struct.FullName}.{Name}{InternalType}";
+                return $"{@struct.FullName}.{Name}{Type}";
             }
             else if (Parent is Namespace nmspace)
             {
-                return $"{nmspace.FullName}.{Name}{InternalType}";
+                return $"{nmspace.FullName}.{Name}{Type}";
             }
             else
             {
@@ -137,7 +137,7 @@ public class DefinedFunction : Function
 
 public class AspectMethod : DefinedFunction
 {
-    public AspectMethod(LLVMCompiler compiler, Trait parent, string name, FuncType type, PrivacyType privacy, Dictionary<string, IAttribute> attributes)
+    public AspectMethod(LLVMCompiler compiler, TraitDecl parent, string name, FuncType type, PrivacyType privacy, Dictionary<string, IAttribute> attributes)
         : base(compiler, parent, name, type, new Parameter[0], PrivacyType.Pub, false, attributes) { }
 
     public override LLVMValueRef LLVMValue
@@ -174,7 +174,7 @@ public abstract class IntrinsicFunction : Function
     }
     
     public override Value Call(LLVMCompiler compiler, Value[] args)
-        => InternalType.Call(compiler, LLVMValue, args);
+        => Type.Call(compiler, LLVMValue, args);
     
     protected virtual LLVMValueRef GenerateLLVMData()
         => throw new NotImplementedException("This function does not support LLVM data generation.");

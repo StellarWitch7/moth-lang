@@ -2,18 +2,34 @@
 
 namespace Moth.LLVM.Data;
 
-public class Field
+public class Field : IContainer
 {
+    public IContainer? Parent { get; }
     public string Name { get; }
     public uint FieldIndex { get; }
-    public InternalType InternalType { get; }
+    public Type Type { get; }
     public PrivacyType Privacy { get; }
+    public bool IsExternal { get => Parent.IsExternal; init { } }
+    public string FullName { get => $"{Parent.FullName}.{Name}"; }
 
-    public Field(string name, uint index, InternalType type, PrivacyType privacy)
+    private LLVMCompiler _compiler;
+
+    public Field(LLVMCompiler compiler, StructDecl parent, string name, uint index, Type type, PrivacyType privacy)
     {
+        _compiler = compiler;
+        Parent = parent;
         Name = name;
         FieldIndex = index;
-        InternalType = type;
+        Type = type;
         Privacy = privacy;
+    }
+
+    public Pointer GetValue(Value parent)
+    {
+        return new Pointer(new VarType(Type),
+            _compiler.Builder.BuildStructGEP2((Parent as StructDecl).LLVMType,
+                parent.LLVMValue,
+                FieldIndex,
+                Name));
     }
 }

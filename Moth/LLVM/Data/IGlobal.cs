@@ -16,7 +16,7 @@ public interface IGlobal : ICompilerData
 
     public void SetInitializer(LLVMCompiler compiler, Value value)
     {
-        if (!InternalType.BaseType.Equals(value.InternalType))
+        if (!InternalType.BaseType.Equals(value.Type))
         {
             throw new Exception(GetInvalidTypeErrorMsg(value));
         }

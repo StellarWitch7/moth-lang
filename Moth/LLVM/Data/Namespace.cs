@@ -9,8 +9,8 @@ public class Namespace : IContainer
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
     public Dictionary<string, OverloadList> Functions { get; } = new Dictionary<string, OverloadList>();
-    public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
-    public Dictionary<string, Trait> Traits { get; } = new Dictionary<string, Trait>();
+    public Dictionary<string, TypeDecl> Types { get; } = new Dictionary<string, TypeDecl>();
+    public Dictionary<string, TraitDecl> Traits { get; } = new Dictionary<string, TraitDecl>();
     public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
     public Dictionary<string, Template> Templates { get; } = new Dictionary<string, Template>();
 
@@ -77,7 +77,7 @@ public class Namespace : IContainer
         }
     }
 
-    public Function GetFunction(string name, IReadOnlyList<InternalType> paramTypes)
+    public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
     {
         if (Functions.TryGetValue(name, out OverloadList overloads)
             && overloads.TryGet(paramTypes, out Function func))
@@ -92,7 +92,7 @@ public class Namespace : IContainer
         }
     }
 
-    public bool TryGetFunction(string name, IReadOnlyList<InternalType> paramTypes, out Function func)
+    public bool TryGetFunction(string name, IReadOnlyList<Type> paramTypes, out Function func)
     {
         try
         {
@@ -112,9 +112,9 @@ public class Namespace : IContainer
         }
     }
 
-    public Type GetType(string name)
+    public TypeDecl GetType(string name)
     {
-        if (Types.TryGetValue(name, out Type type))
+        if (Types.TryGetValue(name, out TypeDecl type))
         {
             return type;
         }
@@ -126,13 +126,13 @@ public class Namespace : IContainer
         }
     }
     
-    public bool TryGetType(string name, out Type type)
+    public bool TryGetType(string name, out TypeDecl structDecl)
     {
         try
         {
-            type = GetType(name);
+            structDecl = GetType(name);
 
-            if (type == null)
+            if (structDecl == null)
             {
                 throw new Exception();
             }
@@ -141,14 +141,14 @@ public class Namespace : IContainer
         }
         catch
         {
-            type = null;
+            structDecl = null;
             return false;
         }
     }
     
-    public Trait GetTrait(string name)
+    public TraitDecl GetTrait(string name)
     {
-        if (Traits.TryGetValue(name, out Trait trait))
+        if (Traits.TryGetValue(name, out TraitDecl trait))
         {
             return trait;
         }
@@ -160,13 +160,13 @@ public class Namespace : IContainer
         }
     }
     
-    public bool TryGetTrait(string name, out Trait trait)
+    public bool TryGetTrait(string name, out TraitDecl traitDecl)
     {
         try
         {
-            trait = GetTrait(name);
+            traitDecl = GetTrait(name);
 
-            if (trait == null)
+            if (traitDecl == null)
             {
                 throw new Exception();
             }
@@ -175,7 +175,7 @@ public class Namespace : IContainer
         }
         catch
         {
-            trait = null;
+            traitDecl = null;
             return false;
         }
     }

@@ -16,7 +16,7 @@ public class Template : ICompilerData
 
     private LLVMCompiler _compiler;
     private List<AttributeNode> _attributeList;
-    private Dictionary<string, Type> _builtTypes = new Dictionary<string, Type>();
+    private Dictionary<string, StructDecl> _builtTypes = new Dictionary<string, StructDecl>();
 
     public Template(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, bool isUnion, ScopeNode contents,
         Namespace[] imports, List<AttributeNode> attributes, TemplateParameter[] @params)
@@ -37,7 +37,7 @@ public class Template : ICompilerData
         }
     }
 
-    public Type Build(IReadOnlyList<ExpressionNode> args)
+    public StructDecl Build(IReadOnlyList<ExpressionNode> args)
     {
         string sig = ArgsToSig(args);
         
@@ -46,7 +46,7 @@ public class Template : ICompilerData
             throw new Exception($"Template arguments are {args.Count} long, expected {Params.Length} arguments for template \"{Name}\".");
         }
 
-        if (_builtTypes.TryGetValue(sig, out Type @struct))
+        if (_builtTypes.TryGetValue(sig, out StructDecl @struct))
         {
             return @struct;
         }
@@ -75,13 +75,13 @@ public class Template : ICompilerData
         }
 
         var structNode = new TypeNode($"{Name}{Template.ArgsToSig(args)}", Privacy, Contents, IsUnion, _attributeList);
-        @struct = new Type(_compiler,
+        @struct = new StructDecl(_compiler,
             Parent,
             structNode.Name,
             _compiler.Context.CreateNamedStruct(structNode.Name),
-            Attributes,
             Privacy,
-            IsUnion);
+            IsUnion,
+            Attributes);
         _builtTypes.Add(sig, @struct);
         _compiler.BuildTemplate(this, structNode, @struct, args);
         return @struct;

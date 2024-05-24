@@ -4,8 +4,8 @@ namespace Moth.LLVM.Data;
 
 public sealed class Addition : IntrinsicOperator
 {
-    public Addition(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.Addition, retType, leftType, rightType) { }
+    public Addition(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.Addition, retStructDecl, leftStructDecl, rightStructDecl) { }
 
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
@@ -20,8 +20,8 @@ public sealed class Addition : IntrinsicOperator
 
 public sealed class Subtraction : IntrinsicOperator
 {
-    public Subtraction(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.Subtraction, retType, leftType, rightType) { }
+    public Subtraction(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.Subtraction, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
@@ -36,8 +36,8 @@ public sealed class Subtraction : IntrinsicOperator
 
 public sealed class Multiplication : IntrinsicOperator
 {
-    public Multiplication(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.Multiplication, retType, leftType, rightType) { }
+    public Multiplication(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.Multiplication, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
@@ -52,12 +52,12 @@ public sealed class Multiplication : IntrinsicOperator
 
 public sealed class Division : IntrinsicOperator
 {
-    public Division(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.Division, retType, leftType, rightType) { }
+    public Division(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.Division, retStructDecl, leftStructDecl, rightStructDecl) { }
         
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.InternalType is SignedInt)
+        if (leftVal.Type is SignedInt)
         {
             return compiler.Builder.BuildSDiv(leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -79,12 +79,12 @@ public sealed class Division : IntrinsicOperator
 
 public sealed class Modulus : IntrinsicOperator
 {
-    public Modulus(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.Modulus, retType, leftType, rightType) { }
+    public Modulus(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.Modulus, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.InternalType is SignedInt)
+        if (leftVal.Type is SignedInt)
         {
             return compiler.Builder.BuildSRem(leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -100,12 +100,12 @@ public sealed class Modulus : IntrinsicOperator
 
 public sealed class LesserThan : IntrinsicOperator
 {
-    public LesserThan(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.LesserThan, retType, leftType, rightType) { }
+    public LesserThan(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.LesserThan, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.InternalType is SignedInt)
+        if (leftVal.Type is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSLT, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -121,12 +121,12 @@ public sealed class LesserThan : IntrinsicOperator
 
 public sealed class LesserThanOrEqual : IntrinsicOperator
 {
-    public LesserThanOrEqual(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.LesserThanOrEqual, retType, leftType, rightType) { }
+    public LesserThanOrEqual(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.LesserThanOrEqual, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.InternalType is SignedInt)
+        if (leftVal.Type is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSLE, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -142,12 +142,12 @@ public sealed class LesserThanOrEqual : IntrinsicOperator
 
 public sealed class GreaterThan : IntrinsicOperator
 {
-    public GreaterThan(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.GreaterThan, retType, leftType, rightType) { }
+    public GreaterThan(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.GreaterThan, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.InternalType is SignedInt)
+        if (leftVal.Type is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSGT, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -163,12 +163,12 @@ public sealed class GreaterThan : IntrinsicOperator
 
 public sealed class GreaterThanOrEqual : IntrinsicOperator
 {
-    public GreaterThanOrEqual(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.GreaterThanOrEqual, retType, leftType, rightType) { }
+    public GreaterThanOrEqual(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.GreaterThanOrEqual, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (leftVal.InternalType is SignedInt)
+        if (leftVal.Type is SignedInt)
         {
             return compiler.Builder.BuildICmp(LLVMIntPredicate.LLVMIntSGE, leftVal.LLVMValue, rightVal.LLVMValue);
         }
@@ -184,12 +184,12 @@ public sealed class GreaterThanOrEqual : IntrinsicOperator
 
 public sealed class Equal : IntrinsicOperator
 {
-    public Equal(PrimitiveType retType, PrimitiveType leftType, PrimitiveType rightType)
-        : base(OperationType.Equal, retType, leftType, rightType) { }
+    public Equal(PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
+        : base(OperationType.Equal, retStructDecl, leftStructDecl, rightStructDecl) { }
     
     protected override LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (rightVal.InternalType.Equals(Primitives.Null))
+        if (rightVal.Type.Equals(Primitives.Null))
         {
             return compiler.Builder.BuildIsNull(leftVal.LLVMValue);
         }
@@ -199,7 +199,7 @@ public sealed class Equal : IntrinsicOperator
 
     protected override LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal)
     {
-        if (rightVal.InternalType.Equals(Primitives.Null))
+        if (rightVal.Type.Equals(Primitives.Null))
         {
             return compiler.Builder.BuildIsNull(leftVal.LLVMValue);
         }

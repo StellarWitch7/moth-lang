@@ -167,7 +167,11 @@ public unsafe class HeaderParser : IDisposable
         {
             case CXCursorKind.CXCursor_EnumConstantDecl:
                 var flagName = c.DisplayName.ToString();
-                _enumFlags.Add(new EnumFlagNode(flagName));
+                var flagValue = c.EnumConstantDeclUnsignedValue;
+                if (flagValue > UInt64.MaxValue)
+                    throw new Exception($"Cannot convert C enum declaration to Moth enum declaration, "
+                        + $"enum value (\"{flagValue}\") for \"{flagName}\" is greater than 64 bits.");
+                _enumFlags.Add(new EnumFlagNode(flagName, flagValue));
                 break;
             default:
                 break;

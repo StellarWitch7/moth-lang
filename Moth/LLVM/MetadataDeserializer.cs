@@ -141,24 +141,29 @@ public unsafe class MetadataDeserializer
         {
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
             var parent = GetNamespace(fullname);
-            Type result;
+            StructDecl result;
 
             if (type.is_foreign)
             {
-                result = new OpaqueType(_compiler, parent, name, new Dictionary<string, IAttribute>(), type.privacy, type.is_union)
+                result = new OpaqueStructDecl(_compiler,
+                    parent,
+                    name,
+                    type.privacy,
+                    type.is_union,
+                    new Dictionary<string, IAttribute>())
                 {
                     IsExternal = true
                 };
             }
             else
             {
-                result = new Type(_compiler,
+                result = new StructDecl(_compiler,
                     parent,
                     name,
                     _compiler.Context.CreateNamedStruct(fullname),
-                    new Dictionary<string, IAttribute>(),
                     type.privacy,
-                    type.is_union)
+                    type.is_union,
+                    new Dictionary<string, IAttribute>())
                 {
                     IsExternal = true
                 };
@@ -184,7 +189,7 @@ public unsafe class MetadataDeserializer
             var overloadList = new OverloadList(name);
             IContainer parent;
 
-            if (TryGetStructByString(fullname, out Type @struct))
+            if (TryGetStructByString(fullname, out StructDecl @struct))
             {
                 if (func.is_method)
                 {
@@ -252,18 +257,18 @@ public unsafe class MetadataDeserializer
         }
     }
 
-    private bool TryGetStructByString(string fullname, out Type type)
+    private bool TryGetStructByString(string fullname, out StructDecl structDecl)
     {
         var match = Regex.Match(fullname, "#(.*)\\.");
 
         if (!match.Success)
         {
-            type = null;
+            structDecl = null;
             return false;
         }
 
         var nmspace = GetNamespace(fullname);
-        type = nmspace.Types[match.Groups[1].Value];
+        structDecl = nmspace.Types[match.Groups[1].Value];
         return true;
     }
 
@@ -312,10 +317,10 @@ public unsafe class MetadataDeserializer
         return result.ToArray();
     }
 
-    private InternalType GetType(ulong index, ulong length)
+    private Type GetType(ulong index, ulong length)
     {
         var ptrOrRef = new List<bool>();
-        InternalType result = null;
+        Type result = null;
         
         for (ulong i = 0; i < length; i++)
         {
@@ -333,30 +338,30 @@ public unsafe class MetadataDeserializer
                         var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
                         var nmspace = GetNamespace(fullname);
                         var fields = GetFields(type.field_table_index, type.field_table_length);
-                        Type newType;
+                        StructDecl newStructDecl;
                     
                         if (type.is_foreign)
                         {
-                            newType = new OpaqueType(_compiler,
+                            newStructDecl = new OpaqueStructDecl(_compiler,
                                 nmspace,
                                 name,
-                                new Dictionary<string, IAttribute>(),
                                 type.privacy,
-                                type.is_union);
+                                type.is_union,
+                                new Dictionary<string, IAttribute>());
                         }
                         else
                         {
-                            newType = new Type(_compiler,
+                            newStructDecl = new StructDecl(_compiler,
                                 nmspace,
                                 name,
                                 LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false),
-                                new Dictionary<string, IAttribute>(),
                                 type.privacy,
-                                type.is_union);
+                                type.is_union,
+                                new Dictionary<string, IAttribute>());
                         }
                     
-                        nmspace.Types.TryAdd(name, newType);
-                        result = newType;
+                        nmspace.Types.TryAdd(name, newStructDecl);
+                        result = newStructDecl;
                         break;
                     }
                 case Metadata.TypeTag.FuncType:
@@ -434,9 +439,9 @@ public unsafe class MetadataDeserializer
         return result;
     }
 
-    private InternalType[] GetParamTypes(ulong index, ulong length)
+    private Type[] GetParamTypes(ulong index, ulong length)
     {
-        var types = new InternalType[length];
+        var types = new Type[length];
 
         for (ulong i = 0; i < length; i++)
         {

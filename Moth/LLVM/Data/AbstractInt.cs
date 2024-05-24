@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Moth.LLVM.Data;
 
-public class AbstractInt : PrimitiveType
+public class AbstractInt : PrimitiveStructDecl
 {
     private ImplicitConversionTable _internalImplicits = null;
     private long _value;
@@ -79,7 +79,7 @@ public class AbstractInt : PrimitiveType
             _value = value;
         }
         
-        public override bool Contains(InternalType key)
+        public override bool Contains(Type key)
         {
             if (key is not Int or Float)
             {
@@ -150,7 +150,7 @@ public class AbstractInt : PrimitiveType
             return _value >= lowBound && _value <= highBound;
         }
         
-        public override bool TryGetValue(InternalType key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
         {
             if (Contains(key))
             {
@@ -180,20 +180,20 @@ public class AbstractInt : PrimitiveType
 
     public class LiteralIntValue : Value
     {
-        public override AbstractInt InternalType { get; }
+        public override AbstractInt Type { get; }
         public long Value { get; }
 
         public override LLVMValueRef LLVMValue
         {
             get
             {
-                return LLVMValueRef.CreateConstInt(InternalType.LLVMType, (ulong)Value, InternalType is SignedInt);
+                return LLVMValueRef.CreateConstInt(Type.LLVMType, (ulong)Value, Type is SignedInt);
             }
         }
         
         public LiteralIntValue(long value) : base(null, null)
         {
-            InternalType = new AbstractInt(value);
+            Type = new AbstractInt(value);
             Value = value;
         }
     }
@@ -209,7 +209,7 @@ public class AbstractInt : PrimitiveType
                         or OperationType.GreaterThan or OperationType.GreaterThanOrEqual or OperationType.Equal
                         ? Primitives.Bool
                         : abstractIntType,
-                    new InternalType[]
+                    new Type[]
                     {
                         new PtrType(abstractIntType),
                         abstractIntType
@@ -223,7 +223,7 @@ public class AbstractInt : PrimitiveType
         public override Value Call(LLVMCompiler compiler, Value[] args)
         {
             if (args.Length != 2) throw new Exception($"Internal error: Operation must have exactly two operands. {args.Length} were provided.");
-            if (args[0] is not Pointer ptr || ptr.InternalType.BaseType is not AbstractInt) throw new Exception($"Internal error: Left operand is not a literal int.");
+            if (args[0] is not Pointer ptr || ptr.Type.BaseType is not AbstractInt) throw new Exception($"Internal error: Left operand is not a literal int.");
             if (args[1] is not LiteralIntValue rightVal) throw new Exception($"Internal error: Right operand is not a literal int.");
 
             var leftVal = new LiteralIntValue(_abstractIntType._value);
