@@ -53,12 +53,12 @@ internal class Options
         Required = false,
         HelpText = "When running a project, pass this option with the arguments to use."
     )]
-    public string RunArgs { get; set; }
+    public string RunArgs { get; set; } = "";
 
     [Option(
         "run-dir",
         Required = false,
         HelpText = "When running a project, pass this option with the working directory to use."
     )]
-    public string RunDir { get; set; }
+    public string? RunDir { get; set; }
 }

@@ -19,10 +19,24 @@ internal class Program
             .Default.ParseArguments<Options>(args.Skip(1))
             .WithParsed(options =>
             {
+                string conf = Path.Combine(Environment.CurrentDirectory, "Silk.toml");
+
                 switch (action)
                 {
                     case "bind":
-                        string conf = Path.Combine(Environment.CurrentDirectory, "Silk.toml");
+                        if (options.TopNamespace == null || options.OutputDir == null)
+                        {
+                            var builder = new StringBuilder('\n');
+
+                            if (options.TopNamespace == null)
+                                builder.Append("Required option 'n, namespace' is missing.\n");
+
+                            if (options.OutputDir == null)
+                                builder.Append("Required option 'o, output-dir' is missing.\n");
+
+                            throw new Exception(builder.ToString());
+                        }
+
                         Directory.CreateDirectory(options.OutputDir);
                         Includes includes = TomletMain.To<Includes>(File.ReadAllText(conf));
 
@@ -86,6 +100,17 @@ internal class Program
                                 FileAccess.Write
                             );
                             file.Write(Encoding.UTF8.GetBytes(ast.GetSource()));
+                        }
+
+                        break;
+                    case "init":
+                        if (File.Exists(conf) && !options.Force)
+                            Console.WriteLine(
+                                "Config file already exists, use -f or --force to overwrite."
+                            );
+                        else
+                        {
+                            using var file = File.Create(conf);
                         }
 
                         break;

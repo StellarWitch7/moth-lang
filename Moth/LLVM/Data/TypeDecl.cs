@@ -40,7 +40,13 @@ public class TypeDecl : Type, IContainer
 
     public virtual string FullName
     {
-        get => $"{Parent.FullName}#{Name}";
+        get
+        {
+            if (Parent == null)
+                return $"#{Name}";
+            else
+                return $"{Parent.FullName}#{Name}";
+        }
     }
 
     public Namespace ParentNamespace

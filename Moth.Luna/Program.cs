@@ -14,7 +14,7 @@ internal class Program
     {
         get
         {
-            string dir = $"{Environment.CurrentDirectory}/cache";
+            string dir = Path.Combine(Environment.CurrentDirectory, "cache");
             Directory.CreateDirectory(dir);
             return dir;
         }
@@ -83,7 +83,7 @@ internal class Program
         string projfile = options.ProjFile;
 
         if (projfile == null)
-            projfile = $"{Environment.CurrentDirectory}/Luna.toml";
+            projfile = Path.Combine(Environment.CurrentDirectory, "Luna.toml");
 
         if (options.ClearCache)
             Directory.Delete(CacheDir, true);
@@ -95,10 +95,13 @@ internal class Program
 
     private static int ExecuteRun(Options options, Project project)
     {
+        string defaultRunDir = Path.Combine(Environment.CurrentDirectory, "run");
+        Directory.CreateDirectory(defaultRunDir);
+
         var run = Process.Start(
             new ProcessStartInfo($"{project.FullOutputPath}", options.RunArgs)
             {
-                WorkingDirectory = options.RunDir
+                WorkingDirectory = options.RunDir == null ? defaultRunDir : options.RunDir
             }
         );
 
@@ -112,8 +115,9 @@ internal class Program
     private static void ExecuteInit(Options options)
     {
         string projName = options.ProjName == null ? QueryProjName() : options.ProjName;
-        string projDir = $"{Environment.CurrentDirectory}/{projName}";
-        string mainDir = $"{projDir}/main";
+        string projDir = Path.Combine(Environment.CurrentDirectory, projName);
+        string mainDir = Path.Combine(projDir, "main");
+        string includeDir = Path.Combine(projDir, "include");
 
         if (Directory.Exists(projDir))
         {
@@ -122,80 +126,105 @@ internal class Program
             );
         }
 
-        Directory.CreateDirectory(projDir);
-        Directory.CreateDirectory(mainDir);
-
-        var project = new Project()
+        try
         {
-            Name = projName,
-            Version = "1.0",
-            Type = options.InitLib ? "lib" : "exe",
-            Platforms = new string[] { CurrentOS }
-        };
+            Directory.CreateDirectory(projDir);
+            Directory.CreateDirectory(mainDir);
+            Directory.CreateDirectory(includeDir);
 
-        string tomlString = TomletMain.TomlStringFrom(project);
-        string gitignoreString = "[Bb]uild/\n[Cc]ache/";
-        string programString = options.InitLib
-            ? $"namespace {projName};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
-            : $"namespace {projName};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
-
-        using (var file = File.OpenWrite($"{projDir}/Luna.toml"))
-        {
-            file.Write(Encoding.UTF8.GetBytes(tomlString));
-        }
-
-        using (var file = File.OpenWrite($"{projDir}/.gitignore"))
-        {
-            file.Write(Encoding.UTF8.GetBytes(gitignoreString));
-        }
-
-        using (var file = File.OpenWrite($"{mainDir}/main.moth"))
-        {
-            file.Write(Encoding.UTF8.GetBytes(programString));
-        }
-
-        var init = Process.Start(
-            new ProcessStartInfo("git", "init") { WorkingDirectory = projDir }
-        );
-
-        if (init == null)
-            throw new Exception("Call to git init failed.");
-
-        init.WaitForExit();
-
-        if (init.ExitCode != 0)
-            throw new Exception($"git init finished with exit code {init.ExitCode}");
-
-        var add = Process.Start(
-            new ProcessStartInfo("git", "add --all") { WorkingDirectory = projDir }
-        );
-
-        if (add == null)
-            throw new Exception("Call to git add failed.");
-
-        add.WaitForExit();
-
-        if (add.ExitCode != 0)
-            throw new Exception($"git add finished with exit code {add.ExitCode}");
-
-        Console.WriteLine("Creating initial commit...");
-
-        var commit = Process.Start(
-            new ProcessStartInfo("git", "commit -m \"Initial Commit\"")
+            var project = new Project()
             {
-                WorkingDirectory = projDir
+                Name = projName,
+                Version = "1.0",
+                Type = options.InitLib ? "lib" : "exe",
+                Platforms = new string[] { CurrentOS }
+            };
+
+            string tomlString = TomletMain.TomlStringFrom(project);
+            string gitignoreString = "[Bb]uild/\n[Cc]ache/\n[Rr]un";
+            string programString = options.InitLib
+                ? $"namespace {projName};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
+                : $"namespace {projName};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
+
+            using (var file = File.OpenWrite(Path.Combine(projDir, "Luna.toml")))
+            {
+                file.Write(Encoding.UTF8.GetBytes(tomlString));
             }
-        );
 
-        if (commit == null)
-            throw new Exception("Call to git commit failed.");
+            using (var file = File.OpenWrite(Path.Combine(projDir, ".gitignore")))
+            {
+                file.Write(Encoding.UTF8.GetBytes(gitignoreString));
+            }
 
-        commit.WaitForExit();
+            using (var file = File.OpenWrite(Path.Combine(mainDir, "main.moth")))
+            {
+                file.Write(Encoding.UTF8.GetBytes(programString));
+            }
 
-        if (commit.ExitCode != 0)
-            throw new Exception($"git commit finished with exit code {commit.ExitCode}");
+            var silkInit = Process.Start(
+                new ProcessStartInfo("silk", "init") { WorkingDirectory = includeDir }
+            );
 
-        Console.WriteLine($"Successfully initialized new project: {projName}");
+            if (silkInit == null)
+                throw new Exception("Call to silk init failed.");
+
+            silkInit.WaitForExit();
+
+            if (silkInit.ExitCode != 0)
+                throw new Exception($"silk init finished with exit code {silkInit.ExitCode}");
+
+            var gitInit = Process.Start(
+                new ProcessStartInfo("git", "init") { WorkingDirectory = projDir }
+            );
+
+            if (gitInit == null)
+                throw new Exception("Call to git init failed.");
+
+            gitInit.WaitForExit();
+
+            if (gitInit.ExitCode != 0)
+                throw new Exception($"git init finished with exit code {gitInit.ExitCode}");
+
+            var gitAdd = Process.Start(
+                new ProcessStartInfo("git", "add --all") { WorkingDirectory = projDir }
+            );
+
+            if (gitAdd == null)
+                throw new Exception("Call to git add failed.");
+
+            gitAdd.WaitForExit();
+
+            if (gitAdd.ExitCode != 0)
+                throw new Exception($"git add finished with exit code {gitAdd.ExitCode}");
+
+            Console.WriteLine("Creating initial commit...");
+
+            var gitCommit = Process.Start(
+                new ProcessStartInfo("git", "commit -m \"Initial Commit\"")
+                {
+                    WorkingDirectory = projDir
+                }
+            );
+
+            if (gitCommit == null)
+                throw new Exception("Call to git commit failed.");
+
+            gitCommit.WaitForExit();
+
+            if (gitCommit.ExitCode != 0)
+                throw new Exception($"git commit finished with exit code {gitCommit.ExitCode}");
+
+            Console.WriteLine($"Successfully initialized new project: {projName}");
+        }
+        catch (Exception e)
+        {
+            try
+            {
+                if (Directory.Exists(projDir))
+                    Directory.Delete(projDir, true);
+            }
+            catch (Exception e2) { }
+        }
     }
 
     private static void CallMothc(Options options, Project project)
@@ -209,14 +238,14 @@ internal class Program
             );
         }
 
-        string buildDir = $"{Environment.CurrentDirectory}/{project.Out}";
+        string buildDir = Path.Combine(Environment.CurrentDirectory, project.Out);
         var files = new StringBuilder();
 
         foreach (
             var file in Directory.GetFiles(project.Root, "*.moth", SearchOption.AllDirectories)
         )
         {
-            files.Append($"{Environment.CurrentDirectory}/{file} ");
+            files.Append($"{Path.Combine(Environment.CurrentDirectory, file)} ");
         }
 
         if (options.Verbose)
@@ -304,7 +333,7 @@ internal class Program
 
     private static string FetchRemoteFile(string url)
     {
-        string dest = $"{CacheDir}/{url.Substring(url.LastIndexOf("/"))}";
+        string dest = Path.Combine(CacheDir, url.Substring(url.LastIndexOf("/")));
 
         if (File.Exists(dest))
         {
@@ -321,7 +350,9 @@ internal class Program
 
     private static string BuildFromProject(ProjectSource source)
     {
-        Project project = TomletMain.To<Project>(File.ReadAllText($"{source.Dir}/Luna.toml"));
+        Project project = TomletMain.To<Project>(
+            File.ReadAllText(Path.Combine(source.Dir, "Luna.toml"))
+        );
         var build = Process.Start(
             new ProcessStartInfo(source.Build.Command, source.Build.Args)
             {
@@ -337,7 +368,7 @@ internal class Program
         if (build.ExitCode != 0)
             throw new Exception($"{source.Build.Command} finished with exit code {build.ExitCode}");
 
-        return $"{source.Dir}/{project.Out}/{project.FullOutputName}";
+        return Path.Combine(source.Dir, project.Out, project.FullOutputName);
     }
 
     private static string BuildFromGit(GitSource source)
@@ -348,7 +379,7 @@ internal class Program
                     .Source.Remove(source.Source.LastIndexOf('.'))
                     .Substring(source.Source.LastIndexOf('/') + 1)
                 : throw new Exception("Git source not set.");
-        string repoDir = $"{CacheDir}/{repoName}";
+        string repoDir = Path.Combine(CacheDir, repoName);
         var args = new StringBuilder();
 
         if (source.Branch != null)

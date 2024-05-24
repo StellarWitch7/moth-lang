@@ -54,6 +54,7 @@ public abstract class Int : PrimitiveStructDecl
         var ctor = operation.GetConstructor(
             new SystemType[]
             {
+                typeof(LLVMCompiler),
                 typeof(PrimitiveStructDecl),
                 typeof(PrimitiveStructDecl),
                 typeof(PrimitiveStructDecl)
@@ -65,7 +66,7 @@ public abstract class Int : PrimitiveStructDecl
 
         {
             funcList.Add(
-                ctor.Invoke(new object[] { retBool ? _compiler.Bool : this, this, this })
+                ctor.Invoke(new object[] { _compiler, retBool ? _compiler.Bool : this, this, this })
                     is Function func
                     ? func
                     : throw e
@@ -77,6 +78,7 @@ public abstract class Int : PrimitiveStructDecl
                 ctor.Invoke(
                     new object[]
                     {
+                        _compiler,
                         retBool ? _compiler.Bool : this,
                         this,
                         new AbstractInt(_compiler, 0)
@@ -91,7 +93,15 @@ public abstract class Int : PrimitiveStructDecl
         if (funcList.Name == Utils.ExpandOpName("=="))
         {
             funcList.Add(
-                ctor.Invoke(new object[] { retBool ? _compiler.Bool : this, this, _compiler.Null })
+                ctor.Invoke(
+                    new object[]
+                    {
+                        _compiler,
+                        retBool ? _compiler.Bool : this,
+                        this,
+                        _compiler.Null
+                    }
+                )
                     is Function func
                     ? func
                     : throw e
@@ -105,6 +115,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.Int8,
                             this,
                             _compiler.Int8
@@ -119,6 +130,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.Int16,
                             this,
                             _compiler.Int16
@@ -133,6 +145,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.Int32,
                             this,
                             _compiler.Int32
@@ -147,6 +160,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.Int64,
                             this,
                             _compiler.Int64
@@ -160,7 +174,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.Int8.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.Int8 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.Int8
+                        }
                     )
                         is Function func
                         ? func
@@ -169,7 +189,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.Int16.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.Int16 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.Int16
+                        }
                     )
                         is Function func
                         ? func
@@ -178,7 +204,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.Int32.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.Int32 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.Int32
+                        }
                     )
                         is Function func
                         ? func
@@ -187,7 +219,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.Int64.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.Int64 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.Int64
+                        }
                     )
                         is Function func
                         ? func
@@ -201,6 +239,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.UInt8,
                             this,
                             _compiler.UInt8
@@ -215,6 +254,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.UInt16,
                             this,
                             _compiler.UInt16
@@ -229,6 +269,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.UInt32,
                             this,
                             _compiler.UInt32
@@ -243,6 +284,7 @@ public abstract class Int : PrimitiveStructDecl
                     ctor.Invoke(
                         new object[]
                         {
+                            _compiler,
                             retBool ? _compiler.Bool : _compiler.UInt64,
                             this,
                             _compiler.UInt64
@@ -256,7 +298,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.UInt8.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.UInt8 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.UInt8
+                        }
                     )
                         is Function func
                         ? func
@@ -265,7 +313,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.UInt16.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.UInt16 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.UInt16
+                        }
                     )
                         is Function func
                         ? func
@@ -274,7 +328,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.UInt32.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.UInt32 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.UInt32
+                        }
                     )
                         is Function func
                         ? func
@@ -283,7 +343,13 @@ public abstract class Int : PrimitiveStructDecl
             if (Bits > _compiler.UInt64.Bits)
                 funcList.Add(
                     ctor.Invoke(
-                        new object[] { retBool ? _compiler.Bool : this, this, _compiler.UInt64 }
+                        new object[]
+                        {
+                            _compiler,
+                            retBool ? _compiler.Bool : this,
+                            this,
+                            _compiler.UInt64
+                        }
                     )
                         is Function func
                         ? func

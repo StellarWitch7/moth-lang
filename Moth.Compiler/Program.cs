@@ -142,7 +142,7 @@ internal class Program
                                 {
                                     logger.WriteLine("(unsafe) Generating assembly metadata...");
                                     var fs = File.Create(
-                                        Path.Join(
+                                        Path.Combine(
                                             Environment.CurrentDirectory,
                                             $"{options.OutputFile}.meta"
                                         )
@@ -183,8 +183,9 @@ internal class Program
                                 // send to linker
                                 try
                                 {
-                                    string @out = $"{options.OutputFile}.bc";
-                                    string path = Path.Join(dir, @out);
+                                    string bcFile = $"{options.OutputFile}.bc";
+                                    string binOut = Path.Combine(dir, "bin");
+                                    string path = Path.Combine(dir, bcFile);
                                     var arguments = new StringBuilder($"{path}");
 
                                     foreach (var lib in options.MothLibraryFiles)
@@ -200,6 +201,7 @@ internal class Program
                                     logger.WriteLine($"Outputting IR to \"{path}\"");
                                     compiler.Module.WriteBitcodeToFile(path);
                                     logger.WriteLine("Compiling final product...");
+                                    Directory.CreateDirectory(binOut);
 
                                     linkerName = "clang";
                                     arguments.Append($" -o {options.OutputFile}");
@@ -233,7 +235,7 @@ internal class Program
                                         new ProcessStartInfo
                                         {
                                             FileName = linkerName,
-                                            WorkingDirectory = dir,
+                                            WorkingDirectory = binOut,
                                             Arguments = arguments.ToString(),
                                             RedirectStandardOutput = true,
                                             RedirectStandardError = true,
@@ -274,7 +276,7 @@ internal class Program
                             }
                             else if (outputType == OutputType.StaticLib)
                             {
-                                var path = Path.Join(dir, $"{options.OutputFile}.mothlib.bc");
+                                var path = Path.Combine(dir, $"{options.OutputFile}.mothlib.bc");
                                 logger.WriteLine($"Outputting IR to \"{path}\"");
                                 compiler.Module.WriteBitcodeToFile(path);
                             }

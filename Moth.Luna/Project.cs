@@ -20,6 +20,9 @@ public class Project
     [TomlProperty("out")]
     public string Out { get; set; } = "build";
 
+    [TomlProperty("include")]
+    public string Include { get; set; } = "include";
+
     [TomlProperty("platforms")]
     public string[] Platforms { get; set; }
 
@@ -51,6 +54,6 @@ public class Project
     [TomlNonSerialized]
     public string FullOutputPath
     {
-        get { return $"{Environment.CurrentDirectory}/{Out}/{FullOutputName}"; }
+        get => Path.Combine(Environment.CurrentDirectory, Out, "bin", FullOutputName);
     }
 }
