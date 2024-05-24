@@ -1,0 +1,943 @@
+namespace test::interop::cilium;
+
+pub foreign fn cilium_raw_Assembly_get_table_Module(assembly #Assembly*, out_table #ModuleTable*) #i32;
+
+pub foreign fn cilium_raw_ModuleTable_get_row(table #ModuleTable*, idx #i32, out_row #Module*) #i32;
+
+pub foreign fn cilium_raw_ModuleTable_destroy(table #ModuleTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_TypeRef(assembly #Assembly*, out_table #TypeRefTable*) #i32;
+
+pub foreign fn cilium_raw_TypeRefTable_get_row(table #TypeRefTable*, idx #i32, out_row #TypeRef*) #i32;
+
+pub foreign fn cilium_raw_TypeRefTable_destroy(table #TypeRefTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_TypeDef(assembly #Assembly*, out_table #TypeDefTable*) #i32;
+
+pub foreign fn cilium_raw_TypeDefTable_get_row(table #TypeDefTable*, idx #i32, out_row #TypeDef*) #i32;
+
+pub foreign fn cilium_raw_TypeDefTable_destroy(table #TypeDefTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_Field(assembly #Assembly*, out_table #FieldTable*) #i32;
+
+pub foreign fn cilium_raw_FieldTable_get_row(table #FieldTable*, idx #i32, out_row #Field*) #i32;
+
+pub foreign fn cilium_raw_FieldTable_destroy(table #FieldTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_MethodDef(assembly #Assembly*, out_table #MethodDefTable*) #i32;
+
+pub foreign fn cilium_raw_MethodDefTable_get_row(table #MethodDefTable*, idx #i32, out_row #MethodDef*) #i32;
+
+pub foreign fn cilium_raw_MethodDefTable_destroy(table #MethodDefTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_Param(assembly #Assembly*, out_table #ParamTable*) #i32;
+
+pub foreign fn cilium_raw_ParamTable_get_row(table #ParamTable*, idx #i32, out_row #Param*) #i32;
+
+pub foreign fn cilium_raw_ParamTable_destroy(table #ParamTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_InterfaceImpl(assembly #Assembly*, out_table #InterfaceImplTable*) #i32;
+
+pub foreign fn cilium_raw_InterfaceImplTable_get_row(table #InterfaceImplTable*, idx #i32, out_row #InterfaceImpl*) #i32;
+
+pub foreign fn cilium_raw_InterfaceImplTable_destroy(table #InterfaceImplTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_MemberRef(assembly #Assembly*, out_table #MemberRefTable*) #i32;
+
+pub foreign fn cilium_raw_MemberRefTable_get_row(table #MemberRefTable*, idx #i32, out_row #MemberRef*) #i32;
+
+pub foreign fn cilium_raw_MemberRefTable_destroy(table #MemberRefTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_Constant(assembly #Assembly*, out_table #ConstantTable*) #i32;
+
+pub foreign fn cilium_raw_ConstantTable_get_row(table #ConstantTable*, idx #i32, out_row #Constant*) #i32;
+
+pub foreign fn cilium_raw_ConstantTable_destroy(table #ConstantTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_CustomAttribute(assembly #Assembly*, out_table #CustomAttributeTable*) #i32;
+
+pub foreign fn cilium_raw_CustomAttributeTable_get_row(table #CustomAttributeTable*, idx #i32, out_row #CustomAttribute*) #i32;
+
+pub foreign fn cilium_raw_CustomAttributeTable_destroy(table #CustomAttributeTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_FieldMarshal(assembly #Assembly*, out_table #FieldMarshalTable*) #i32;
+
+pub foreign fn cilium_raw_FieldMarshalTable_get_row(table #FieldMarshalTable*, idx #i32, out_row #FieldMarshal*) #i32;
+
+pub foreign fn cilium_raw_FieldMarshalTable_destroy(table #FieldMarshalTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_DeclSecurity(assembly #Assembly*, out_table #DeclSecurityTable*) #i32;
+
+pub foreign fn cilium_raw_DeclSecurityTable_get_row(table #DeclSecurityTable*, idx #i32, out_row #DeclSecurity*) #i32;
+
+pub foreign fn cilium_raw_DeclSecurityTable_destroy(table #DeclSecurityTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_ClassLayout(assembly #Assembly*, out_table #ClassLayoutTable*) #i32;
+
+pub foreign fn cilium_raw_ClassLayoutTable_get_row(table #ClassLayoutTable*, idx #i32, out_row #ClassLayout*) #i32;
+
+pub foreign fn cilium_raw_ClassLayoutTable_destroy(table #ClassLayoutTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_FieldLayout(assembly #Assembly*, out_table #FieldLayoutTable*) #i32;
+
+pub foreign fn cilium_raw_FieldLayoutTable_get_row(table #FieldLayoutTable*, idx #i32, out_row #FieldLayout*) #i32;
+
+pub foreign fn cilium_raw_FieldLayoutTable_destroy(table #FieldLayoutTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_StandAloneSig(assembly #Assembly*, out_table #StandAloneSigTable*) #i32;
+
+pub foreign fn cilium_raw_StandAloneSigTable_get_row(table #StandAloneSigTable*, idx #i32, out_row #StandAloneSig*) #i32;
+
+pub foreign fn cilium_raw_StandAloneSigTable_destroy(table #StandAloneSigTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_EventMap(assembly #Assembly*, out_table #EventMapTable*) #i32;
+
+pub foreign fn cilium_raw_EventMapTable_get_row(table #EventMapTable*, idx #i32, out_row #EventMap*) #i32;
+
+pub foreign fn cilium_raw_EventMapTable_destroy(table #EventMapTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_Event(assembly #Assembly*, out_table #EventTable*) #i32;
+
+pub foreign fn cilium_raw_EventTable_get_row(table #EventTable*, idx #i32, out_row #Event*) #i32;
+
+pub foreign fn cilium_raw_EventTable_destroy(table #EventTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_PropertyMap(assembly #Assembly*, out_table #PropertyMapTable*) #i32;
+
+pub foreign fn cilium_raw_PropertyMapTable_get_row(table #PropertyMapTable*, idx #i32, out_row #PropertyMap*) #i32;
+
+pub foreign fn cilium_raw_PropertyMapTable_destroy(table #PropertyMapTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_Property(assembly #Assembly*, out_table #PropertyTable*) #i32;
+
+pub foreign fn cilium_raw_PropertyTable_get_row(table #PropertyTable*, idx #i32, out_row #Property*) #i32;
+
+pub foreign fn cilium_raw_PropertyTable_destroy(table #PropertyTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_MethodSemantics(assembly #Assembly*, out_table #MethodSemanticsTable*) #i32;
+
+pub foreign fn cilium_raw_MethodSemanticsTable_get_row(table #MethodSemanticsTable*, idx #i32, out_row #MethodSemantics*) #i32;
+
+pub foreign fn cilium_raw_MethodSemanticsTable_destroy(table #MethodSemanticsTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_MethodImpl(assembly #Assembly*, out_table #MethodImplTable*) #i32;
+
+pub foreign fn cilium_raw_MethodImplTable_get_row(table #MethodImplTable*, idx #i32, out_row #MethodImpl*) #i32;
+
+pub foreign fn cilium_raw_MethodImplTable_destroy(table #MethodImplTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_ModuleRef(assembly #Assembly*, out_table #ModuleRefTable*) #i32;
+
+pub foreign fn cilium_raw_ModuleRefTable_get_row(table #ModuleRefTable*, idx #i32, out_row #ModuleRef*) #i32;
+
+pub foreign fn cilium_raw_ModuleRefTable_destroy(table #ModuleRefTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_TypeSpec(assembly #Assembly*, out_table #TypeSpecTable*) #i32;
+
+pub foreign fn cilium_raw_TypeSpecTable_get_row(table #TypeSpecTable*, idx #i32, out_row #TypeSpec*) #i32;
+
+pub foreign fn cilium_raw_TypeSpecTable_destroy(table #TypeSpecTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_ImplMap(assembly #Assembly*, out_table #ImplMapTable*) #i32;
+
+pub foreign fn cilium_raw_ImplMapTable_get_row(table #ImplMapTable*, idx #i32, out_row #ImplMap*) #i32;
+
+pub foreign fn cilium_raw_ImplMapTable_destroy(table #ImplMapTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_FieldRVA(assembly #Assembly*, out_table #FieldRVATable*) #i32;
+
+pub foreign fn cilium_raw_FieldRVATable_get_row(table #FieldRVATable*, idx #i32, out_row #FieldRVA*) #i32;
+
+pub foreign fn cilium_raw_FieldRVATable_destroy(table #FieldRVATable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_Assembly(assembly #Assembly*, out_table #AssemblyTable*) #i32;
+
+pub foreign fn cilium_raw_AssemblyTable_get_row(table #AssemblyTable*, idx #i32, out_row #Assembly*) #i32;
+
+pub foreign fn cilium_raw_AssemblyTable_destroy(table #AssemblyTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_AssemblyRef(assembly #Assembly*, out_table #AssemblyRefTable*) #i32;
+
+pub foreign fn cilium_raw_AssemblyRefTable_get_row(table #AssemblyRefTable*, idx #i32, out_row #AssemblyRef*) #i32;
+
+pub foreign fn cilium_raw_AssemblyRefTable_destroy(table #AssemblyRefTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_File(assembly #Assembly*, out_table #FileTable*) #i32;
+
+pub foreign fn cilium_raw_FileTable_get_row(table #FileTable*, idx #i32, out_row #File*) #i32;
+
+pub foreign fn cilium_raw_FileTable_destroy(table #FileTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_ExportedType(assembly #Assembly*, out_table #ExportedTypeTable*) #i32;
+
+pub foreign fn cilium_raw_ExportedTypeTable_get_row(table #ExportedTypeTable*, idx #i32, out_row #ExportedType*) #i32;
+
+pub foreign fn cilium_raw_ExportedTypeTable_destroy(table #ExportedTypeTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_ManifestResource(assembly #Assembly*, out_table #ManifestResourceTable*) #i32;
+
+pub foreign fn cilium_raw_ManifestResourceTable_get_row(table #ManifestResourceTable*, idx #i32, out_row #ManifestResource*) #i32;
+
+pub foreign fn cilium_raw_ManifestResourceTable_destroy(table #ManifestResourceTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_NestedClass(assembly #Assembly*, out_table #NestedClassTable*) #i32;
+
+pub foreign fn cilium_raw_NestedClassTable_get_row(table #NestedClassTable*, idx #i32, out_row #NestedClass*) #i32;
+
+pub foreign fn cilium_raw_NestedClassTable_destroy(table #NestedClassTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_GenericParam(assembly #Assembly*, out_table #GenericParamTable*) #i32;
+
+pub foreign fn cilium_raw_GenericParamTable_get_row(table #GenericParamTable*, idx #i32, out_row #GenericParam*) #i32;
+
+pub foreign fn cilium_raw_GenericParamTable_destroy(table #GenericParamTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_MethodSpec(assembly #Assembly*, out_table #MethodSpecTable*) #i32;
+
+pub foreign fn cilium_raw_MethodSpecTable_get_row(table #MethodSpecTable*, idx #i32, out_row #MethodSpec*) #i32;
+
+pub foreign fn cilium_raw_MethodSpecTable_destroy(table #MethodSpecTable*) #void;
+
+pub foreign fn cilium_raw_Assembly_get_table_GenericParamConstraint(assembly #Assembly*, out_table #GenericParamConstraintTable*) #i32;
+
+pub foreign fn cilium_raw_GenericParamConstraintTable_get_row(table #GenericParamConstraintTable*, idx #i32, out_row #GenericParamConstraint*) #i32;
+
+pub foreign fn cilium_raw_GenericParamConstraintTable_destroy(table #GenericParamConstraintTable*) #void;
+
+pub foreign fn cilium_raw_PEFile_create(buffer #i32*, len #i32) #PEFile;
+
+pub foreign fn cilium_raw_PEFile_destroy(pe #PEFile) #void;
+
+pub foreign fn cilium_raw_Assembly_create(pe #PEFile) #Assembly*;
+
+pub foreign fn cilium_raw_Assembly_destroy(assembly #Assembly*) #void;
+
+pub foreign fn cilium_raw_Assembly_cli_header(assembly #Assembly*) #CLIHeader;
+
+pub foreign fn cilium_raw_Assembly_get_heap_Blob(assembly #Assembly*) #BlobHeap*;
+
+pub foreign fn cilium_raw_Assembly_get_heap_Guid(assembly #Assembly*) #GuidHeap*;
+
+pub foreign fn cilium_raw_Assembly_get_heap_String(assembly #Assembly*) #StringHeap*;
+
+pub foreign fn cilium_raw_Assembly_get_heap_UserString(assembly #Assembly*) #UserStringHeap*;
+
+pub foreign fn cilium_raw_BlobHeap_get(heap #BlobHeap*, idx #i32, out_blob_ptr #i32**, out_blob_len #i32*) #i32;
+
+pub foreign fn cilium_raw_GuidHeap_get(heap #GuidHeap*, idx #i32, out_guid #i32*) #i32;
+
+pub foreign fn cilium_raw_StringHeap_get(heap #StringHeap*, idx #i32, out_str_ptr #i32**, out_str_len #i32*) #i32;
+
+pub foreign fn cilium_Context_create(paths #i8**, path_count #i32) #Context*;
+
+pub foreign fn cilium_Context_destroy(ctx #Context*) #void;
+
+pub foreign fn cilium_Context_load_assembly(ctx #Context*, path #i8*) #Assembly*;
+
+pub type BlobHeap;
+
+pub type Context;
+
+pub type GuidHeap;
+
+pub type StringHeap;
+
+pub type UserStringHeap;
+
+pub type Vec_Section;
+
+pub type AssemblyFlags {
+    pub _0 #i32;
+}
+
+pub type Assembly {
+    pub hash_algorithm #i32;
+    pub major_version #i32;
+    pub minor_version #i32;
+    pub build_number #i32;
+    pub revision_number #i32;
+    pub flags #AssemblyFlags;
+    pub public_key #i32;
+    pub name #i32;
+    pub culture #i32;
+}
+
+pub type IndexSizes {
+    pub guid #i32;
+    pub blob #i32;
+    pub string #i32;
+    pub coded #[#i32; 14];
+    pub tables #[#i32; 55];
+}
+
+pub type ModuleTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type Module {
+    pub generation #i32;
+    pub name #i32;
+    pub mv_id #i32;
+    pub enc_id #i32;
+    pub enc_base_id #i32;
+}
+
+pub type TypeRefTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type TypeRef {
+    pub resolution_scope #i32;
+    pub name #i32;
+    pub namespace_ #i32;
+}
+
+pub type TypeDefTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type TypeAttributes {
+    pub _0 #i32;
+}
+
+pub type TypeDef {
+    pub flags #TypeAttributes;
+    pub name #i32;
+    pub namespace_ #i32;
+    pub extends #i32;
+    pub field_list #i32;
+    pub method_list #i32;
+}
+
+pub type FieldTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type FieldAttributes {
+    pub _0 #i32;
+}
+
+pub type Field {
+    pub flags #FieldAttributes;
+    pub name #i32;
+    pub signature #i32;
+}
+
+pub type MethodDefTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type MethodAttributes {
+    pub _0 #i32;
+}
+
+pub type MethodDef {
+    pub rva #i32;
+    pub impl_flags #MethodAttributes;
+    pub flags #MethodAttributes;
+    pub name #i32;
+    pub signature #i32;
+    pub param_list #i32;
+}
+
+pub type ParamTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type ParamAttributes {
+    pub _0 #i32;
+}
+
+pub type Param {
+    pub flags #ParamAttributes;
+    pub sequence #i32;
+    pub name #i32;
+}
+
+pub type InterfaceImplTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type InterfaceImpl {
+    pub class_ #i32;
+    pub interface #i32;
+}
+
+pub type MemberRefTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type MemberRef {
+    pub class_ #i32;
+    pub name #i32;
+    pub signature #i32;
+}
+
+pub type ConstantTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type Constant {
+    pub ty #[#i32; 2];
+    pub parent #i32;
+    pub value #i32;
+}
+
+pub type CustomAttributeTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type CustomAttribute {
+    pub parent #i32;
+    pub ty #i32;
+    pub value #i32;
+}
+
+pub type FieldMarshalTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type FieldMarshal {
+    pub parent #i32;
+    pub native_type #i32;
+}
+
+pub type DeclSecurityTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type DeclSecurity {
+    pub action #i32;
+    pub parent #i32;
+    pub permission_set #i32;
+}
+
+pub type ClassLayoutTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type ClassLayout {
+    pub packing_size #i32;
+    pub class_size #i32;
+    pub parent #i32;
+}
+
+pub type FieldLayoutTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type FieldLayout {
+    pub offset #i32;
+    pub field #i32;
+}
+
+pub type StandAloneSigTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type StandAloneSig {
+    pub signature #i32;
+}
+
+pub type EventMapTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type EventMap {
+    pub parent #i32;
+    pub event_list #i32;
+}
+
+pub type EventTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type EventAttributes {
+    pub _0 #i32;
+}
+
+pub type Event {
+    pub flags #EventAttributes;
+    pub name #i32;
+    pub ty #i32;
+}
+
+pub type PropertyMapTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type PropertyMap {
+    pub parent #i32;
+    pub property_list #i32;
+}
+
+pub type PropertyTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type PropertyAttributes {
+    pub _0 #i32;
+}
+
+pub type Property {
+    pub flags #PropertyAttributes;
+    pub name #i32;
+    pub ty #i32;
+}
+
+pub type MethodSemanticsTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type MethodSemanticsAttributes {
+    pub _0 #i32;
+}
+
+pub type MethodSemantics {
+    pub flags #MethodSemanticsAttributes;
+    pub method #i32;
+    pub association #i32;
+}
+
+pub type MethodImplTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type MethodImpl {
+    pub class_ #i32;
+    pub body #i32;
+    pub declaration #i32;
+}
+
+pub type ModuleRefTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type ModuleRef {
+    pub name #i32;
+}
+
+pub type TypeSpecTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type TypeSpec {
+    pub signature #i32;
+}
+
+pub type ImplMapTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type PInvokeAttributes {
+    pub _0 #i32;
+}
+
+pub type ImplMap {
+    pub flags #PInvokeAttributes;
+    pub member_forwarded #i32;
+    pub import_name #i32;
+    pub import_scope #i32;
+}
+
+pub type FieldRVATable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type FieldRVA {
+    pub rva #i32;
+    pub field #i32;
+}
+
+pub type AssemblyTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type AssemblyRefTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type AssemblyRef {
+    pub major_version #i32;
+    pub minor_version #i32;
+    pub build_number #i32;
+    pub revision_number #i32;
+    pub flags #AssemblyFlags;
+    pub public_key #i32;
+    pub name #i32;
+    pub culture #i32;
+    pub hash_value #i32;
+}
+
+pub type FileTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type FileAttributes {
+    pub _0 #i32;
+}
+
+pub type File {
+    pub flags #FileAttributes;
+    pub name #i32;
+    pub hash_value #i32;
+}
+
+pub type ExportedTypeTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type ExportedType {
+    pub flags #TypeAttributes;
+    pub type_def #i32;
+    pub name #i32;
+    pub namespace_ #i32;
+    pub implementation #i32;
+}
+
+pub type ManifestResourceTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type ManifestResourceAttributes {
+    pub _0 #i32;
+}
+
+pub type ManifestResource {
+    pub offset #i32;
+    pub flags #ManifestResourceAttributes;
+    pub name #i32;
+    pub implementation #i32;
+}
+
+pub type NestedClassTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type NestedClass {
+    pub nested_class #i32;
+    pub enclosing_class #i32;
+}
+
+pub type GenericParamTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type GenericParamAttributes {
+    pub _0 #i32;
+}
+
+pub type GenericParam {
+    pub number #i32;
+    pub flags #GenericParamAttributes;
+    pub owner #i32;
+    pub name #i32;
+}
+
+pub type MethodSpecTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type MethodSpec {
+    pub method #i32;
+    pub instantiation #i32;
+}
+
+pub type GenericParamConstraintTable {
+    pub len #i32;
+    pub row_size #i32;
+    pub data #i32*;
+    pub data_len #i32;
+    pub idx_sizes #IndexSizes*;
+}
+
+pub type GenericParamConstraint {
+    pub owner #i32;
+    pub constraint #i32;
+}
+
+pub type DOSHeader {
+    pub magic #i32;
+    pub last_page_bytes #i32;
+    pub file_pages #i32;
+    pub relocations #i32;
+    pub header_size #i32;
+    pub min_alloc #i32;
+    pub max_alloc #i32;
+    pub ss #i32;
+    pub sp #i32;
+    pub checksum #i32;
+    pub ip #i32;
+    pub cs #i32;
+    pub relocation_table_address #i32;
+    pub overlay_number #i32;
+    pub reserved #[#i32; 4];
+    pub oem_id #i32;
+    pub oem_info #i32;
+    pub reserved_2 #[#i32; 10];
+    pub new_header_start #i32;
+}
+
+pub type ImageFileHeader {
+    pub machine #i32;
+    pub number_of_sections #i32;
+    pub time_date_stamp #i32;
+    pub pointer_to_symbol_table #i32;
+    pub number_of_symbols #i32;
+    pub size_of_optional_header #i32;
+    pub characteristics #i32;
+}
+
+pub type DataDirectory {
+    pub virtual_address #i32;
+    pub size #i32;
+}
+
+pub type ImageOptionalHeader32 {
+    pub magic #i32;
+    pub major_linker_version #i32;
+    pub minor_linker_version #i32;
+    pub size_of_code #i32;
+    pub size_of_initialized_data #i32;
+    pub size_of_uninitialized_data #i32;
+    pub address_of_entry_point #i32;
+    pub base_of_code #i32;
+    pub base_of_data #i32;
+    pub image_base #i32;
+    pub section_alignment #i32;
+    pub file_alignment #i32;
+    pub major_operating_system_version #i32;
+    pub minor_operating_system_version #i32;
+    pub major_image_version #i32;
+    pub minor_image_version #i32;
+    pub major_subsystem_version #i32;
+    pub minor_subsystem_version #i32;
+    pub win32_version_value #i32;
+    pub size_of_image #i32;
+    pub size_of_headers #i32;
+    pub check_sum #i32;
+    pub subsystem #i32;
+    pub dll_characteristics #i32;
+    pub size_of_stack_reserve #i32;
+    pub size_of_stack_commit #i32;
+    pub size_of_heap_reserve #i32;
+    pub size_of_heap_commit #i32;
+    pub loader_flags #i32;
+    pub number_of_rva_and_sizes #i32;
+    pub data_directories #[#DataDirectory; 16];
+}
+
+pub type ImageOptionalHeader64 {
+    pub magic #i32;
+    pub major_linker_version #i32;
+    pub minor_linker_version #i32;
+    pub size_of_code #i32;
+    pub size_of_initialized_data #i32;
+    pub size_of_uninitialized_data #i32;
+    pub address_of_entry_point #i32;
+    pub base_of_code #i32;
+    pub image_base #i32;
+    pub section_alignment #i32;
+    pub file_alignment #i32;
+    pub major_operating_system_version #i32;
+    pub minor_operating_system_version #i32;
+    pub major_image_version #i32;
+    pub minor_image_version #i32;
+    pub major_subsystem_version #i32;
+    pub minor_subsystem_version #i32;
+    pub win32_version_value #i32;
+    pub size_of_image #i32;
+    pub size_of_headers #i32;
+    pub check_sum #i32;
+    pub subsystem #i32;
+    pub dll_characteristics #i32;
+    pub size_of_stack_reserve #i32;
+    pub size_of_stack_commit #i32;
+    pub size_of_heap_reserve #i32;
+    pub size_of_heap_commit #i32;
+    pub loader_flags #i32;
+    pub number_of_rva_and_sizes #i32;
+    pub data_directories #[#DataDirectory; 16];
+}
+
+pub type ImageOptionalHeader {
+    pub tag #i32;
+}
+
+pub type PEHeader {
+    pub magic #i32;
+    pub image_file_header #ImageFileHeader;
+    pub image_optional_header #ImageOptionalHeader;
+}
+
+pub type PEFile {
+    pub dos_header #DOSHeader;
+    pub pe_header #PEHeader;
+    pub sections #Vec_Section;
+}
+
+pub type RuntimeFlags {
+    pub _0 #i32;
+}
+
+pub type CLIHeader {
+    pub size_in_bytes #i32;
+    pub major_runtime_version #i32;
+    pub minot_runtime_version #i32;
+    pub metadata #DataDirectory;
+    pub flags #RuntimeFlags;
+    pub entry_point_token #i32;
+    pub resources #DataDirectory;
+    pub strong_name_signature #i32;
+    pub code_manager_table #i32;
+    pub v_table_fixups #i32;
+    pub export_address_table_jumps #i32;
+    pub managed_native_header #i32;
+}
+
+pub enum AssemblyHashAlgorithm {
+    None = 0,
+    MD5 = 32771,
+    SHA1 = 32772,
+    SHA256 = 32780,
+    SHA384 = 32781,
+    SHA512 = 32782,
+}
+
+pub enum ImageOptionalHeader_Tag {
+    PE32 = 267,
+    PE64 = 523,
+}
+

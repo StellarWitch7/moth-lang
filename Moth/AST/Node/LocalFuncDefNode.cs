@@ -12,7 +12,11 @@ public class LocalFuncDefNode : ExpressionNode
     public List<ParameterNode> Params { get; set; }
     public ScopeNode ExecutionBlock { get; set; }
 
-    public LocalFuncDefNode(TypeRefNode returnTypeRef, List<ParameterNode> @params, ScopeNode executionBlock)
+    public LocalFuncDefNode(
+        TypeRefNode returnTypeRef,
+        List<ParameterNode> @params,
+        ScopeNode executionBlock
+    )
     {
         ReturnTypeRef = returnTypeRef;
         Params = @params;

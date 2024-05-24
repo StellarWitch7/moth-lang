@@ -6,10 +6,11 @@ namespace Moth.LLVM;
 public class ImplicitConversionTable
 {
     protected LLVMCompiler _compiler;
-    private Dictionary<Type, Func<Value, Value>> _converters = new Dictionary<Type, Func<Value, Value>>();
+    private Dictionary<Type, Func<Value, Value>> _converters =
+        new Dictionary<Type, Func<Value, Value>>();
 
     public ImplicitConversionTable(LLVMCompiler compiler) => _compiler = compiler;
-    
+
     public virtual bool Contains(Type key)
     {
         return _converters.ContainsKey(key);

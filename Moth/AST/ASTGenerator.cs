@@ -1,10 +1,10 @@
-﻿using Moth.AST.Node;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Xml;
+using Moth.AST.Node;
 using Moth.LLVM;
 using Moth.LLVM.Data;
 using Moth.Tokens;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Xml;
 
 namespace Moth.AST;
 
@@ -25,7 +25,7 @@ public static class ASTGenerator
         {
             context.MoveNext();
             @namespace = ProcessNamespace(context);
-            
+
             if (context.Current?.Type != TokenType.Semicolon)
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
 
@@ -50,7 +50,10 @@ public static class ASTGenerator
                     imports.Add(ProcessNamespace(context));
 
                     if (context.Current?.Type != TokenType.Semicolon)
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                        throw new UnexpectedTokenException(
+                            context.Current.Value,
+                            TokenType.Semicolon
+                        );
 
                     context.MoveNext();
                     break;
@@ -59,7 +62,9 @@ public static class ASTGenerator
                     var trait = ProcessTypeRef(context);
 
                     if (trait.PointerDepth != 0)
-                        throw new Exception($"Cannot implement {trait.ToString()} as it is a pointer.");
+                        throw new Exception(
+                            $"Cannot implement {trait.ToString()} as it is a pointer."
+                        );
 
                     if (context.Current?.Type != TokenType.For)
                         throw new UnexpectedTokenException(context.Current.Value, TokenType.For);
@@ -68,30 +73,35 @@ public static class ASTGenerator
                     var type = ProcessTypeRef(context);
 
                     if (type.PointerDepth != 0)
-                        throw new Exception($"Cannot implement {type.ToString()} as it is a pointer.");
-                    
+                        throw new Exception(
+                            $"Cannot implement {type.ToString()} as it is a pointer."
+                        );
+
                     var scope = ProcessScope(context, true);
 
                     foreach (var statement in scope.Statements)
                     {
                         if (statement is not FuncDefNode fnDef)
                         {
-                            throw new Exception($"Trait implementation contains non-function definition.");
+                            throw new Exception(
+                                $"Trait implementation contains non-function definition."
+                            );
                         }
 
-                        var error = $"Implementation \"{fnDef.Name}\" of trait \"{trait.Name}\" for type \"{type.Name}\"";
+                        var error =
+                            $"Implementation \"{fnDef.Name}\" of trait \"{trait.Name}\" for type \"{type.Name}\"";
                         fnDef.Privacy = PrivacyType.Pub;
-                            
+
                         if (fnDef.IsStatic)
                             throw new Exception($"{error} cannot be static.");
-                            
+
                         if (fnDef.IsForeign)
                             throw new Exception($"{error} cannot be foreign.");
 
                         if (fnDef.ExecutionBlock == null)
                             throw new Exception($"{error} cannot be unimplemented.");
                     }
-                    
+
                     implements.Add(new ImplementNode(type, trait, scope));
                     break;
                 default:
@@ -141,7 +151,7 @@ public static class ASTGenerator
             lastNmspace = nmspace;
             context.MoveNext();
         }
-        
+
         while (context.Current != null)
         {
             switch (context.Current?.Type)
@@ -157,10 +167,12 @@ public static class ASTGenerator
                     }
                     else
                     {
-                        lastNmspace.Child = new NamespaceNode(context.Current.Value.Text.ToString());
+                        lastNmspace.Child = new NamespaceNode(
+                            context.Current.Value.Text.ToString()
+                        );
                         lastNmspace = lastNmspace.Child;
                     }
-                    
+
                     context.MoveNext();
                     break;
                 default:
@@ -171,13 +183,17 @@ public static class ASTGenerator
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    public static TraitNode ProcessTraitDef(ParseContext context, PrivacyType privacy, List<AttributeNode> attributes)
+    public static TraitNode ProcessTraitDef(
+        ParseContext context,
+        PrivacyType privacy,
+        List<AttributeNode> attributes
+    )
     {
         if (context.MoveNext()?.Type == TokenType.Name)
         {
             string name = context.Current.Value.Text.ToString();
             context.MoveNext();
-            
+
             if (context.Current?.Type == TokenType.LesserThan)
             {
                 throw new NotImplementedException();
@@ -217,17 +233,17 @@ public static class ASTGenerator
 
                     var error = $"Definition \"{fnDef.Name}\" of trait \"{name}\"";
                     fnDef.Privacy = PrivacyType.Pub;
-                            
+
                     if (fnDef.IsStatic)
                         throw new Exception($"{error} cannot be static.");
-                            
+
                     if (fnDef.IsForeign)
                         throw new Exception($"{error} cannot be foreign.");
 
                     if (fnDef.ExecutionBlock != null)
                         throw new Exception($"{error} must be unimplemented.");
                 }
-                
+
                 return new TraitNode(name, privacy, scope, attributes);
             }
         }
@@ -236,14 +252,19 @@ public static class ASTGenerator
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
     }
-    
-    public static TypeNode ProcessTypeDef(ParseContext context, PrivacyType privacy, bool isUnion, List<AttributeNode> attributes)
+
+    public static TypeNode ProcessTypeDef(
+        ParseContext context,
+        PrivacyType privacy,
+        bool isUnion,
+        List<AttributeNode> attributes
+    )
     {
         if (context.MoveNext()?.Type == TokenType.Name)
         {
             string name = context.Current.Value.Text.ToString();
             context.MoveNext();
-            
+
             if (context.Current?.Type == TokenType.LesserThan)
             {
                 var @params = new List<TemplateParameterNode>();
@@ -261,8 +282,19 @@ public static class ASTGenerator
                     {
                         return context.Current?.Type == TokenType.GreaterThan
                             ? context.MoveNext()?.Type == TokenType.OpeningCurlyBraces
-                                ? (TypeNode)new TypeTemplateNode(name, privacy, @params, ProcessScope(context, true), isUnion, attributes)
-                                : throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces)
+                                ? (TypeNode)
+                                    new TypeTemplateNode(
+                                        name,
+                                        privacy,
+                                        @params,
+                                        ProcessScope(context, true),
+                                        isUnion,
+                                        attributes
+                                    )
+                                : throw new UnexpectedTokenException(
+                                    context.Current.Value,
+                                    TokenType.OpeningCurlyBraces
+                                )
                             : throw new UnexpectedTokenException(context.Current.Value);
                     }
                 }
@@ -276,7 +308,13 @@ public static class ASTGenerator
             }
             else
             {
-                return new TypeNode(name, privacy, ProcessScope(context, true), isUnion, attributes);
+                return new TypeNode(
+                    name,
+                    privacy,
+                    ProcessScope(context, true),
+                    isUnion,
+                    attributes
+                );
             }
         }
         else
@@ -348,7 +386,10 @@ public static class ASTGenerator
 
                         if (context.Current?.Type != TokenType.ClosingCurlyBraces)
                         {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingCurlyBraces);
+                            throw new UnexpectedTokenException(
+                                context.Current.Value,
+                                TokenType.ClosingCurlyBraces
+                            );
                         }
 
                         goto case TokenType.ClosingCurlyBraces;
@@ -376,7 +417,10 @@ public static class ASTGenerator
                         }
                         else
                         {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+                            throw new UnexpectedTokenException(
+                                context.Current.Value,
+                                TokenType.Semicolon
+                            );
                         }
                 }
             }
@@ -388,11 +432,11 @@ public static class ASTGenerator
     private static ExpressionNode ProcessIncrementDecrement(ParseContext context)
     {
         var type = (TokenType)(context.Current?.Type);
-        
+
         context.MoveNext();
-        
+
         var value = ProcessExpression(context);
-        
+
         return type == TokenType.Increment
             ? new IncrementVarNode(value)
             : new DecrementVarNode(value);
@@ -422,11 +466,17 @@ public static class ASTGenerator
                 if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                 {
                     context.MoveNext();
-                    return new AttributeNode(name, ProcessArgs(context, TokenType.ClosingParentheses));
+                    return new AttributeNode(
+                        name,
+                        ProcessArgs(context, TokenType.ClosingParentheses)
+                    );
                 }
                 else
                 {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
+                    throw new UnexpectedTokenException(
+                        context.Current.Value,
+                        TokenType.OpeningParentheses
+                    );
                 }
             }
             else
@@ -442,34 +492,43 @@ public static class ASTGenerator
         throw new NotImplementedException();
     }
 
-    public static StatementNode ProcessDefinition(ParseContext context, List<AttributeNode>? attributes)
+    public static StatementNode ProcessDefinition(
+        ParseContext context,
+        List<AttributeNode>? attributes
+    )
     {
         PrivacyType privacy = PrivacyType.Priv;
         bool isForeign = false;
         bool isStatic = false;
         bool isUnion = false;
-        
-        while (context.Current?.Type == TokenType.Public
+
+        while (
+            context.Current?.Type == TokenType.Public
             || context.Current?.Type == TokenType.Foreign
             || context.Current?.Type == TokenType.Static
-            || context.Current?.Type == TokenType.Union)
+            || context.Current?.Type == TokenType.Union
+        )
         {
             switch (context.Current?.Type)
             {
                 case TokenType.Public:
-                    if (privacy != PrivacyType.Priv) throw new UnexpectedTokenException(context.Current.Value);
+                    if (privacy != PrivacyType.Priv)
+                        throw new UnexpectedTokenException(context.Current.Value);
                     privacy = PrivacyType.Pub;
                     break;
                 case TokenType.Foreign:
-                    if (isForeign) throw new UnexpectedTokenException(context.Current.Value);
+                    if (isForeign)
+                        throw new UnexpectedTokenException(context.Current.Value);
                     isForeign = true;
                     break;
                 case TokenType.Static:
-                    if (isStatic) throw new UnexpectedTokenException(context.Current.Value);
+                    if (isStatic)
+                        throw new UnexpectedTokenException(context.Current.Value);
                     isStatic = true;
                     break;
                 case TokenType.Union:
-                    if (isUnion) throw new UnexpectedTokenException(context.Current.Value);
+                    if (isUnion)
+                        throw new UnexpectedTokenException(context.Current.Value);
                     isUnion = true;
                     break;
                 default:
@@ -499,17 +558,21 @@ public static class ASTGenerator
             if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string name = context.Current.Value.Text.ToString();
-                
+
                 if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                 {
                     context.MoveNext();
-                    List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
-                    TypeRefNode retTypeRef = context.Current?.Type == TokenType.OpeningCurlyBraces
+                    List<ParameterNode> @params = ProcessParameterList(
+                        context,
+                        out bool isVariadic
+                    );
+                    TypeRefNode retTypeRef =
+                        context.Current?.Type == TokenType.OpeningCurlyBraces
                         || context.Current?.Type == TokenType.Semicolon
                             ? new TypeRefNode(Reserved.Void, 0, false)
                             : ProcessTypeRef(context);
                     ScopeNode scope;
-                        
+
                     if (context.Current?.Type == TokenType.Semicolon)
                     {
                         context.MoveNext();
@@ -519,8 +582,9 @@ public static class ASTGenerator
                     {
                         scope = ProcessScope(context);
                     }
-                        
-                    return new FuncDefNode(name,
+
+                    return new FuncDefNode(
+                        name,
                         privacy,
                         retTypeRef,
                         @params,
@@ -528,11 +592,15 @@ public static class ASTGenerator
                         isVariadic,
                         isStatic,
                         isForeign,
-                        attributes);
+                        attributes
+                    );
                 }
                 else
                 {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
+                    throw new UnexpectedTokenException(
+                        context.Current.Value,
+                        TokenType.OpeningParentheses
+                    );
                 }
             }
             else
@@ -551,7 +619,15 @@ public static class ASTGenerator
                 if (context.Current?.Type == TokenType.Semicolon)
                 {
                     context.MoveNext();
-                    return new GlobalVarNode(name, typeRef, privacy, false/*TODO*/, isForeign, attributes);
+                    return new GlobalVarNode(
+                        name,
+                        typeRef,
+                        privacy,
+                        false /*TODO*/
+                        ,
+                        isForeign,
+                        attributes
+                    );
                 }
                 else
                 {
@@ -585,14 +661,18 @@ public static class ASTGenerator
         }
     }
 
-    public static EnumNode ProcessEnumDef(ParseContext context, PrivacyType privacy, List<AttributeNode> attributes)
+    public static EnumNode ProcessEnumDef(
+        ParseContext context,
+        PrivacyType privacy,
+        List<AttributeNode> attributes
+    )
     {
         if (context.Current?.Type != TokenType.Enum)
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Enum);
 
         if (context.MoveNext()?.Type != TokenType.Name)
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-        
+
         string name = context.Current.Value.Text.ToString();
 
         if (context.MoveNext()?.Type != TokenType.OpeningCurlyBraces)
@@ -600,12 +680,12 @@ public static class ASTGenerator
 
         var enumFlags = new List<EnumFlagNode>();
         ulong index = 0;
-        
+
         while (context.Current != null)
         {
             if (context.MoveNext()?.Type != TokenType.Name)
                 break;
-            
+
             string entryName = context.Current.Value.Text.ToString();
 
             if (context.MoveNext()?.Type == TokenType.Assign)
@@ -616,9 +696,9 @@ public static class ASTGenerator
                 }
                 else
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.LiteralInt);
-            
+
             enumFlags.Add(new EnumFlagNode(entryName, index));
-            
+
             if (context.Current?.Type != TokenType.Comma)
                 break;
         }
@@ -632,8 +712,11 @@ public static class ASTGenerator
         context.MoveNext();
         return new EnumNode(name, privacy, enumFlags, ProcessScope(context, true), attributes);
     }
-    
-    public static List<ParameterNode> ProcessParameterList(ParseContext context, out bool isVariadic)
+
+    public static List<ParameterNode> ProcessParameterList(
+        ParseContext context,
+        out bool isVariadic
+    )
     {
         var @params = new List<ParameterNode>();
         isVariadic = false;
@@ -657,7 +740,10 @@ public static class ASTGenerator
 
                         if (context.Current?.Type != TokenType.ClosingParentheses)
                         {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+                            throw new UnexpectedTokenException(
+                                context.Current.Value,
+                                TokenType.ClosingParentheses
+                            );
                         }
                     }
                     else if (param != null)
@@ -717,10 +803,12 @@ public static class ASTGenerator
             if (context.MoveNext()?.Type == TokenType.If)
             {
                 context.MoveNext();
-                return new ScopeNode(new List<StatementNode>
-                {
-                    ProcessIf(context) //TODO: this does not work in compilation
-                });
+                return new ScopeNode(
+                    new List<StatementNode>
+                    {
+                        ProcessIf(context) //TODO: this does not work in compilation
+                    }
+                );
             }
             else
             {
@@ -771,14 +859,17 @@ public static class ASTGenerator
             {
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
             }
-            
+
             string retTypeName = context.Current.Value.Text.ToString();
             uint pointerDepth = 0;
             bool isRef = false;
 
             context.MoveNext();
-            
-            while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
+
+            while (
+                context.Current?.Type == TokenType.Asterix
+                || context.Current?.Type == TokenType.Ampersand
+            )
             {
                 if (context.Current?.Type == TokenType.Ampersand)
                 {
@@ -786,7 +877,7 @@ public static class ASTGenerator
                     context.MoveNext();
                     break;
                 }
-                
+
                 pointerDepth++;
                 context.MoveNext();
             }
@@ -797,7 +888,7 @@ public static class ASTGenerator
         {
             NamespaceNode nmspace = null;
             bool b = false;
-            
+
             if (context.Current?.Type != TokenType.TypeRef)
             {
                 nmspace = ProcessNamespace(context);
@@ -806,7 +897,7 @@ public static class ASTGenerator
 
             if (context.Current?.Type != TokenType.TypeRef)
                 throw new UnexpectedTokenException(context.Current.Value, TokenType.TypeRef);
-            
+
             if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
@@ -820,8 +911,7 @@ public static class ASTGenerator
 
                     while (context.Current?.Type != TokenType.GreaterThan)
                     {
-                        if (context.Current?.Type is TokenType.TypeRef
-                            or TokenType.TemplateTypeRef)
+                        if (context.Current?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef)
                         {
                             genericParams.Add(ProcessTypeRef(context));
                         }
@@ -832,7 +922,10 @@ public static class ASTGenerator
 
                             if (context.Current?.Type != TokenType.ClosingParentheses)
                             {
-                                throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+                                throw new UnexpectedTokenException(
+                                    context.Current.Value,
+                                    TokenType.ClosingParentheses
+                                );
                             }
 
                             context.MoveNext();
@@ -855,7 +948,10 @@ public static class ASTGenerator
                     context.MoveNext();
                 }
 
-                while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
+                while (
+                    context.Current?.Type == TokenType.Asterix
+                    || context.Current?.Type == TokenType.Ampersand
+                )
                 {
                     if (context.Current?.Type == TokenType.Ampersand)
                     {
@@ -863,14 +959,15 @@ public static class ASTGenerator
                         context.MoveNext();
                         break;
                     }
-                
+
                     pointerDepth++;
                     context.MoveNext();
                 }
 
-                var retVal = genericParams.Count != 0
-                    ? new TemplateTypeRefNode(retTypeName, genericParams, pointerDepth, isRef)
-                    : new TypeRefNode(retTypeName, pointerDepth, isRef);
+                var retVal =
+                    genericParams.Count != 0
+                        ? new TemplateTypeRefNode(retTypeName, genericParams, pointerDepth, isRef)
+                        : new TypeRefNode(retTypeName, pointerDepth, isRef);
                 if (b)
                     retVal.Namespace = nmspace;
                 return retVal;
@@ -881,7 +978,7 @@ public static class ASTGenerator
                 uint pointerDepth = 0;
                 bool isRef = false;
                 TypeRefNode retType;
-                
+
                 while (context.MoveNext()?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef)
                 {
                     @params.Add(ProcessTypeRef(context));
@@ -892,13 +989,19 @@ public static class ASTGenerator
                     }
                     else if (context.Current?.Type != TokenType.Comma)
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
+                        throw new UnexpectedTokenException(
+                            context.Current.Value,
+                            TokenType.ClosingParentheses
+                        );
                     }
                 }
 
                 context.MoveNext();
-                
-                while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
+
+                while (
+                    context.Current?.Type == TokenType.Asterix
+                    || context.Current?.Type == TokenType.Ampersand
+                )
                 {
                     if (context.Current?.Type == TokenType.Ampersand)
                     {
@@ -906,7 +1009,7 @@ public static class ASTGenerator
                         context.MoveNext();
                         break;
                     }
-                
+
                     pointerDepth++;
                     context.MoveNext();
                 }
@@ -925,7 +1028,7 @@ public static class ASTGenerator
             {
                 uint pointerDepth = 0;
                 bool isRef = false;
-                
+
                 if (!(context.MoveNext()?.Type is TokenType.TypeRef or TokenType.TemplateTypeRef))
                 {
                     throw new UnexpectedTokenException(context.Current.Value);
@@ -935,12 +1038,18 @@ public static class ASTGenerator
 
                 if (context.Current?.Type != TokenType.ClosingSquareBrackets)
                 {
-                    throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
+                    throw new UnexpectedTokenException(
+                        context.Current.Value,
+                        TokenType.ClosingSquareBrackets
+                    );
                 }
 
                 context.MoveNext();
-                
-                while (context.Current?.Type == TokenType.Asterix || context.Current?.Type == TokenType.Ampersand)
+
+                while (
+                    context.Current?.Type == TokenType.Asterix
+                    || context.Current?.Type == TokenType.Ampersand
+                )
                 {
                     if (context.Current?.Type == TokenType.Ampersand)
                     {
@@ -948,7 +1057,7 @@ public static class ASTGenerator
                         context.MoveNext();
                         break;
                     }
-                
+
                     pointerDepth++;
                     context.MoveNext();
                 }
@@ -965,54 +1074,62 @@ public static class ASTGenerator
     public static ExpressionNode ProcessExpression(ParseContext context, bool nullAllowed = false)
     {
         Stack<ExpressionNode> stack = new Stack<ExpressionNode>();
-        
+
         while (context.Current != null)
         {
             switch (context.Current?.Type)
             {
                 case TokenType.OpeningParentheses:
-                    {
-                        context.MoveNext();
-                        var newNode = new SubExprNode(ProcessExpression(context));
+                {
+                    context.MoveNext();
+                    var newNode = new SubExprNode(ProcessExpression(context));
 
-                        if (context.Current?.Type != TokenType.ClosingParentheses)
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingParentheses);
-                        }
-                        
-                        if (stack.Count > 0 && stack.Peek() is TypeRefNode typeRef)
-                        {
-                            stack.Pop();
-                            stack.Push(new CastNode(typeRef, newNode));
-                        }
-                        else
-                        {
-                            stack.Push(newNode);
-                        }
-                        
-                        context.MoveNext();
-                        break;
-                    }
-                case TokenType.OpeningSquareBrackets:
+                    if (context.Current?.Type != TokenType.ClosingParentheses)
                     {
-                        if (stack.Count == 0)
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-                        
-                        if (stack.Peek() is TypeRefNode typeRef)
-                        {
-                            stack.Pop();
-                            stack.Push(ProcessLiteralArray(context, typeRef));
-                        }
-                        else
-                        {
-                            context.MoveNext();
-                            stack.Push(new IndexAccessNode(stack.Pop(), ProcessArgs(context, TokenType.ClosingSquareBrackets)));
-                        }
-                        
-                        break;
+                        throw new UnexpectedTokenException(
+                            context.Current.Value,
+                            TokenType.ClosingParentheses
+                        );
                     }
+
+                    if (stack.Count > 0 && stack.Peek() is TypeRefNode typeRef)
+                    {
+                        stack.Pop();
+                        stack.Push(new CastNode(typeRef, newNode));
+                    }
+                    else
+                    {
+                        stack.Push(newNode);
+                    }
+
+                    context.MoveNext();
+                    break;
+                }
+                case TokenType.OpeningSquareBrackets:
+                {
+                    if (stack.Count == 0)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
+
+                    if (stack.Peek() is TypeRefNode typeRef)
+                    {
+                        stack.Pop();
+                        stack.Push(ProcessLiteralArray(context, typeRef));
+                    }
+                    else
+                    {
+                        context.MoveNext();
+                        stack.Push(
+                            new IndexAccessNode(
+                                stack.Pop(),
+                                ProcessArgs(context, TokenType.ClosingSquareBrackets)
+                            )
+                        );
+                    }
+
+                    break;
+                }
                 case TokenType.LiteralFloat:
                     stack.Push(new LiteralNode(float.Parse(context.Current.Value.Text.Span)));
                     context.MoveNext();
@@ -1049,13 +1166,18 @@ public static class ASTGenerator
                     if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                     {
                         context.MoveNext();
-                        List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
+                        List<ParameterNode> @params = ProcessParameterList(
+                            context,
+                            out bool isVariadic
+                        );
                         TypeRefNode retType = ProcessTypeRef(context);
 
                         if (isVariadic)
                         {
-                            throw new Exception($"{new UnexpectedTokenException(context.Previous().Value).Message}" +
-                                $"\nCannot have a variadic locally-defined function.");
+                            throw new Exception(
+                                $"{new UnexpectedTokenException(context.Previous().Value).Message}"
+                                    + $"\nCannot have a variadic locally-defined function."
+                            );
                         }
 
                         if (context.Current?.Type == TokenType.OpeningCurlyBraces)
@@ -1065,12 +1187,18 @@ public static class ASTGenerator
                         }
                         else
                         {
-                            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningCurlyBraces);
+                            throw new UnexpectedTokenException(
+                                context.Current.Value,
+                                TokenType.OpeningCurlyBraces
+                            );
                         }
                     }
                     else
                     {
-                        throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningParentheses);
+                        throw new UnexpectedTokenException(
+                            context.Current.Value,
+                            TokenType.OpeningParentheses
+                        );
                     }
 
                     break;
@@ -1094,7 +1222,7 @@ public static class ASTGenerator
                 case TokenType.Period:
                     if (stack.Count == 0)
                         throw new UnexpectedTokenException(context.Current.Value);
-                    
+
                     if (context.MoveNext()?.Type == TokenType.Name)
                     {
                         string name = context.Current.Value.Text.ToString();
@@ -1102,13 +1230,19 @@ public static class ASTGenerator
                         if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                         {
                             context.MoveNext();
-                            stack.Push(new FuncCallNode(name, ProcessArgs(context, TokenType.ClosingParentheses), stack.Pop()));
+                            stack.Push(
+                                new FuncCallNode(
+                                    name,
+                                    ProcessArgs(context, TokenType.ClosingParentheses),
+                                    stack.Pop()
+                                )
+                            );
                         }
                         else
                         {
                             stack.Push(new RefNode(name, stack.Pop()));
                         }
-                        
+
                         break;
                     }
                     else
@@ -1160,32 +1294,32 @@ public static class ASTGenerator
                     stack.Push(new InlineIfNode(condition, then, @else));
                     break;
                 case TokenType.Hyphen:
-                    {
-                        if (stack.Count != 0
-                            && stack.Peek() is not BinaryOperationNode)
-                        {
-                            goto case TokenType.Assign;
-                        }
-
-                        var newNode = new BinaryOperationNode(new LiteralNode(-1), OperationType.Multiplication);
-
-                        if (stack.Count != 0
-                            && stack.Peek() is BinaryOperationNode lastBinOp)
-                        {
-                            lastBinOp.Right = newNode;
-                        }
-                        
-                        context.MoveNext();
-                        stack.Push(newNode);
-                        break;
-                    }
-                case TokenType.Asterix:
-                    if (stack.Count != 0
-                        && stack.Peek() is not BinaryOperationNode)
+                {
+                    if (stack.Count != 0 && stack.Peek() is not BinaryOperationNode)
                     {
                         goto case TokenType.Assign;
                     }
-                    
+
+                    var newNode = new BinaryOperationNode(
+                        new LiteralNode(-1),
+                        OperationType.Multiplication
+                    );
+
+                    if (stack.Count != 0 && stack.Peek() is BinaryOperationNode lastBinOp)
+                    {
+                        lastBinOp.Right = newNode;
+                    }
+
+                    context.MoveNext();
+                    stack.Push(newNode);
+                    break;
+                }
+                case TokenType.Asterix:
+                    if (stack.Count != 0 && stack.Peek() is not BinaryOperationNode)
+                    {
+                        goto case TokenType.Assign;
+                    }
+
                     context.MoveNext();
                     stack.Push(new DeRefNode(ProcessExpression(context)));
                     break;
@@ -1202,71 +1336,71 @@ public static class ASTGenerator
                 case TokenType.LesserThanOrEqual:
                 case TokenType.Or:
                 case TokenType.And:
+                {
+                    OperationType opType = TokenToOpType(context, context.Current?.Type);
+
+                    if (stack.Count == 0)
                     {
-                        OperationType opType = TokenToOpType(context, context.Current?.Type);
+                        throw new UnexpectedTokenException(context.Current.Value);
+                    }
 
-                        if (stack.Count == 0)
+                    var contestedExpr = stack.Pop();
+
+                    if (stack.Count > 0 && stack.Peek() is BinaryOperationNode lastBinOp)
+                    {
+                        if (GetOpPriority(opType) > GetOpPriority(lastBinOp.Type))
                         {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-                        
-                        var contestedExpr = stack.Pop();
-
-                        if (stack.Count > 0 && stack.Peek() is BinaryOperationNode lastBinOp)
-                        {
-                            if (GetOpPriority(opType) > GetOpPriority(lastBinOp.Type))
-                            {
-                                var newNode = new BinaryOperationNode(contestedExpr, opType);
-                                lastBinOp.Right = newNode;
-                                stack.Push(newNode);
-                            }
-                            else
-                            {
-                                lastBinOp.Right = contestedExpr;
-                                stack.Pop();
-                                
-                                var newNode = new BinaryOperationNode(lastBinOp, opType);
-
-                                if (stack.Count > 0 && stack.Peek() is BinaryOperationNode parent)
-                                {
-                                    parent.Right = newNode;
-                                }
-                                
-                                stack.Push(newNode);
-                            }
+                            var newNode = new BinaryOperationNode(contestedExpr, opType);
+                            lastBinOp.Right = newNode;
+                            stack.Push(newNode);
                         }
                         else
                         {
-                            stack.Push(new BinaryOperationNode(contestedExpr, opType));
-                        }
+                            lastBinOp.Right = contestedExpr;
+                            stack.Pop();
 
-                        context.MoveNext();
-                        break;
+                            var newNode = new BinaryOperationNode(lastBinOp, opType);
+
+                            if (stack.Count > 0 && stack.Peek() is BinaryOperationNode parent)
+                            {
+                                parent.Right = newNode;
+                            }
+
+                            stack.Push(newNode);
+                        }
                     }
+                    else
+                    {
+                        stack.Push(new BinaryOperationNode(contestedExpr, opType));
+                    }
+
+                    context.MoveNext();
+                    break;
+                }
                 case TokenType.AddAssign:
                 case TokenType.SubAssign:
                 case TokenType.MulAssign:
                 case TokenType.DivAssign:
                 case TokenType.ModAssign:
                 case TokenType.ExpAssign:
-                    {
-                        OperationType opType = TokenToOpType(context, context.Current?.Type);
+                {
+                    OperationType opType = TokenToOpType(context, context.Current?.Type);
 
-                        if (stack.Count == 0)
-                        {
-                            throw new UnexpectedTokenException(context.Current.Value);
-                        }
-                        
-                        var newNode = new BinaryOperationNode(stack.Peek(), OperationType.Assignment);
-                        var newNode2 = new BinaryOperationNode(stack.Peek(), opType);
-                        
-                        context.MoveNext();
-                        newNode.Right = newNode2;
-                        newNode2.Right = ProcessExpression(context);
-                        stack.Pop();
-                        stack.Push(newNode);
-                        break;
+                    if (stack.Count == 0)
+                    {
+                        throw new UnexpectedTokenException(context.Current.Value);
                     }
+
+                    var newNode = new BinaryOperationNode(stack.Peek(), OperationType.Assignment);
+                    var newNode2 = new BinaryOperationNode(stack.Peek(), opType);
+
+                    context.MoveNext();
+                    newNode.Right = newNode2;
+                    newNode2.Right = ProcessExpression(context);
+                    stack.Pop();
+                    stack.Push(newNode);
+                    break;
+                }
                 // case TokenType.ScientificNotation:
                 //     context.MoveNext();
                 //     lastCreatedNode = new BinaryOperationNode(lastCreatedNode,
@@ -1291,25 +1425,31 @@ public static class ASTGenerator
                 case TokenType.TypeRef:
                     if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
                         throw new UnexpectedTokenException(context.Current.Value);
-                    
+
                     stack.Push(ProcessTypeRef(context));
                     break;
                 case TokenType.Name:
+                {
+                    string name = context.Current.Value.Text.ToString();
+
+                    if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
                     {
-                        string name = context.Current.Value.Text.ToString();
-
-                        if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
-                        {
-                            context.MoveNext();
-                            stack.Push(new FuncCallNode(name, ProcessArgs(context, TokenType.ClosingParentheses), null));
-                        }
-                        else
-                        {
-                            stack.Push(new RefNode(name, null));
-                        }
-
-                        break;
+                        context.MoveNext();
+                        stack.Push(
+                            new FuncCallNode(
+                                name,
+                                ProcessArgs(context, TokenType.ClosingParentheses),
+                                null
+                            )
+                        );
                     }
+                    else
+                    {
+                        stack.Push(new RefNode(name, null));
+                    }
+
+                    break;
+                }
                 case TokenType.This:
                     if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
                         throw new UnexpectedTokenException(context.Current.Value);
@@ -1336,7 +1476,7 @@ public static class ASTGenerator
                             stack.Push(latest);
                         }
                     }
-                    
+
                     return stack.Last();
             }
         }
@@ -1373,18 +1513,24 @@ public static class ASTGenerator
         };
     }
 
-    public static LiteralArrayNode ProcessLiteralArray(ParseContext context, TypeRefNode elementType)
+    public static LiteralArrayNode ProcessLiteralArray(
+        ParseContext context,
+        TypeRefNode elementType
+    )
     {
         var elements = new List<ExpressionNode>();
-        
+
         if (context.Current?.Type != TokenType.OpeningSquareBrackets)
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.OpeningSquareBrackets);
+            throw new UnexpectedTokenException(
+                context.Current.Value,
+                TokenType.OpeningSquareBrackets
+            );
         }
 
         context.MoveNext();
         bool b = true;
-            
+
         while (b)
         {
             switch (context.Current?.Type)
@@ -1403,7 +1549,10 @@ public static class ASTGenerator
 
         if (context.Current?.Type != TokenType.ClosingSquareBrackets)
         {
-            throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingSquareBrackets);
+            throw new UnexpectedTokenException(
+                context.Current.Value,
+                TokenType.ClosingSquareBrackets
+            );
         }
 
         context.MoveNext();
@@ -1415,19 +1564,16 @@ public static class ASTGenerator
         return operationType switch
         {
             OperationType.Exponential => 5,
-            OperationType.Modulus
-                or OperationType.Multiplication
-                or OperationType.Division => 4,
-            OperationType.Addition
-                or OperationType.Subtraction => 3,
+            OperationType.Modulus or OperationType.Multiplication or OperationType.Division => 4,
+            OperationType.Addition or OperationType.Subtraction => 3,
             OperationType.Equal
-                or OperationType.NotEqual
-                or OperationType.LesserThanOrEqual
-                or OperationType.GreaterThanOrEqual
-                or OperationType.LesserThan
-                or OperationType.GreaterThan => 2,
-            OperationType.Or
-                or OperationType.And => 1,
+            or OperationType.NotEqual
+            or OperationType.LesserThanOrEqual
+            or OperationType.GreaterThanOrEqual
+            or OperationType.LesserThan
+            or OperationType.GreaterThan
+                => 2,
+            OperationType.Or or OperationType.And => 1,
             _ => 0,
         };
     }

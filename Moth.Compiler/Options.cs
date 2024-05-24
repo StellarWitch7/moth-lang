@@ -1,53 +1,59 @@
-﻿using CommandLine;
-using System.ComponentModel.Design.Serialization;
+﻿using System.ComponentModel.Design.Serialization;
+using CommandLine;
 
 namespace Moth.Compiler;
 
 internal class Options
 {
-    [Option('v',
-        "verbose",
-        Required = false,
-        HelpText = "Whether to include extensive logging.")]
+    [Option('v', "verbose", Required = false, HelpText = "Whether to include extensive logging.")]
     public bool Verbose { get; set; }
 
-    [Option('n',
+    [Option(
+        'n',
         "no-meta",
         Required = false,
-        HelpText = "Whether to strip metadata from the output file. WARNING: disables reflection!")]
+        HelpText = "Whether to strip metadata from the output file. WARNING: disables reflection!"
+    )]
     public bool NoMetadata { get; set; }
 
-    [Option("no-advanced-ir-opt",
+    [Option(
+        "no-advanced-ir-opt",
         Required = false,
-        HelpText = "Whether to forego advanced optimizations to the IR.")]
+        HelpText = "Whether to forego advanced optimizations to the IR."
+    )]
     public bool DoNotOptimizeIR { get; set; }
 
-    [Option('o',
+    [Option(
+        'o',
         "output-file",
         Required = true,
-        HelpText = "The name of the file to output. Please forego the extension.")]
+        HelpText = "The name of the file to output. Please forego the extension."
+    )]
     public string? OutputFile { get; set; }
 
-    [Option('i',
-        "input",
-        Required = true,
-        HelpText = "The files to compile.")]
+    [Option('i', "input", Required = true, HelpText = "The files to compile.")]
     public IEnumerable<string>? InputFiles { get; set; }
 
-    [Option('t',
+    [Option(
+        't',
         "output-type",
         Required = true,
-        HelpText = "The type of file to output. Options are \"exe\" and \"lib\".")]
+        HelpText = "The type of file to output. Options are \"exe\" and \"lib\"."
+    )]
     public string OutputType { get; set; }
-    
-    [Option("moth-libs",
+
+    [Option(
+        "moth-libs",
         Required = false,
-        HelpText = "External Moth library files to include in the compiled program.")]
+        HelpText = "External Moth library files to include in the compiled program."
+    )]
     public IEnumerable<string>? MothLibraryFiles { get; set; }
-    
-    [Option("c-libs",
+
+    [Option(
+        "c-libs",
         Required = false,
-        HelpText = "External C library files to include in the compiled program.")]
+        HelpText = "External C library files to include in the compiled program."
+    )]
     public IEnumerable<string>? CLibraryFiles { get; set; }
 }
 

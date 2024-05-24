@@ -3,14 +3,15 @@
 public class ConstVar : Variable
 {
     private bool _hasNoValue = true;
-    
-    public ConstVar(string name, VarType type, LLVMValueRef llvmVariable) : base(name, type, llvmVariable) { }
 
-    public override Pointer Store(LLVMCompiler compiler, Value value)
+    public ConstVar(LLVMCompiler compiler, string name, VarType type, LLVMValueRef llvmVariable)
+        : base(compiler, name, type, llvmVariable) { }
+
+    public override Pointer Store(Value value)
     {
         if (_hasNoValue)
         {
-            return base.Store(compiler, value);
+            return base.Store(value);
             _hasNoValue = false;
         }
         else

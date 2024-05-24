@@ -6,7 +6,13 @@ public class TraitNode : DefinitionNode
     public PrivacyType Privacy { get; set; }
     public ScopeNode Scope { get; set; }
 
-    public TraitNode(string name, PrivacyType privacy, ScopeNode scope, List<AttributeNode> attributes) : base(attributes)
+    public TraitNode(
+        string name,
+        PrivacyType privacy,
+        ScopeNode scope,
+        List<AttributeNode> attributes
+    )
+        : base(attributes)
     {
         Name = name;
         Privacy = privacy;

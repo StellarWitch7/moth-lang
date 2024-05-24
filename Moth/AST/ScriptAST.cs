@@ -14,14 +14,16 @@ public class ScriptAST : ASTNode
     public List<GlobalVarNode> GlobalVariables { get; }
     public List<ImplementNode> ImplementNodes { get; }
 
-    public ScriptAST(NamespaceNode @namespace,
+    public ScriptAST(
+        NamespaceNode @namespace,
         List<NamespaceNode> imports,
         List<TypeNode> typeNodes,
         List<EnumNode> enumNodes,
         List<TraitNode> traitNodes,
         List<FuncDefNode> globalFuncs,
         List<GlobalVarNode> globalVariables,
-        List<ImplementNode> implementNodes)
+        List<ImplementNode> implementNodes
+    )
     {
         Namespace = @namespace;
         Imports = imports;

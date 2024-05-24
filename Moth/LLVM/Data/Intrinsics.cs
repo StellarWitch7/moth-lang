@@ -8,26 +8,31 @@ public abstract class IntrinsicOperator : IntrinsicFunction
     protected PrimitiveStructDecl LeftStructDecl { get; }
     protected PrimitiveStructDecl RightStructDecl { get; }
 
-    public IntrinsicOperator(LLVMCompiler compiler,
+    public IntrinsicOperator(
+        LLVMCompiler compiler,
         OperationType opType,
         PrimitiveStructDecl retStructDecl,
         PrimitiveStructDecl leftStructDecl,
-        PrimitiveStructDecl rightStructDecl)
-        : base(compiler, Utils.ExpandOpName(Utils.OpTypeToString(opType)),
-            new FuncType(retStructDecl,
-                new Type[]
-                {
-                    new PtrType(leftStructDecl),
-                    rightStructDecl
-                },
-                false))
+        PrimitiveStructDecl rightStructDecl
+    )
+        : base(
+            compiler,
+            Utils.ExpandOpName(Utils.OpTypeToString(opType)),
+            new FuncType(
+                compiler,
+                retStructDecl,
+                new Type[] { new PtrType(compiler, leftStructDecl), rightStructDecl },
+                false
+            )
+        )
     {
         RetStructDecl = retStructDecl;
         LeftStructDecl = leftStructDecl;
         RightStructDecl = rightStructDecl;
     }
-    
-    protected override LLVMValueRef GenerateLLVMData() => throw new NotImplementedException("Intrinsic operator does not return function.");
+
+    protected override LLVMValueRef GenerateLLVMData() =>
+        throw new NotImplementedException("Intrinsic operator does not return function.");
 
     public override Value Call(Value[] args)
     {
@@ -36,7 +41,7 @@ public abstract class IntrinsicOperator : IntrinsicFunction
             throw new Exception("Intrinsic operator must be called with exactly two arguments.");
         }
 
-        var leftVal = args[0].DeRef(_compiler);
+        var leftVal = args[0].DeRef();
         var rightVal = args[1];
 
         if (!leftVal.Type.Equals(LeftStructDecl))
@@ -51,28 +56,30 @@ public abstract class IntrinsicOperator : IntrinsicFunction
 
         if (rightVal.Type.CanConvertTo(leftVal.Type))
         {
-            rightVal = rightVal.ImplicitConvertTo(_compiler, leftVal.Type);
+            rightVal = rightVal.ImplicitConvertTo(leftVal.Type);
         }
         else if (leftVal.Type.CanConvertTo(rightVal.Type))
         {
-            leftVal = leftVal.ImplicitConvertTo(_compiler, rightVal.Type);
+            leftVal = leftVal.ImplicitConvertTo(rightVal.Type);
         }
         else
         {
-            throw new Exception("Intrinsic operator's operand type cannot be made to match using implicit conversions.");
+            throw new Exception(
+                "Intrinsic operator's operand type cannot be made to match using implicit conversions."
+            );
         }
-        
+
         var leftType = leftVal.Type;
         var rightType = rightVal.Type;
         LLVMValueRef value;
 
         if (leftType is Float)
         {
-            value = OpFloat(_compiler, leftVal, rightVal);
+            value = OpFloat(leftVal, rightVal);
         }
         else if (leftType is Int)
         {
-            value = OpInt(_compiler, leftVal, rightVal);
+            value = OpInt(leftVal, rightVal);
         }
         else
         {
@@ -82,17 +89,17 @@ public abstract class IntrinsicOperator : IntrinsicFunction
         return Value.Create(_compiler, RetStructDecl, value);
     }
 
-    protected abstract LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal);
-    protected abstract LLVMValueRef OpInt(LLVMCompiler compiler, Value leftVal, Value rightVal);
+    protected abstract LLVMValueRef OpFloat(Value leftVal, Value rightVal);
+    protected abstract LLVMValueRef OpInt(Value leftVal, Value rightVal);
 }
 
 public sealed class ConstRetFn : IntrinsicFunction
 {
     private Value _value { get; }
     private LLVMModuleRef _module { get; }
-    
+
     public ConstRetFn(LLVMCompiler compiler, string name, Value value, LLVMModuleRef module)
-        : base(compiler, name, new FuncType(value.Type, new Type[]{}, false))
+        : base(compiler, name, new FuncType(compiler, value.Type, new Type[] { }, false))
     {
         if (!value.LLVMValue.IsConstant)
         {
@@ -121,12 +128,19 @@ public sealed class Pow : IntrinsicFunction
 {
     private LLVMModuleRef _module { get; }
 
-    public Pow(LLVMCompiler compiler, string name, LLVMModuleRef module, Type retType, Type left, Type right)
-        : base(compiler, name, new FuncType(retType, new Type[] { left, right }, false))
+    public Pow(
+        LLVMCompiler compiler,
+        string name,
+        LLVMModuleRef module,
+        Type retType,
+        Type left,
+        Type right
+    )
+        : base(compiler, name, new FuncType(compiler, retType, new Type[] { left, right }, false))
     {
         _module = module;
     }
-    
+
     protected override LLVMValueRef GenerateLLVMData()
     {
         try

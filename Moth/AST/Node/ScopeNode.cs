@@ -15,7 +15,7 @@ public class ScopeNode : StatementNode
             string s = $"\n{statement.GetSource()}";
             builder.Append(s.Replace("\n", "\n    "));
         }
-        
+
         builder.Append("\n}");
         return builder.ToString();
     }

@@ -5,7 +5,12 @@ public class FuncTypeRefNode : TypeRefNode
     public TypeRefNode ReturnType { get; set; }
     public List<TypeRefNode> ParameterTypes { get; set; }
 
-    public FuncTypeRefNode(TypeRefNode retType, List<TypeRefNode> @params, uint pointerDepth, bool isRef)
+    public FuncTypeRefNode(
+        TypeRefNode retType,
+        List<TypeRefNode> @params,
+        uint pointerDepth,
+        bool isRef
+    )
         : base(null, pointerDepth, isRef)
     {
         ReturnType = retType;
@@ -28,7 +33,7 @@ public class FuncTypeRefNode : TypeRefNode
 
         if (builder.Length > 1)
             builder.Remove(builder.Length - 2, 2);
-        
+
         builder.Append(")");
         return builder.ToString();
     }

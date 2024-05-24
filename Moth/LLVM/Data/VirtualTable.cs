@@ -3,15 +3,16 @@ namespace Moth.LLVM.Data;
 public class VTableDef : ICompilerData
 {
     public bool IsExternal { get; init; }
-    protected Dictionary<AspectMethod, LLVMValueRef> Table { get; } = new Dictionary<AspectMethod, LLVMValueRef>();
-    protected int Count { get => Table.Count; }
-    
+    protected Dictionary<AspectMethod, LLVMValueRef> Table { get; } =
+        new Dictionary<AspectMethod, LLVMValueRef>();
+    protected int Count
+    {
+        get => Table.Count;
+    }
+
     public LLVMValueRef[] GetIndex(AspectMethod funcDef)
     {
-        return new LLVMValueRef[]
-        {
-            Table[funcDef]
-        };
+        return new LLVMValueRef[] { Table[funcDef] };
     }
 
     public void Add(AspectMethod funcDef)
@@ -29,6 +30,5 @@ public class VTableInst //TODO: compiler data?
     public VTableInst(VTableDef definition)
     {
         Definition = definition;
-        
     }
 }

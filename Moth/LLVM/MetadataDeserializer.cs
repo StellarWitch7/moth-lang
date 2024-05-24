@@ -1,6 +1,6 @@
+using System.Text.RegularExpressions;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
-using System.Text.RegularExpressions;
 using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM; //TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
@@ -20,112 +20,144 @@ public unsafe class MetadataDeserializer
     private Metadata.ParamType[] _paramTypes;
     private byte[] _typeRefs;
     private byte[] _names;
-    
+
     public MetadataDeserializer(LLVMCompiler compiler, MemoryStream bytes)
     {
         _compiler = compiler;
         _bytes = bytes;
     }
-    
+
     public void Process(string libName)
     {
         var version = new Metadata.Version();
-        _bytes.ReadExactly(new Span<byte>((byte*) &version, sizeof(Metadata.Version)));
+        _bytes.ReadExactly(new Span<byte>((byte*)&version, sizeof(Metadata.Version)));
         _version = version;
 
         if (_version.Major != Meta.Version.Major)
         {
-            throw new Exception($"Cannot load libary \"{libName}\" due to mismatched major version!" +
-                $"\nCompiler: {Meta.Version}" +
-                $"\n{libName}: {_version}");
+            throw new Exception(
+                $"Cannot load libary \"{libName}\" due to mismatched major version!"
+                    + $"\nCompiler: {Meta.Version}"
+                    + $"\n{libName}: {_version}"
+            );
         }
 
         if (_version.Minor != Meta.Version.Minor)
         {
-            _compiler.Warn($"Library \"{libName}\" has mismatched minor version." +
-                $"\nCompiler: {Meta.Version}" +
-                $"\n{libName}: {_version}");
+            _compiler.Warn(
+                $"Library \"{libName}\" has mismatched minor version."
+                    + $"\nCompiler: {Meta.Version}"
+                    + $"\n{libName}: {_version}"
+            );
         }
 
         var header = new Metadata.Header();
         _bytes.ReadExactly(new Span<byte>(&header, sizeof(Metadata.Header)));
         _header = header;
-        
-        _types = new Metadata.Type[(int)((_header.field_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.Type))];
-        
+
+        _types = new Metadata.Type[
+            (int)(
+                (_header.field_table_offset - (ulong)_bytes.Position) / (uint)sizeof(Metadata.Type)
+            )
+        ];
+
         fixed (Metadata.Type* ptr = _types)
         {
             _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Type) * _types.Length));
         }
 
-        _fields = new Metadata.Field[(int)((_header.function_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.Type))];
-        
+        _fields = new Metadata.Field[
+            (int)(
+                (_header.function_table_offset - (ulong)_bytes.Position)
+                / (uint)sizeof(Metadata.Type)
+            )
+        ];
+
         fixed (Metadata.Field* ptr = _fields)
         {
             _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Field) * _fields.Length));
         }
-        
-        _functions = new Metadata.Function[(int)((_header.global_variable_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.Function))];
-        
+
+        _functions = new Metadata.Function[
+            (int)(
+                (_header.global_variable_table_offset - (ulong)_bytes.Position)
+                / (uint)sizeof(Metadata.Function)
+            )
+        ];
+
         fixed (Metadata.Function* ptr = _functions)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Length));
+            _bytes.ReadExactly(
+                new Span<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Length)
+            );
         }
-        
-        _globals = new Metadata.Global[(int)((_header.functype_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.Global))];
-        
+
+        _globals = new Metadata.Global[
+            (int)(
+                (_header.functype_table_offset - (ulong)_bytes.Position)
+                / (uint)sizeof(Metadata.Global)
+            )
+        ];
+
         fixed (Metadata.Global* ptr = _globals)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Global) * _globals.Length));
+            _bytes.ReadExactly(
+                new Span<byte>((byte*)ptr, sizeof(Metadata.Global) * _globals.Length)
+            );
         }
-        
-        _funcTypes = new Metadata.FuncType[(int)((_header.param_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.FuncType))];
-        
+
+        _funcTypes = new Metadata.FuncType[
+            (int)(
+                (_header.param_table_offset - (ulong)_bytes.Position)
+                / (uint)sizeof(Metadata.FuncType)
+            )
+        ];
+
         fixed (Metadata.FuncType* ptr = _funcTypes)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.FuncType) * _funcTypes.Length));
+            _bytes.ReadExactly(
+                new Span<byte>((byte*)ptr, sizeof(Metadata.FuncType) * _funcTypes.Length)
+            );
         }
-        
-        _parameters = new Metadata.Parameter[(int)((_header.paramtype_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.Parameter))];
-        
+
+        _parameters = new Metadata.Parameter[
+            (int)(
+                (_header.paramtype_table_offset - (ulong)_bytes.Position)
+                / (uint)sizeof(Metadata.Parameter)
+            )
+        ];
+
         fixed (Metadata.Parameter* ptr = _parameters)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Parameter) * _parameters.Length));
+            _bytes.ReadExactly(
+                new Span<byte>((byte*)ptr, sizeof(Metadata.Parameter) * _parameters.Length)
+            );
         }
-        
-        _paramTypes = new Metadata.ParamType[(int)((_header.typeref_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(Metadata.ParamType))];
-        
+
+        _paramTypes = new Metadata.ParamType[
+            (int)(
+                (_header.typeref_table_offset - (ulong)_bytes.Position)
+                / (uint)sizeof(Metadata.ParamType)
+            )
+        ];
+
         fixed (Metadata.ParamType* ptr = _paramTypes)
         {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.ParamType) * _paramTypes.Length));
+            _bytes.ReadExactly(
+                new Span<byte>((byte*)ptr, sizeof(Metadata.ParamType) * _paramTypes.Length)
+            );
         }
-        
-        _typeRefs = new byte[(int)((_header.name_table_offset
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(byte))];
-        
+
+        _typeRefs = new byte[
+            (int)((_header.name_table_offset - (ulong)_bytes.Position) / (uint)sizeof(byte))
+        ];
+
         fixed (byte* ptr = _typeRefs)
         {
             _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(byte) * _typeRefs.Length));
         }
-        
-        _names = new byte[(int)((_header.size
-                - (ulong)_bytes.Position)
-            / (uint)sizeof(byte))];
+
+        _names = new byte[(int)((_header.size - (ulong)_bytes.Position) / (uint)sizeof(byte))];
 
         fixed (byte* ptr = _names)
         {
@@ -136,7 +168,7 @@ public unsafe class MetadataDeserializer
         {
             throw new Exception($"Failed to read the entirety of the metadata for \"{libName}\".");
         }
-        
+
         foreach (var type in _types)
         {
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
@@ -145,31 +177,35 @@ public unsafe class MetadataDeserializer
 
             if (type.is_foreign)
             {
-                result = new OpaqueStructDecl(_compiler,
+                result = new OpaqueStructDecl(
+                    _compiler,
                     parent,
                     name,
                     type.privacy,
                     type.is_union,
-                    new Dictionary<string, IAttribute>())
+                    new Dictionary<string, IAttribute>()
+                )
                 {
                     IsExternal = true
                 };
             }
             else
             {
-                result = new StructDecl(_compiler,
+                result = new StructDecl(
+                    _compiler,
                     parent,
                     name,
-                    _compiler.Context.CreateNamedStruct(fullname),
                     type.privacy,
                     type.is_union,
-                    new Dictionary<string, IAttribute>())
+                    new Dictionary<string, IAttribute>(),
+                    _compiler.Context.CreateNamedStruct(fullname)
+                )
                 {
                     IsExternal = true
                 };
-                result.AddBuiltins(_compiler);
+                result.AddBuiltins();
             }
-            
+
             parent.Types.Add(name, result);
         }
 
@@ -178,31 +214,37 @@ public unsafe class MetadataDeserializer
             var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
             var parent = GetNamespace(fullname);
             var result = parent.Types[name];
-            var fields = GetFields(type.field_table_index, type.field_table_length);
-            result.LLVMType.StructSetBody(fields.AsLLVMTypes(), false);
+
+            if (result is StructDecl structDecl)
+            {
+                var fields = GetFields(structDecl, type.field_table_index, type.field_table_length);
+                result.LLVMType.StructSetBody(fields.AsLLVMTypes(), false);
+            }
         }
 
         foreach (var func in _functions)
         {
-            var name = TrimSigFromName(GetName(func.name_table_index, func.name_table_length, out string fullname));
+            var name = TrimSigFromName(
+                GetName(func.name_table_index, func.name_table_length, out string fullname)
+            );
             var parentNmspace = GetNamespace(fullname);
             var overloadList = new OverloadList(name);
             IContainer parent;
 
-            if (TryGetStructByString(fullname, out StructDecl @struct))
+            if (TryGetTypeDeclByString(fullname, out TypeDecl typeDecl))
             {
                 if (func.is_method)
                 {
-                    @struct.Methods.TryAdd(name, overloadList);
-                    overloadList = @struct.Methods[name];
+                    typeDecl.Methods.TryAdd(name, overloadList);
+                    overloadList = typeDecl.Methods[name];
                 }
                 else
                 {
-                    @struct.StaticMethods.TryAdd(name, overloadList);
-                    overloadList = @struct.StaticMethods[name];
+                    typeDecl.StaticMethods.TryAdd(name, overloadList);
+                    overloadList = typeDecl.StaticMethods[name];
                 }
-                
-                parent = @struct;
+
+                parent = typeDecl;
             }
             else
             {
@@ -210,19 +252,23 @@ public unsafe class MetadataDeserializer
                 overloadList = parentNmspace.Functions[name];
                 parent = parentNmspace;
             }
-            
 
-            var funcType = GetType(func.typeref_table_index, func.typeref_table_length) is FuncType fnType
+            var funcType = GetType(func.typeref_table_index, func.typeref_table_length)
+                is FuncType fnType
                 ? fnType
-                : throw new Exception("Internal error: function type in metadata is not a valid function type.");
-            Function result = new DefinedFunction(_compiler,
+                : throw new Exception(
+                    "Internal error: function type in metadata is not a valid function type."
+                );
+            Function result = new DefinedFunction(
+                _compiler,
                 parent,
                 fullname,
                 funcType,
                 null,
                 func.privacy,
                 true,
-                new Dictionary<string, IAttribute>())
+                new Dictionary<string, IAttribute>()
+            )
             {
                 IsExternal = true
             };
@@ -231,25 +277,35 @@ public unsafe class MetadataDeserializer
 
         foreach (var global in _globals)
         {
-            var name = GetName(global.name_table_index, global.name_table_length, out string fullname);
+            var name = GetName(
+                global.name_table_index,
+                global.name_table_length,
+                out string fullname
+            );
             var nmspace = GetNamespace(fullname);
             var type = GetType(global.typeref_table_index, global.typeref_table_length);
             IGlobal result = global.is_constant
-                ? new GlobalConstant(nmspace,
+                ? new GlobalConstant(
+                    _compiler,
+                    nmspace,
                     name,
-                    new VarType(type),
+                    new VarType(_compiler, type),
                     _compiler.Module.AddGlobal(type.LLVMType, fullname),
                     new Dictionary<string, IAttribute>(),
-                    global.privacy)
+                    global.privacy
+                )
                 {
                     IsExternal = true
                 }
-                : new GlobalVariable(nmspace,
+                : new GlobalVariable(
+                    _compiler,
+                    nmspace,
                     name,
-                    new VarType(type),
+                    new VarType(_compiler, type),
                     _compiler.Module.AddGlobal(type.LLVMType, fullname),
                     new Dictionary<string, IAttribute>(),
-                    global.privacy)
+                    global.privacy
+                )
                 {
                     IsExternal = true
                 };
@@ -257,18 +313,18 @@ public unsafe class MetadataDeserializer
         }
     }
 
-    private bool TryGetStructByString(string fullname, out StructDecl structDecl)
+    private bool TryGetTypeDeclByString(string fullname, out TypeDecl typeDecl)
     {
         var match = Regex.Match(fullname, "#(.*)\\.");
 
         if (!match.Success)
         {
-            structDecl = null;
+            typeDecl = null;
             return false;
         }
 
         var nmspace = GetNamespace(fullname);
-        structDecl = nmspace.Types[match.Groups[1].Value];
+        typeDecl = nmspace.Types[match.Groups[1].Value];
         return true;
     }
 
@@ -302,16 +358,20 @@ public unsafe class MetadataDeserializer
         return match.Value;
     }
 
-    private Field[] GetFields(ulong index, ulong length)
+    private Field[] GetFields(StructDecl structDecl, ulong index, ulong length)
     {
         var result = new List<Field>();
-        
+
         for (ulong i = 0; i < length; i++)
         {
             var field = _fields[index + i];
-            var name = GetName(field.name_table_index, field.name_table_length, out string fullname);
+            var name = GetName(
+                field.name_table_index,
+                field.name_table_length,
+                out string fullname
+            );
             var typeref = GetType(field.typeref_table_index, field.typeref_table_length);
-            result.Add(new Field(name, (uint)i, typeref, field.privacy));
+            result.Add(new Field(_compiler, structDecl, name, (uint)i, typeref, field.privacy));
         }
 
         return result.ToArray();
@@ -321,64 +381,98 @@ public unsafe class MetadataDeserializer
     {
         var ptrOrRef = new List<bool>();
         Type result = null;
-        
+
         for (ulong i = 0; i < length; i++)
         {
             switch ((Metadata.TypeTag)_typeRefs[index + i])
             {
                 case Metadata.TypeTag.Type:
+                {
+                    var bytes = new MemoryStream(
+                        _typeRefs,
+                        (int)(index + i + 1),
+                        sizeof(ulong),
+                        false
+                    );
+                    ulong typeIndex;
+
+                    bytes.ReadExactly(new Span<byte>((byte*)&typeIndex, sizeof(ulong)));
+                    i += sizeof(ulong);
+
+                    var type = _types[typeIndex];
+                    var name = GetName(
+                        type.name_table_index,
+                        type.name_table_length,
+                        out string fullname
+                    );
+                    var nmspace = GetNamespace(fullname);
+                    StructDecl newStructDecl;
+
+                    if (type.is_foreign)
                     {
-                        var bytes = new MemoryStream(_typeRefs, (int)(index + i + 1), sizeof(ulong), false);
-                        ulong typeIndex;
-                    
-                        bytes.ReadExactly(new Span<byte>((byte*)&typeIndex, sizeof(ulong)));
-                        i += sizeof(ulong);
-                    
-                        var type = _types[typeIndex];
-                        var name = GetName(type.name_table_index, type.name_table_length, out string fullname);
-                        var nmspace = GetNamespace(fullname);
-                        var fields = GetFields(type.field_table_index, type.field_table_length);
-                        StructDecl newStructDecl;
-                    
-                        if (type.is_foreign)
-                        {
-                            newStructDecl = new OpaqueStructDecl(_compiler,
-                                nmspace,
-                                name,
-                                type.privacy,
-                                type.is_union,
-                                new Dictionary<string, IAttribute>());
-                        }
-                        else
-                        {
-                            newStructDecl = new StructDecl(_compiler,
-                                nmspace,
-                                name,
-                                LLVMTypeRef.CreateStruct(fields.AsLLVMTypes(), false),
-                                type.privacy,
-                                type.is_union,
-                                new Dictionary<string, IAttribute>());
-                        }
-                    
-                        nmspace.Types.TryAdd(name, newStructDecl);
-                        result = newStructDecl;
-                        break;
+                        newStructDecl = new OpaqueStructDecl(
+                            _compiler,
+                            nmspace,
+                            name,
+                            type.privacy,
+                            type.is_union,
+                            new Dictionary<string, IAttribute>()
+                        );
                     }
+                    else
+                    {
+                        newStructDecl = new StructDecl(
+                            _compiler,
+                            nmspace,
+                            name,
+                            type.privacy,
+                            type.is_union,
+                            new Dictionary<string, IAttribute>(),
+                            (
+                                decl =>
+                                    LLVMTypeRef.CreateStruct(
+                                        GetFields(
+                                                decl as StructDecl,
+                                                type.field_table_index,
+                                                type.field_table_length
+                                            )
+                                            .AsLLVMTypes(),
+                                        false
+                                    )
+                            )
+                        );
+                    }
+
+                    nmspace.Types.TryAdd(name, newStructDecl);
+                    result = newStructDecl;
+                    break;
+                }
                 case Metadata.TypeTag.FuncType:
-                    {
-                        var bytes = new MemoryStream(_typeRefs, (int)(index + i + 1), sizeof(ulong), false);
-                        ulong typeIndex;
-                    
-                        bytes.ReadExactly(new Span<byte>((byte*)&typeIndex, sizeof(ulong)));
-                        i += sizeof(ulong);
-                    
-                        var type = _funcTypes[typeIndex];
-                        var retType = GetType(type.return_typeref_table_index, type.return_typeref_table_length);
-                        var paramTypes = GetParamTypes(type.paramtype_table_index, type.paramtype_table_length);
-                        
-                        result = new FuncType(retType, paramTypes, type.is_variadic);
-                        break;
-                    }
+                {
+                    var bytes = new MemoryStream(
+                        _typeRefs,
+                        (int)(index + i + 1),
+                        sizeof(ulong),
+                        false
+                    );
+                    ulong typeIndex;
+
+                    bytes.ReadExactly(new Span<byte>((byte*)&typeIndex, sizeof(ulong)));
+                    i += sizeof(ulong);
+
+                    var type = _funcTypes[typeIndex];
+                    var retType = GetType(
+                        type.return_typeref_table_index,
+                        type.return_typeref_table_length
+                    );
+                    var paramTypes = GetParamTypes(
+                        type.paramtype_table_index,
+                        type.paramtype_table_length
+                    );
+
+                    result = new FuncType(_compiler, retType, paramTypes, type.is_variadic);
+                    break;
+                }
                 case Metadata.TypeTag.Pointer:
                     ptrOrRef.Add(false);
                     break;
@@ -386,40 +480,40 @@ public unsafe class MetadataDeserializer
                     ptrOrRef.Add(true);
                     break;
                 case Metadata.TypeTag.Void:
-                    result = Primitives.Void;
+                    result = _compiler.Void;
                     break;
                 case Metadata.TypeTag.Bool:
-                    result = Primitives.Bool;
+                    result = _compiler.Bool;
                     break;
                 case Metadata.TypeTag.UInt8:
-                    result = Primitives.UInt8;
+                    result = _compiler.UInt8;
                     break;
                 case Metadata.TypeTag.UInt16:
-                    result = Primitives.UInt16;
+                    result = _compiler.UInt16;
                     break;
                 case Metadata.TypeTag.UInt32:
-                    result = Primitives.UInt32;
+                    result = _compiler.UInt32;
                     break;
                 case Metadata.TypeTag.UInt64:
-                    result = Primitives.UInt64;
+                    result = _compiler.UInt64;
                     break;
                 case Metadata.TypeTag.Int16:
-                    result = Primitives.Int16;
+                    result = _compiler.Int16;
                     break;
                 case Metadata.TypeTag.Int32:
-                    result = Primitives.Int32;
+                    result = _compiler.Int32;
                     break;
                 case Metadata.TypeTag.Int64:
-                    result = Primitives.Int64;
+                    result = _compiler.Int64;
                     break;
                 case Metadata.TypeTag.Float16:
-                    result = Primitives.Float16;
+                    result = _compiler.Float16;
                     break;
                 case Metadata.TypeTag.Float32:
-                    result = Primitives.Float32;
+                    result = _compiler.Float32;
                     break;
                 case Metadata.TypeTag.Float64:
-                    result = Primitives.Float64;
+                    result = _compiler.Float64;
                     break;
                 default:
                     throw new NotImplementedException("Type cannot be read.");
@@ -433,7 +527,7 @@ public unsafe class MetadataDeserializer
 
         foreach (var b in ptrOrRef)
         {
-            result = b ? new RefType(result) : result = new PtrType(result);
+            result = b ? new RefType(_compiler, result) : result = new PtrType(_compiler, result);
         }
 
         return result;
@@ -451,14 +545,14 @@ public unsafe class MetadataDeserializer
 
         return types;
     }
-    
+
     private Namespace GetNamespace(string fullname)
     {
         var match = Regex.Match(fullname, "(?<=root::)[a-zA-Z_:]+");
-        
+
         if (!match.Success)
             throw new Exception("Failed to get namespace from metadata, it may be corrupt.");
-        
+
         var cleanName = match.Value;
         NamespaceNode nmspace = null;
         NamespaceNode lastNmspace = null;
@@ -476,7 +570,7 @@ public unsafe class MetadataDeserializer
                 lastNmspace = lastNmspace.Child;
             }
         }
-        
+
         return _compiler.ResolveNamespace(nmspace);
     }
 }

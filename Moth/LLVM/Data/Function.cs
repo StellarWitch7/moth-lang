@@ -8,7 +8,8 @@ public class Function : Value
     public Parameter[] Params { get; }
     public Scope? OpeningScope { get; set; }
 
-    public Function(LLVMCompiler compiler, FuncType type, LLVMValueRef value, Parameter[] @params) : base(compiler, type, value)
+    public Function(LLVMCompiler compiler, FuncType type, LLVMValueRef value, Parameter[] @params)
+        : base(compiler, type, value)
     {
         Type = type;
         Params = @params;
@@ -16,61 +17,40 @@ public class Function : Value
 
     public string Name
     {
-        get
-        {
-            return this is DefinedFunction definedFunc ? definedFunc.Name : "N/A";
-        }
+        get { return this is DefinedFunction definedFunc ? definedFunc.Name : "N/A"; }
     }
 
     public string FullName
     {
-        get
-        {
-            return this is DefinedFunction definedFunc ? definedFunc.FullName : "N/A";
-        }
+        get { return this is DefinedFunction definedFunc ? definedFunc.FullName : "N/A"; }
     }
-    
+
     public Type ReturnType
     {
-        get
-        {
-            return Type.ReturnType;
-        }
+        get { return Type.ReturnType; }
     }
 
     public Type[] ParameterTypes
     {
-        get
-        {
-            return Type.ParameterTypes;
-        }
+        get { return Type.ParameterTypes; }
     }
 
     public bool IsVariadic
     {
-        get
-        {
-            return Type.IsVariadic;
-        }
+        get { return Type.IsVariadic; }
     }
-    
+
     public TypeDecl? OwnerType
     {
-        get
-        {
-            return Type is MethodType methodType ? methodType.OwnerTypeDecl : null;
-        }
+        get { return Type is MethodType methodType ? methodType.OwnerTypeDecl : null; }
     }
 
     public bool IsStatic
     {
-        get
-        {
-            return Type is MethodType methodType ? methodType.IsStatic : true;
-        }
+        get { return Type is MethodType methodType ? methodType.IsStatic : true; }
     }
 
-    public virtual Value Call(Value[] args) => Type.Call(_compiler, LLVMValue, args);
+    public virtual Value Call(Value[] args) => Type.Call(LLVMValue, args);
 }
 
 public class DefinedFunction : Function
@@ -82,10 +62,17 @@ public class DefinedFunction : Function
     public Dictionary<string, IAttribute> Attributes { get; }
 
     private LLVMValueRef _internalValue;
-    
-    public DefinedFunction(LLVMCompiler compiler, IContainer? parent, string name,
-        FuncType type, Parameter[] @params, PrivacyType privacy,
-        bool isForeign, Dictionary<string, IAttribute> attributes)
+
+    public DefinedFunction(
+        LLVMCompiler compiler,
+        IContainer? parent,
+        string name,
+        FuncType type,
+        Parameter[] @params,
+        PrivacyType privacy,
+        bool isForeign,
+        Dictionary<string, IAttribute> attributes
+    )
         : base(compiler, type, null, @params)
     {
         Name = name;
@@ -94,16 +81,14 @@ public class DefinedFunction : Function
         IsForeign = isForeign;
         Attributes = attributes;
     }
-    
+
     public override LLVMValueRef LLVMValue
     {
         get
         {
             if (_internalValue == default)
             {
-                string llvmFuncName = !(Name == Reserved.Main || IsForeign)
-                    ? FullName
-                    : Name;
+                string llvmFuncName = !(Name == Reserved.Main || IsForeign) ? FullName : Name;
                 _internalValue = IsForeign
                     ? _compiler.HandleForeign(Name, Type)
                     : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
@@ -127,7 +112,9 @@ public class DefinedFunction : Function
             }
             else
             {
-                throw new Exception("Parent of defined function is neither a type nor a namespace.");
+                throw new Exception(
+                    "Parent of defined function is neither a type nor a namespace."
+                );
             }
         }
     }
@@ -135,25 +122,31 @@ public class DefinedFunction : Function
 
 public class AspectMethod : DefinedFunction
 {
-    public AspectMethod(LLVMCompiler compiler, TraitDecl parent, string name, FuncType type, PrivacyType privacy, Dictionary<string, IAttribute> attributes)
-        : base(compiler, parent, name, type, new Parameter[0], PrivacyType.Pub, false, attributes) { }
+    public AspectMethod(
+        LLVMCompiler compiler,
+        TraitDecl parent,
+        string name,
+        FuncType type,
+        PrivacyType privacy,
+        Dictionary<string, IAttribute> attributes
+    )
+        : base(compiler, parent, name, type, new Parameter[0], PrivacyType.Pub, false, attributes)
+    { }
 
     public override LLVMValueRef LLVMValue
     {
-        get
-        {
-            throw new Exception("Unimplemented aspect method has no internal LLVM value.");
-        }
+        get { throw new Exception("Unimplemented aspect method has no internal LLVM value."); }
     }
 }
 
 public abstract class IntrinsicFunction : Function
 {
     public string Name { get; }
-    
+
     private LLVMValueRef _internalValue;
 
-    public IntrinsicFunction(LLVMCompiler compiler, string name, FuncType type) : base(compiler, type, default, new Parameter[0])
+    public IntrinsicFunction(LLVMCompiler compiler, string name, FuncType type)
+        : base(compiler, type, default, new Parameter[0])
     {
         Name = name;
     }
@@ -170,7 +163,7 @@ public abstract class IntrinsicFunction : Function
             return _internalValue;
         }
     }
-    
-    protected virtual LLVMValueRef GenerateLLVMData()
-        => throw new NotImplementedException("This function does not support LLVM data generation.");
+
+    protected virtual LLVMValueRef GenerateLLVMData() =>
+        throw new NotImplementedException("This function does not support LLVM data generation.");
 }

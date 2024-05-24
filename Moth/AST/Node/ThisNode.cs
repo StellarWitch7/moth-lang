@@ -1,5 +1,3 @@
 ﻿namespace Moth.AST.Node;
 
-public class ThisNode : ExpressionNode
-{
-}
+public class ThisNode : ExpressionNode { }

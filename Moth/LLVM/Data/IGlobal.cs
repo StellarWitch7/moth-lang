@@ -9,14 +9,14 @@ public interface IGlobal : ICompilerData
     public Dictionary<string, IAttribute> Attributes { get; }
     public PrivacyType Privacy { get; }
     public string Name { get; }
-    public VarType InternalType { get; }
+    public VarType Type { get; }
     public LLVMValueRef LLVMValue { get; }
 
     public string GetInvalidTypeErrorMsg(Value value);
 
     public void SetInitializer(LLVMCompiler compiler, Value value)
     {
-        if (!InternalType.BaseType.Equals(value.Type))
+        if (!Type.BaseType.Equals(value.Type))
         {
             throw new Exception(GetInvalidTypeErrorMsg(value));
         }
@@ -27,9 +27,6 @@ public interface IGlobal : ICompilerData
 
     public string FullName
     {
-        get
-        {
-            return $"{Parent.FullName}.{Name}";
-        }
+        get { return $"{Parent.FullName}.{Name}"; }
     }
 }

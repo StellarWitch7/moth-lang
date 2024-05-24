@@ -8,7 +8,8 @@ public class Namespace : IContainer
     public IContainer? Parent { get; }
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
-    public Dictionary<string, OverloadList> Functions { get; } = new Dictionary<string, OverloadList>();
+    public Dictionary<string, OverloadList> Functions { get; } =
+        new Dictionary<string, OverloadList>();
     public Dictionary<string, TypeDecl> Types { get; } = new Dictionary<string, TypeDecl>();
     public Dictionary<string, TraitDecl> Traits { get; } = new Dictionary<string, TraitDecl>();
     public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
@@ -19,13 +20,10 @@ public class Namespace : IContainer
         Parent = parent;
         Name = name;
     }
-    
+
     public Namespace? ParentNamespace
     {
-        get
-        {
-            return Parent is Namespace nmspace ? nmspace : null;
-        }
+        get { return Parent is Namespace nmspace ? nmspace : null; }
     }
 
     public string FullName
@@ -67,7 +65,7 @@ public class Namespace : IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -79,8 +77,10 @@ public class Namespace : IContainer
 
     public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
     {
-        if (Functions.TryGetValue(name, out OverloadList overloads)
-            && overloads.TryGet(paramTypes, out Function func))
+        if (
+            Functions.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func)
+        )
         {
             return func;
         }
@@ -102,7 +102,7 @@ public class Namespace : IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -125,7 +125,7 @@ public class Namespace : IContainer
                 : throw new Exception($"Type \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
-    
+
     public bool TryGetType(string name, out TypeDecl structDecl)
     {
         try
@@ -136,7 +136,7 @@ public class Namespace : IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -145,7 +145,7 @@ public class Namespace : IContainer
             return false;
         }
     }
-    
+
     public TraitDecl GetTrait(string name)
     {
         if (Traits.TryGetValue(name, out TraitDecl trait))
@@ -159,7 +159,7 @@ public class Namespace : IContainer
                 : throw new Exception($"Trait \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
-    
+
     public bool TryGetTrait(string name, out TraitDecl traitDecl)
     {
         try
@@ -170,7 +170,7 @@ public class Namespace : IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -179,7 +179,7 @@ public class Namespace : IContainer
             return false;
         }
     }
-    
+
     public Template GetTemplate(string name)
     {
         if (Templates.TryGetValue(name, out Template template))
@@ -193,7 +193,7 @@ public class Namespace : IContainer
                 : throw new Exception($"Template \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
-    
+
     public bool TryGetTemplate(string name, out Template template)
     {
         try
@@ -204,7 +204,7 @@ public class Namespace : IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -213,7 +213,7 @@ public class Namespace : IContainer
             return false;
         }
     }
-    
+
     public IGlobal GetGlobal(string name)
     {
         if (GlobalVariables.TryGetValue(name, out IGlobal global))
@@ -224,10 +224,12 @@ public class Namespace : IContainer
         {
             return ParentNamespace != null
                 ? ParentNamespace.GetGlobal(name)
-                : throw new Exception($"Global variable \"{name}\" was not found in namespace \"{Name}\"");
+                : throw new Exception(
+                    $"Global variable \"{name}\" was not found in namespace \"{Name}\""
+                );
         }
     }
-    
+
     public bool TryGetGlobal(string name, out IGlobal globalVar)
     {
         try
@@ -238,7 +240,7 @@ public class Namespace : IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch

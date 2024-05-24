@@ -1,4 +1,4 @@
-namespace test::interop;
+namespace test::interop::glibc;
 
 with core::math;
 
@@ -3330,6 +3330,38 @@ pub type passwd {
     pub pw_shell #i8*;
 }
 
+pub type _IO_FILE {
+    pub _flags #i32;
+    pub _IO_read_ptr #i8*;
+    pub _IO_read_end #i8*;
+    pub _IO_read_base #i8*;
+    pub _IO_write_base #i8*;
+    pub _IO_write_ptr #i8*;
+    pub _IO_write_end #i8*;
+    pub _IO_buf_base #i8*;
+    pub _IO_buf_end #i8*;
+    pub _IO_save_base #i8*;
+    pub _IO_backup_base #i8*;
+    pub _IO_save_end #i8*;
+    pub _markers #_IO_marker*;
+    pub _chain #_IO_FILE*;
+    pub _fileno #i32;
+    pub _flags2 #i32;
+    pub _old_offset #i32;
+    pub _cur_column #u16;
+    pub _vtable_offset #i8;
+    pub _shortbuf #[#i8; 1];
+    pub _lock #void*;
+    pub _offset #i32;
+    pub _codecvt #_IO_codecvt*;
+    pub _wide_data #_IO_wide_data*;
+    pub _freeres_list #_IO_FILE*;
+    pub _freeres_buf #void*;
+    pub __pad5 #i32;
+    pub _mode #i32;
+    pub _unused2 #i8;
+}
+
 pub type FTS {
     pub fts_cur #_ftsent*;
     pub fts_child #_ftsent*;
@@ -3376,37 +3408,11 @@ pub type _G_fpos64_t {
     pub __state #i32;
 }
 
-pub type _IO_FILE {
-    pub _flags #i32;
-    pub _IO_read_ptr #i8*;
-    pub _IO_read_end #i8*;
-    pub _IO_read_base #i8*;
-    pub _IO_write_base #i8*;
-    pub _IO_write_ptr #i8*;
-    pub _IO_write_end #i8*;
-    pub _IO_buf_base #i8*;
-    pub _IO_buf_end #i8*;
-    pub _IO_save_base #i8*;
-    pub _IO_backup_base #i8*;
-    pub _IO_save_end #i8*;
-    pub _markers #_IO_marker*;
-    pub _chain #_IO_FILE*;
-    pub _fileno #i32;
-    pub _flags2 #i32;
-    pub _old_offset #i32;
-    pub _cur_column #u16;
-    pub _vtable_offset #i8;
-    pub _shortbuf #[#i8; 1];
-    pub _lock #void*;
-    pub _offset #i32;
-    pub _codecvt #_IO_codecvt*;
-    pub _wide_data #_IO_wide_data*;
-    pub _freeres_list #_IO_FILE*;
-    pub _freeres_buf #void*;
-    pub __pad5 #i32;
-    pub _mode #i32;
-    pub _unused2 #i8;
-}
+pub type _IO_marker;
+
+pub type _IO_codecvt;
+
+pub type _IO_wide_data;
 
 pub type _IO_cookie_io_functions_t {
     pub read #(#void*, #i8*, #i32) #i32;
@@ -3474,6 +3480,11 @@ pub type obstack {
     pub alloc_failed #u32;
 }
 
+pub union type pthread_attr_t {
+    pub __size #i8;
+    pub __align #i64;
+}
+
 pub type anon_sigevent_t_36_2 {
     pub _function #() #void;
     pub _attribute #pthread_attr_t*;
@@ -3536,11 +3547,6 @@ pub union type anon_pthreadtypes_32_9 {
 pub union type anon_pthreadtypes_41_9 {
     pub __size #i8;
     pub __align #i32;
-}
-
-pub union type pthread_attr_t {
-    pub __size #i8;
-    pub __align #i64;
 }
 
 pub union type anon_pthreadtypes_67_9 {
@@ -3649,9 +3655,19 @@ pub type elf_prpsinfo {
     pub pr_psargs #[#i8; 80];
 }
 
+pub type td_thragent;
+
 pub type td_thrhandle {
     pub th_ta_p #td_thragent*;
     pub th_unique #void*;
+}
+
+pub type link_map {
+    pub l_addr #u64;
+    pub l_name #i8*;
+    pub l_ld #Elf64_Dyn*;
+    pub l_next #link_map*;
+    pub l_prev #link_map*;
 }
 
 pub type td_thr_events {
@@ -3697,6 +3713,8 @@ pub type td_ta_stats {
     pub nidle_den #i32;
 }
 
+pub type ps_prochandle;
+
 pub type td_thrinfo {
     pub ti_ta_p #td_thragent*;
     pub ti_user_flags #u32;
@@ -3739,10 +3757,91 @@ pub type gaih_addrtuple {
     pub scopeid #u32;
 }
 
+pub type __netgrent;
+
+pub type aliasent {
+    pub alias_name #i8*;
+    pub alias_members_len #u64;
+    pub alias_members #i8**;
+    pub alias_local #i32;
+}
+
+pub type ether_addr;
+
+pub type etherent;
+
+pub type group {
+    pub gr_name #i8*;
+    pub gr_passwd #i8*;
+    pub gr_gid #i32;
+    pub gr_mem #i8**;
+}
+
+pub type hostent {
+    pub h_name #i8*;
+    pub h_aliases #i8**;
+    pub h_addrtype #i32;
+    pub h_length #i32;
+    pub h_addr_list #i8**;
+}
+
+pub type netent {
+    pub n_name #i8*;
+    pub n_aliases #i8**;
+    pub n_addrtype #i32;
+    pub n_net #u32;
+}
+
+pub type protoent {
+    pub p_name #i8*;
+    pub p_aliases #i8**;
+    pub p_proto #i32;
+}
+
+pub type rpcent {
+    pub r_name #i8*;
+    pub r_aliases #i8**;
+    pub r_number #i32;
+}
+
+pub type servent {
+    pub s_name #i8*;
+    pub s_aliases #i8**;
+    pub s_port #i32;
+    pub s_proto #i8*;
+}
+
+pub type sgrp {
+    pub sg_namp #i8*;
+    pub sg_passwd #i8*;
+    pub sg_adm #i8**;
+    pub sg_mem #i8**;
+}
+
+pub type spwd {
+    pub sp_namp #i8*;
+    pub sp_pwdp #i8*;
+    pub sp_lstchg #i64;
+    pub sp_min #i64;
+    pub sp_max #i64;
+    pub sp_warn #i64;
+    pub sp_inact #i64;
+    pub sp_expire #i64;
+    pub sp_flag #u64;
+}
+
+pub type traced_file;
+
 pub type entry {
     pub key #i8*;
     pub data #void*;
 }
+
+pub type _ENTRY;
+
+pub type termios;
+
+pub type winsize;
 
 pub type in_addr {
     pub s_addr #u32;
@@ -3825,40 +3924,6 @@ pub type group_filter {
     pub gf_slist #i32;
 }
 
-pub type rpcent {
-    pub r_name #i8*;
-    pub r_aliases #i8**;
-    pub r_number #i32;
-}
-
-pub type netent {
-    pub n_name #i8*;
-    pub n_aliases #i8**;
-    pub n_addrtype #i32;
-    pub n_net #u32;
-}
-
-pub type hostent {
-    pub h_name #i8*;
-    pub h_aliases #i8**;
-    pub h_addrtype #i32;
-    pub h_length #i32;
-    pub h_addr_list #i8**;
-}
-
-pub type servent {
-    pub s_name #i8*;
-    pub s_aliases #i8**;
-    pub s_port #i32;
-    pub s_proto #i8*;
-}
-
-pub type protoent {
-    pub p_name #i8*;
-    pub p_aliases #i8**;
-    pub p_proto #i32;
-}
-
 pub type addrinfo {
     pub ai_flags #i32;
     pub ai_family #i32;
@@ -3876,6 +3941,8 @@ pub type option {
     pub flag #i32*;
     pub val #i32;
 }
+
+pub type rusage;
 
 pub type re_pattern_buffer {
     pub __buffer #re_dfa_t*;
@@ -3902,18 +3969,6 @@ pub type regmatch_t {
 pub type utimbuf {
     pub actime #i32;
     pub modtime #i32;
-}
-
-pub type spwd {
-    pub sp_namp #i8*;
-    pub sp_pwdp #i8*;
-    pub sp_lstchg #i64;
-    pub sp_min #i64;
-    pub sp_max #i64;
-    pub sp_warn #i64;
-    pub sp_inact #i64;
-    pub sp_expire #i64;
-    pub sp_flag #u64;
 }
 
 pub type lastlog {
@@ -4599,14 +4654,6 @@ pub type r_debug_extended {
     pub r_next #r_debug_extended*;
 }
 
-pub type link_map {
-    pub l_addr #u64;
-    pub l_name #i8*;
-    pub l_ld #Elf64_Dyn*;
-    pub l_next #link_map*;
-    pub l_prev #link_map*;
-}
-
 pub type anon_spawn_29_9 {
     pub __flags #i16;
     pub __pgrp #i32;
@@ -4717,6 +4764,8 @@ pub type __gconv_step_data {
     pub __state #__mbstate_t;
 }
 
+pub type __gconv_loaded_object;
+
 pub type __gconv_info {
     pub __nsteps #u64;
     pub __steps #__gconv_step*;
@@ -4778,13 +4827,6 @@ pub type argp {
     pub argp_domain #i8*;
 }
 
-pub type argp_child {
-    pub argp #argp*;
-    pub flags #i32;
-    pub header #i8*;
-    pub group #i32;
-}
-
 pub type argp_state {
     pub root_argp #argp*;
     pub argc #i32;
@@ -4800,6 +4842,13 @@ pub type argp_state {
     pub err_stream #_IO_FILE*;
     pub out_stream #_IO_FILE*;
     pub pstate #void*;
+}
+
+pub type argp_child {
+    pub argp #argp*;
+    pub flags #i32;
+    pub header #i8*;
+    pub group #i32;
 }
 
 pub type div_t {
@@ -4928,24 +4977,12 @@ pub type dirent {
     pub d_name #[#i8; 256];
 }
 
-pub type aliasent {
-    pub alias_name #i8*;
-    pub alias_members_len #u64;
-    pub alias_members #i8**;
-    pub alias_local #i32;
-}
+pub type __dirstream;
 
 pub type pollfd {
     pub fd #i32;
     pub events #i16;
     pub revents #i16;
-}
-
-pub type sgrp {
-    pub sg_namp #i8*;
-    pub sg_passwd #i8*;
-    pub sg_adm #i8**;
-    pub sg_mem #i8**;
 }
 
 pub type anon_ieee754_32_5 {
@@ -5041,13 +5078,6 @@ pub type lconv {
     pub int_n_sign_posn #i8;
 }
 
-pub type group {
-    pub gr_name #i8*;
-    pub gr_passwd #i8*;
-    pub gr_gid #i32;
-    pub gr_mem #i8**;
-}
-
 pub type __pthread_internal_list {
     pub __prev #__pthread_internal_list*;
     pub __next #__pthread_internal_list*;
@@ -5108,6 +5138,8 @@ pub type utmpx {
     pub ut_addr_v6 #[#i32; 4];
     pub __glibc_reserved #[#i8; 20];
 }
+
+pub type sgttyb;
 
 pub enum anon_sigevent_consts_27_1 {
     SIGEV_SIGNAL = 0,

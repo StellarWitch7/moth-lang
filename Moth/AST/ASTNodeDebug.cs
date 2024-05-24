@@ -26,11 +26,14 @@ public abstract partial class ASTNode
         {
             writer.WriteLine(" {}");
         }
-        else if (indent && (
-            props.Length != 1 ||
-            props[0].PropertyType.IsAssignableTo(typeof(ASTNode)) ||
-            props[0].PropertyType.IsAssignableTo(typeof(IEnumerable))
-        ))
+        else if (
+            indent
+            && (
+                props.Length != 1
+                || props[0].PropertyType.IsAssignableTo(typeof(ASTNode))
+                || props[0].PropertyType.IsAssignableTo(typeof(IEnumerable))
+            )
+        )
         {
             writer.WriteLine(" {");
             writer.Indent++;
@@ -76,147 +79,151 @@ public abstract partial class ASTNode
         }
     }
 
-    protected static void WriteDebugString(IndentedTextWriter writer, object? obj, bool indent = false)
+    protected static void WriteDebugString(
+        IndentedTextWriter writer,
+        object? obj,
+        bool indent = false
+    )
     {
         switch (obj)
         {
             case null:
-                {
-                    writer.Write("null");
-                    break;
-                }
+            {
+                writer.Write("null");
+                break;
+            }
 
             case string str:
-                {
-                    writer.Write('"');
-                    writer.Write(str);
-                    writer.Write('"');
-                    break;
-                }
+            {
+                writer.Write('"');
+                writer.Write(str);
+                writer.Write('"');
+                break;
+            }
 
             case ReadOnlyMemory<char> str:
-                {
-                    writer.Write('"');
-                    writer.Write(str.Span);
-                    writer.Write('"');
-                    break;
-                }
+            {
+                writer.Write('"');
+                writer.Write(str.Span);
+                writer.Write('"');
+                break;
+            }
 
             case ASTNode node:
-                {
-                    node.WriteDebugString(writer, indent);
-                    break;
-                }
+            {
+                node.WriteDebugString(writer, indent);
+                break;
+            }
 
             case IEnumerable enumerable:
+            {
+                IEnumerable<object?> values = enumerable.Cast<object?>();
+
+                if (!values.TryGetNonEnumeratedCount(out int count))
                 {
-                    IEnumerable<object?> values = enumerable.Cast<object?>();
+                    count = int.MaxValue;
+                }
 
-                    if (!values.TryGetNonEnumeratedCount(out int count))
-                    {
-                        count = int.MaxValue;
-                    }
-
-                    if (count == 0)
-                    {
-                        writer.Write("[]");
-                        break;
-                    }
-
-                    if (indent)
-                    {
-                        writer.WriteLine('[');
-                        writer.Indent++;
-                        foreach (object? value in values)
-                        {
-                            WriteDebugString(writer, value, indent);
-                            writer.Write(',');
-                            writer.WriteLine();
-                        }
-
-                        writer.Indent--;
-                        writer.Write(']');
-                    }
-                    else
-                    {
-                        writer.Write('[');
-                        bool first = true;
-                        foreach (object? value in values)
-                        {
-                            WriteDebugString(writer, value, indent);
-                            if (!first)
-                            {
-                                writer.Write(", ");
-                            }
-
-                            first = false;
-                        }
-
-                        writer.Write(']');
-                    }
-
+                if (count == 0)
+                {
+                    writer.Write("[]");
                     break;
                 }
 
-            case ITuple tuple:
+                if (indent)
                 {
-                    IEnumerable<object?> values = tuple
+                    writer.WriteLine('[');
+                    writer.Indent++;
+                    foreach (object? value in values)
+                    {
+                        WriteDebugString(writer, value, indent);
+                        writer.Write(',');
+                        writer.WriteLine();
+                    }
+
+                    writer.Indent--;
+                    writer.Write(']');
+                }
+                else
+                {
+                    writer.Write('[');
+                    bool first = true;
+                    foreach (object? value in values)
+                    {
+                        WriteDebugString(writer, value, indent);
+                        if (!first)
+                        {
+                            writer.Write(", ");
+                        }
+
+                        first = false;
+                    }
+
+                    writer.Write(']');
+                }
+
+                break;
+            }
+
+            case ITuple tuple:
+            {
+                IEnumerable<object?> values = tuple
                     .GetType()
                     .GetFields()
                     .Select(m => m.GetValue(tuple));
 
-                    if (!values.TryGetNonEnumeratedCount(out int count))
-                    {
-                        count = int.MaxValue;
-                    }
+                if (!values.TryGetNonEnumeratedCount(out int count))
+                {
+                    count = int.MaxValue;
+                }
 
-                    if (count == 0)
-                    {
-                        writer.Write("()");
-                        break;
-                    }
-
-                    if (indent)
-                    {
-                        writer.WriteLine('(');
-                        writer.Indent++;
-
-                        foreach (object? value in values)
-                        {
-                            WriteDebugString(writer, value, indent);
-                            writer.Write(',');
-                            writer.WriteLine();
-                        }
-
-                        writer.Indent--;
-                        writer.Write(')');
-                    }
-                    else
-                    {
-                        writer.Write('(');
-                        bool first = true;
-                        foreach (object? value in values)
-                        {
-                            WriteDebugString(writer, value, indent);
-                            if (!first)
-                            {
-                                writer.Write(", ");
-                            }
-
-                            first = false;
-                        }
-
-                        writer.Write(')');
-                    }
-
+                if (count == 0)
+                {
+                    writer.Write("()");
                     break;
                 }
+
+                if (indent)
+                {
+                    writer.WriteLine('(');
+                    writer.Indent++;
+
+                    foreach (object? value in values)
+                    {
+                        WriteDebugString(writer, value, indent);
+                        writer.Write(',');
+                        writer.WriteLine();
+                    }
+
+                    writer.Indent--;
+                    writer.Write(')');
+                }
+                else
+                {
+                    writer.Write('(');
+                    bool first = true;
+                    foreach (object? value in values)
+                    {
+                        WriteDebugString(writer, value, indent);
+                        if (!first)
+                        {
+                            writer.Write(", ");
+                        }
+
+                        first = false;
+                    }
+
+                    writer.Write(')');
+                }
+
+                break;
+            }
 
             default:
-                {
-                    writer.Write(obj.ToString() ?? "???");
-                    break;
-                }
+            {
+                writer.Write(obj.ToString() ?? "???");
+                break;
+            }
         }
     }
 }

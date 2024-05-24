@@ -1,7 +1,7 @@
-using Moth.AST.Node;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
@@ -9,27 +9,34 @@ public abstract class PrimitiveStructDecl : StructDecl
 {
     private uint _bitlength;
     private bool _methodsGenerated = false;
-    
-    protected PrimitiveStructDecl(LLVMCompiler compiler, string name, LLVMTypeRef llvmType, uint bitlength)
-        : base(compiler, null, name, PrivacyType.Pub, false, new Dictionary<string, IAttribute>(), null)
+
+    protected PrimitiveStructDecl(
+        LLVMCompiler compiler,
+        string name,
+        LLVMTypeRef llvmType,
+        uint bitlength
+    )
+        : base(
+            compiler,
+            null,
+            name,
+            PrivacyType.Pub,
+            false,
+            new Dictionary<string, IAttribute>(),
+            llvmType
+        )
     {
         _bitlength = bitlength;
     }
 
     public override string FullName
     {
-        get
-        {
-            return $"root#{Name}";
-        }
+        get { return $"root#{Name}"; }
     }
 
     public override uint Bits
     {
-        get
-        {
-            return _bitlength;
-        }
+        get { return _bitlength; }
     }
 
     public override Dictionary<string, OverloadList> Methods
@@ -45,37 +52,45 @@ public abstract class PrimitiveStructDecl : StructDecl
 
                 _methodsGenerated = true;
             }
-            
+
             return base.Methods;
         }
     }
-    
-    protected OverloadList InitOperatorList(Dictionary<string, OverloadList> dict, OperationType opType)
+
+    protected OverloadList InitOperatorList(
+        Dictionary<string, OverloadList> dict,
+        OperationType opType
+    )
     {
         var opName = Utils.ExpandOpName(Utils.OpTypeToString(opType));
         var op = new OverloadList(opName);
-        
+
         dict.Add(opName, op);
         return op;
     }
-    
+
     protected abstract Dictionary<string, OverloadList> GenerateDefaultMethods();
 }
 
 public sealed class ArrStructDecl : PrimitiveStructDecl
 {
     public Type ElementType { get; }
-    
+
     public ArrStructDecl(LLVMCompiler compiler, Type elementType)
-        : base(compiler, $"[{elementType}]",
-            compiler.Context.GetStructType(new []
-            {
-                new PtrType(compiler, elementType).LLVMType,
-                LLVMTypeRef.Int32
-                
-            }, false), 64)
+        : base(
+            compiler,
+            $"[{elementType}]",
+            compiler.Context.GetStructType(
+                new[] { new PtrType(compiler, elementType).LLVMType, LLVMTypeRef.Int32 },
+                false
+            ),
+            64
+        )
     {
-        Fields.Add("Length", new Field(compiler, this, "Length", 1, compiler.UInt32, PrivacyType.Pub));
+        Fields.Add(
+            "Length",
+            new Field(compiler, this, "Length", 1, compiler.UInt32, PrivacyType.Pub)
+        );
         ElementType = elementType;
     }
 
@@ -102,7 +117,7 @@ public sealed class ArrStructDecl : PrimitiveStructDecl
     {
         var dict = new Dictionary<string, OverloadList>();
         var indexer = new OverloadList(Reserved.Indexer);
-        
+
         indexer.Add(new ArrayIndexerFunction(_compiler, this, ElementType));
         dict.Add(Reserved.Indexer, indexer);
 
@@ -112,7 +127,8 @@ public sealed class ArrStructDecl : PrimitiveStructDecl
 
 public class Void : PrimitiveStructDecl
 {
-    public Void(LLVMCompiler compiler) : base(compiler, Reserved.Void, LLVMTypeRef.Void, 0) { }
+    public Void(LLVMCompiler compiler)
+        : base(compiler, Reserved.Void, LLVMTypeRef.Void, 0) { }
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
     {
@@ -121,14 +137,18 @@ public class Void : PrimitiveStructDecl
 
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public ImplicitConversionTable(LLVMCompiler compiler) : base(compiler) { }
-        
+        public ImplicitConversionTable(LLVMCompiler compiler)
+            : base(compiler) { }
+
         public override bool Contains(Type key)
         {
             return key is PtrType;
         }
-        
-        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<Value, Value> value)
+
+        public override bool TryGetValue(
+            Type key,
+            [MaybeNullWhen(false)] out Func<Value, Value> value
+        )
         {
             if (key is PtrType ptrType)
             {
@@ -149,31 +169,41 @@ public class Void : PrimitiveStructDecl
 
 public class Null : PrimitiveStructDecl
 {
-    public Null(LLVMCompiler compiler) : base(compiler, Reserved.Null, LLVMTypeRef.Int8, 8) { }
+    public Null(LLVMCompiler compiler)
+        : base(compiler, Reserved.Null, LLVMTypeRef.Int8, 8) { }
 
-    public override ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable(_compiler);
+    public override ImplicitConversionTable GetImplicitConversions() =>
+        new ImplicitConversionTable(_compiler);
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
     {
         return new Dictionary<string, OverloadList>();
     }
-    
+
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
-        public ImplicitConversionTable(LLVMCompiler compiler) : base(compiler) { }
-        
+        public ImplicitConversionTable(LLVMCompiler compiler)
+            : base(compiler) { }
+
         public override bool Contains(Type key)
         {
             return true;
         }
-        
-        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<Value, Value> value)
+
+        public override bool TryGetValue(
+            Type key,
+            [MaybeNullWhen(false)] out Func<Value, Value> value
+        )
         {
             if (key is PtrType)
             {
                 value = (prev) =>
                 {
-                    return Value.Create(_compiler, key, LLVMValueRef.CreateConstPointerNull(key.LLVMType));
+                    return Value.Create(
+                        _compiler,
+                        key,
+                        LLVMValueRef.CreateConstPointerNull(key.LLVMType)
+                    );
                 };
                 return true;
             }

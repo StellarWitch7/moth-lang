@@ -1,7 +1,7 @@
-using LLVMSharp;
-using Moth.LLVM.Data;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
+using LLVMSharp;
+using Moth.LLVM.Data;
 
 namespace Moth.LLVM;
 
@@ -18,7 +18,8 @@ public unsafe class MetadataSerializer
     private List<byte> _typeRefs = new List<byte>();
     private List<string> _names = new List<string>();
     private Dictionary<Data.Type, ulong> _typeIndexes = new Dictionary<Data.Type, ulong>();
-    private Dictionary<Data.FuncType, ulong> _functypeIndexes = new Dictionary<Data.FuncType, ulong>();
+    private Dictionary<Data.FuncType, ulong> _functypeIndexes =
+        new Dictionary<Data.FuncType, ulong>();
     private uint _typeTablePosition = 0;
     private uint _fieldTablePosition = 0;
     private uint _functionTablePosition = 0;
@@ -35,7 +36,8 @@ public unsafe class MetadataSerializer
         _compiler = compiler;
     }
 
-    public MetadataSerializer(LLVMCompiler compiler, MemoryStream stream) : this(compiler)
+    public MetadataSerializer(LLVMCompiler compiler, MemoryStream stream)
+        : this(compiler)
     {
         _stream = stream;
     }
@@ -43,33 +45,37 @@ public unsafe class MetadataSerializer
     public MemoryStream Process()
     {
         var startPos = (ulong)_stream.Position;
-        
-        foreach (var @struct in _compiler.Types)
+
+        foreach (var typeDecl in _compiler.Types)
         {
             var newType = new Metadata.Type();
-            newType.privacy = @struct.Privacy;
-            newType.is_foreign = @struct is OpaqueStructDecl;
-            newType.is_union = @struct.IsUnion;
-            newType.field_table_index = _fieldTablePosition;
-            newType.field_table_length = (uint)@struct.Fields.Count;
+            newType.privacy = typeDecl.Privacy;
+            newType.is_foreign = typeDecl is OpaqueStructDecl;
+            newType.is_union = typeDecl.IsUnion;
             newType.name_table_index = _nameTablePosition;
-            newType.name_table_length = (ulong)@struct.FullName.Length;
-            AddName(@struct.FullName);
+            newType.name_table_length = (ulong)typeDecl.FullName.Length;
+            AddName(typeDecl.FullName);
 
-            foreach (var field in @struct.Fields.Values)
+            if (typeDecl is StructDecl structDecl)
             {
-                var newField = new Metadata.Field();
-                (ulong typerefIndex, ulong typerefLength) = AddTypeRef(field.Type);
-                newField.privacy = field.Privacy;
-                newField.typeref_table_index = typerefIndex;
-                newField.typeref_table_length = typerefLength;
-                newField.name_table_index = _nameTablePosition;
-                newField.name_table_length = (uint)field.Name.Length;
-                AddName(field.Name);
-                AddField(newField);
+                newType.field_table_index = _fieldTablePosition;
+                newType.field_table_length = (uint)structDecl.Fields.Count;
+
+                foreach (var field in structDecl.Fields.Values)
+                {
+                    var newField = new Metadata.Field();
+                    (ulong typerefIndex, ulong typerefLength) = AddTypeRef(field.Type);
+                    newField.privacy = field.Privacy;
+                    newField.typeref_table_index = typerefIndex;
+                    newField.typeref_table_length = typerefLength;
+                    newField.name_table_index = _nameTablePosition;
+                    newField.name_table_length = (uint)field.Name.Length;
+                    AddName(field.Name);
+                    AddField(newField);
+                }
             }
-            
-            AddType(@struct, newType);
+
+            AddType(typeDecl, newType);
         }
 
         foreach (var func in _compiler.Functions)
@@ -93,14 +99,14 @@ public unsafe class MetadataSerializer
                 AddName(param.Name);
                 AddParam(newParam);
             }
-            
+
             AddFunction(newFunc);
         }
 
         foreach (var global in _compiler.Globals)
         {
             var newGlobal = new Metadata.Global();
-            (ulong typerefIndex, ulong typerefLength) = AddTypeRef(global.InternalType.BaseType);
+            (ulong typerefIndex, ulong typerefLength) = AddTypeRef(global.Type.BaseType);
             newGlobal.privacy = global.Privacy;
             newGlobal.is_constant = global is GlobalConstant;
             newGlobal.typeref_table_index = typerefIndex;
@@ -110,15 +116,15 @@ public unsafe class MetadataSerializer
             AddName(global.FullName);
             AddGlobal(newGlobal);
         }
-        
+
         // write the result
         var version = Meta.Version;
-        _stream.Write(new ReadOnlySpan<byte>((byte*) &version, sizeof(Metadata.Version)));
+        _stream.Write(new ReadOnlySpan<byte>((byte*)&version, sizeof(Metadata.Version)));
         Metadata.Header header = new Metadata.Header();
-        _stream.Write(new ReadOnlySpan<byte>((byte*) &header, sizeof(Metadata.Header)));
+        _stream.Write(new ReadOnlySpan<byte>((byte*)&header, sizeof(Metadata.Header)));
 
         header.type_table_offset = (ulong)_stream.Position - startPos;
-        
+
         fixed (Metadata.Type* ptr = CollectionsMarshal.AsSpan(_types))
         {
             _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Type) * _types.Count));
@@ -128,42 +134,54 @@ public unsafe class MetadataSerializer
 
         fixed (Metadata.Field* ptr = CollectionsMarshal.AsSpan(_fields))
         {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Field) * _fields.Count));
+            _stream.Write(
+                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Field) * _fields.Count)
+            );
         }
 
         header.function_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Metadata.Function* ptr = CollectionsMarshal.AsSpan(_functions))
         {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Count));
+            _stream.Write(
+                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Count)
+            );
         }
 
         header.global_variable_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Metadata.Global* ptr = CollectionsMarshal.AsSpan(_globals))
         {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Global) * _globals.Count));
+            _stream.Write(
+                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Global) * _globals.Count)
+            );
         }
 
         header.functype_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Metadata.FuncType* ptr = CollectionsMarshal.AsSpan(_funcTypes))
         {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.FuncType) * _funcTypes.Count));
+            _stream.Write(
+                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.FuncType) * _funcTypes.Count)
+            );
         }
 
         header.param_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Metadata.Parameter* ptr = CollectionsMarshal.AsSpan(_params))
         {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Parameter) * _params.Count));
+            _stream.Write(
+                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Parameter) * _params.Count)
+            );
         }
 
         header.paramtype_table_offset = (ulong)_stream.Position - startPos;
 
         fixed (Metadata.ParamType* ptr = CollectionsMarshal.AsSpan(_paramTypes))
         {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.ParamType) * _paramTypes.Count));
+            _stream.Write(
+                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.ParamType) * _paramTypes.Count)
+            );
         }
 
         header.typeref_table_offset = (ulong)_stream.Position - startPos;
@@ -181,17 +199,17 @@ public unsafe class MetadataSerializer
         }
 
         header.size = (ulong)_stream.Position - startPos;
-        
+
         _stream.Position = (long)startPos;
-        _stream.Write(new ReadOnlySpan<byte>((byte*) &version, sizeof(Metadata.Version)));
-        _stream.Write(new ReadOnlySpan<byte>((byte*) &header, sizeof(Metadata.Header)));
+        _stream.Write(new ReadOnlySpan<byte>((byte*)&version, sizeof(Metadata.Version)));
+        _stream.Write(new ReadOnlySpan<byte>((byte*)&header, sizeof(Metadata.Header)));
         _stream.Position = _stream.Length;
         return _stream;
     }
-    
-    public void AddType(StructDecl structDecl, Metadata.Type metaType)
+
+    public void AddType(TypeDecl typeDecl, Metadata.Type metaType)
     {
-        _typeIndexes.Add(structDecl, _typeTablePosition);
+        _typeIndexes.Add(typeDecl, _typeTablePosition);
         _types.Add(metaType);
         _typeTablePosition++;
     }
@@ -240,11 +258,11 @@ public unsafe class MetadataSerializer
         _names.Add(name);
         _nameTablePosition += (uint)name.Length;
     }
-    
+
     public (ulong, ulong) AddTypeRef(InternalType type)
     {
         var result = new List<byte>();
-        
+
         while (type != null)
         {
             if (type is RefType refType && type.GetType() == typeof(RefType))
@@ -257,52 +275,52 @@ public unsafe class MetadataSerializer
                 result.Add((byte)Metadata.TypeTag.Pointer);
                 type = ptrType.BaseType;
             }
-            else if (type == Primitives.Void)
+            else if (type == _compiler.Void)
             {
                 result.Add((byte)Metadata.TypeTag.Void);
                 type = null;
             }
-            else if (type == Primitives.Bool)
+            else if (type == _compiler.Bool)
             {
                 result.Add((byte)Metadata.TypeTag.Bool);
                 type = null;
             }
-            else if (type == Primitives.UInt8)
+            else if (type == _compiler.UInt8)
             {
                 result.Add((byte)Metadata.TypeTag.UInt8);
                 type = null;
             }
-            else if (type == Primitives.UInt16)
+            else if (type == _compiler.UInt16)
             {
                 result.Add((byte)Metadata.TypeTag.UInt16);
                 type = null;
             }
-            else if (type == Primitives.UInt32)
+            else if (type == _compiler.UInt32)
             {
                 result.Add((byte)Metadata.TypeTag.UInt32);
                 type = null;
             }
-            else if (type == Primitives.UInt64)
+            else if (type == _compiler.UInt64)
             {
                 result.Add((byte)Metadata.TypeTag.UInt64);
                 type = null;
             }
-            else if (type == Primitives.Int8)
+            else if (type == _compiler.Int8)
             {
                 result.Add((byte)Metadata.TypeTag.Int8);
                 type = null;
             }
-            else if (type == Primitives.Int16)
+            else if (type == _compiler.Int16)
             {
                 result.Add((byte)Metadata.TypeTag.Int16);
                 type = null;
             }
-            else if (type == Primitives.Int32)
+            else if (type == _compiler.Int32)
             {
                 result.Add((byte)Metadata.TypeTag.Int32);
                 type = null;
             }
-            else if (type == Primitives.Int64)
+            else if (type == _compiler.Int64)
             {
                 result.Add((byte)Metadata.TypeTag.Int64);
                 type = null;
@@ -312,7 +330,7 @@ public unsafe class MetadataSerializer
                 if (_typeIndexes.TryGetValue(type, out ulong index))
                 {
                     result.Add((byte)Metadata.TypeTag.Type);
-                    result.AddRange(new ReadOnlySpan<byte>((byte*) &index, sizeof(ulong)).ToArray());
+                    result.AddRange(new ReadOnlySpan<byte>((byte*)&index, sizeof(ulong)).ToArray());
                     type = null;
                 }
                 else
@@ -320,11 +338,13 @@ public unsafe class MetadataSerializer
                     if (type is Data.FuncType fnType)
                     {
                         result.Add((byte)Metadata.TypeTag.FuncType);
-                        
+
                         if (!_functypeIndexes.TryGetValue(fnType, out index))
                         {
                             var newFuncType = new Metadata.FuncType();
-                            (ulong retTyperefIndex, ulong retTyperefLength) = AddTypeRef(fnType.ReturnType);
+                            (ulong retTyperefIndex, ulong retTyperefLength) = AddTypeRef(
+                                fnType.ReturnType
+                            );
                             newFuncType.is_variadic = fnType.IsVariadic;
                             newFuncType.return_typeref_table_index = retTyperefIndex;
                             newFuncType.return_typeref_table_length = retTyperefLength;
@@ -339,17 +359,21 @@ public unsafe class MetadataSerializer
                                 newParamType.typeref_table_length = typerefLength;
                                 AddParamType(newParamType);
                             }
-                            
+
                             index = AddFuncType(fnType, newFuncType);
                         }
-                        
-                        result.AddRange(new ReadOnlySpan<byte>((byte*) &index, sizeof(ulong)).ToArray());
+
+                        result.AddRange(
+                            new ReadOnlySpan<byte>((byte*)&index, sizeof(ulong)).ToArray()
+                        );
                         type = null;
                     }
                     else
                     {
-                        throw new Exception($"Cannot retrieve non-indexed type, and cannot create it. " +
-                            $"This is a CRITICAL ERROR. Report ASAP.");
+                        throw new Exception(
+                            $"Cannot retrieve non-indexed type, and cannot create it. "
+                                + $"This is a CRITICAL ERROR. Report ASAP."
+                        );
                     }
                 }
             }

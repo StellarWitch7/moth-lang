@@ -29,7 +29,7 @@ public static class Reserved
     public const string Public = "pub";
     public const string Extend = "extend";
     public const string Variadic = "...";
-    
+
     // function names
     public const string Main = "main";
     public const string Init = "init";
@@ -64,11 +64,11 @@ public static class Reserved
     public const string Self = "self";
     public const string True = "true";
     public const string False = "false";
-    
+
     // attributes
     public const string CallConv = "CallConv";
     public const string TargetOS = "TargetOS";
-    
+
     // operating systems
     public const string Windows = "windows";
     public const string Linux = "linux";

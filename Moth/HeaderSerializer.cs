@@ -8,11 +8,11 @@
 // {
 //     private int _currentIndent = 0;
 //     private StringBuilder _builder = new StringBuilder("root\n");
-//     
+//
 //     public string Serialize(LLVMCompiler compiler)
 //     {
 //         IncreaseIndent();
-//         
+//
 //         foreach (var nmspace in compiler.GlobalNamespace.Namespaces.Values)
 //         {
 //             SerializeNamespace(nmspace);
@@ -30,7 +30,7 @@
 //         {
 //             SerializeNamespace(child);
 //         }
-//         
+//
 //         foreach (var @struct in nmspace.Structs.Values)
 //         {
 //             SerializeStruct(@struct);
@@ -45,7 +45,7 @@
 //         {
 //             AppendWithIndent($"global {global.Name} {global.Type.BaseType}\n");
 //         }
-//         
+//
 //         DecreaseIndent();
 //     }
 //
@@ -71,19 +71,19 @@
 //                 SerializeFunction(method, false);
 //             }
 //         }
-//         
+//
 //         DecreaseIndent();
 //     }
-//     
+//
 //     public void SerializeFunction(Function func, bool isStatic)
 //     {
 //         PrivacyType privacy = func is DefinedFunction definedFunction
 //             ? definedFunction.Privacy
 //             : PrivacyType.Public;
 //         AppendWithIndent($"func {func.Name} {func.ReturnType}, privacy={privacy}, static={isStatic}\n");
-//         
+//
 //     }
-//     
+//
 //     public void Append(char ch)
 //     {
 //         _builder.Append(ch);
@@ -93,7 +93,7 @@
 //     {
 //         _builder.Append(str);
 //     }
-//     
+//
 //     public void IncreaseIndent()
 //     {
 //         _currentIndent += 2;
@@ -117,7 +117,7 @@
 //         AppendIndent();
 //         Append(ch);
 //     }
-//     
+//
 //     public void AppendWithIndent(string str)
 //     {
 //         AppendIndent();

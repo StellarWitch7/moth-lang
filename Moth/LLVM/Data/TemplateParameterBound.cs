@@ -1,6 +1,3 @@
 namespace Moth.LLVM.Data;
 
-public class TemplateParameterBound
-{
-    
-}
+public class TemplateParameterBound { }

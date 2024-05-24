@@ -20,7 +20,7 @@ public class TypeRefNode : ExpressionNode
 
         if (Namespace != default)
             builder.Append(Namespace.GetSource());
-        
+
         builder.Append($"#{Name}");
 
         for (uint i = PointerDepth; i > 0; i--)
@@ -28,7 +28,7 @@ public class TypeRefNode : ExpressionNode
 
         if (IsRef)
             builder.Append("&");
-        
+
         return builder.ToString();
     }
 }

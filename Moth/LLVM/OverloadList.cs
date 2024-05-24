@@ -23,11 +23,11 @@ public class OverloadList
     {
         Function? sufficient = null;
         bool hasMultipleCandidates = false;
-        
+
         foreach (var func in _functions)
         {
             MatchResult result = CompareParams(func.ParameterTypes, paramTypes, func.IsVariadic);
-            
+
             if (result == MatchResult.Exact)
             {
                 return func;
@@ -38,7 +38,7 @@ public class OverloadList
                 {
                     hasMultipleCandidates = true;
                 }
-                
+
                 sufficient = func;
             }
         }
@@ -66,7 +66,7 @@ public class OverloadList
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -76,7 +76,11 @@ public class OverloadList
         }
     }
 
-    private MatchResult CompareParams(IReadOnlyList<Type> definition, IReadOnlyList<Type> call, bool isVariadic)
+    private MatchResult CompareParams(
+        IReadOnlyList<Type> definition,
+        IReadOnlyList<Type> call,
+        bool isVariadic
+    )
     {
         if (isVariadic)
         {
@@ -92,7 +96,7 @@ public class OverloadList
                 return MatchResult.Insufficient;
             }
         }
-        
+
         if (ParamsAreEqual(definition, call))
         {
             return MatchResult.Exact;
@@ -108,7 +112,7 @@ public class OverloadList
     private bool ParamsAreEqual(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
     {
         int index = 0;
-        
+
         foreach (var type in definition)
         {
             if (!type.Equals(call[index]))
@@ -121,11 +125,11 @@ public class OverloadList
 
         return true;
     }
-    
+
     private bool ParamsAreSuitable(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
     {
         int index = 0;
-        
+
         foreach (var type in definition)
         {
             if (!call[index].CanConvertTo(type))

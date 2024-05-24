@@ -1,8 +1,8 @@
-﻿using Moth.AST.Node;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Moth.AST.Node;
 using Moth.LLVM;
 using Moth.LLVM.Data;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Moth;
 
@@ -29,11 +29,11 @@ public static class Utils
             OperationType.GreaterThanOrEqual => ">=",
             OperationType.Equal => "==",
             //OperationType.Range => "..",
-            
+
             _ => throw new NotImplementedException($"Unsupported operation type: \"{opType}\"")
         };
     }
-    
+
     public static LLVMCallConv StringToCallConv(string str)
     {
         return str switch
@@ -42,7 +42,7 @@ public static class Utils
             _ => throw new Exception($"Invalid calling convention: \"{str}\".")
         };
     }
-    
+
     public static OS StringToOS(string str)
     {
         return str switch
@@ -56,9 +56,12 @@ public static class Utils
 
     public static OS GetOS()
     {
-        if (OperatingSystem.IsWindows()) return OS.Windows;
-        if (OperatingSystem.IsLinux()) return OS.Linux;
-        if (OperatingSystem.IsMacOS()) return OS.MacOS;
+        if (OperatingSystem.IsWindows())
+            return OS.Windows;
+        if (OperatingSystem.IsLinux())
+            return OS.Linux;
+        if (OperatingSystem.IsMacOS())
+            return OS.MacOS;
         throw new PlatformNotSupportedException();
     }
 
@@ -72,7 +75,7 @@ public static class Utils
             _ => throw new Exception($"Cannot verify that the current OS is \"{os}\".")
         };
     }
-    
+
     public static byte[] Unescape(string original)
     {
         if (original.Length == 0)
@@ -94,7 +97,7 @@ public static class Utils
 
                 if (hex1 == '\\')
                 {
-                    bytes.Add((byte) hex1);
+                    bytes.Add((byte)hex1);
                     index++;
                 }
                 else
@@ -104,27 +107,27 @@ public static class Utils
 
                     var byte1 = hex1 switch
                     {
-                        >= '0' and <= '9' => (byte) hex1 - (byte) '0',
-                        >= 'a' and <= 'f' => (byte) hex1 - (byte) 'a' + 10,
-                        >= 'A' and <= 'F' => (byte) hex1 - (byte) 'A' + 10,
+                        >= '0' and <= '9' => (byte)hex1 - (byte)'0',
+                        >= 'a' and <= 'f' => (byte)hex1 - (byte)'a' + 10,
+                        >= 'A' and <= 'F' => (byte)hex1 - (byte)'A' + 10,
                         _ => throw new ArgumentOutOfRangeException(nameof(hex1)),
                     };
-            
+
                     var byte2 = hex2 switch
                     {
-                        >= '0' and <= '9' => (byte) hex2 - (byte) '0',
-                        >= 'a' and <= 'f' => (byte) hex2 - (byte) 'a' + 10,
-                        >= 'A' and <= 'F' => (byte) hex2 - (byte) 'A' + 10,
+                        >= '0' and <= '9' => (byte)hex2 - (byte)'0',
+                        >= 'a' and <= 'f' => (byte)hex2 - (byte)'a' + 10,
+                        >= 'A' and <= 'F' => (byte)hex2 - (byte)'A' + 10,
                         _ => throw new ArgumentOutOfRangeException(nameof(hex2)),
                     };
 
-                    bytes.Add((byte) ((byte1 << 4) | byte2));
+                    bytes.Add((byte)((byte1 << 4) | byte2));
                     index++;
                 }
             }
             else
             {
-                bytes.Add((byte) ch);
+                bytes.Add((byte)ch);
                 index++;
             }
         }
@@ -156,7 +159,10 @@ public static class ListExtensions
 
 public static class ArrayExtensions
 {
-    public static RESULT[] ExecuteOverAll<ORIGINAL, RESULT>(this ORIGINAL[] original, Func<ORIGINAL, RESULT> func)
+    public static RESULT[] ExecuteOverAll<ORIGINAL, RESULT>(
+        this ORIGINAL[] original,
+        Func<ORIGINAL, RESULT> func
+    )
     {
         var result = new List<RESULT>();
 
@@ -168,7 +174,11 @@ public static class ArrayExtensions
         return result.ToArray();
     }
 
-    public static Value[] CompileToValues(this ExpressionNode[] expressionNodes, LLVMCompiler compiler, Scope scope)
+    public static Value[] CompileToValues(
+        this ExpressionNode[] expressionNodes,
+        LLVMCompiler compiler,
+        Scope scope
+    )
     {
         var result = new List<Value>();
 
@@ -179,7 +189,7 @@ public static class ArrayExtensions
 
         return result.ToArray();
     }
-    
+
     public static LLVMValueRef[] AsLLVMValues(this byte[] bytes)
     {
         var result = new LLVMValueRef[bytes.Length];
@@ -194,7 +204,11 @@ public static class ArrayExtensions
         return result;
     }
 
-    public static Value[] ImplicitConvertAll(this Value[] values, LLVMCompiler compiler, InternalType target)
+    public static Value[] ImplicitConvertAll(
+        this Value[] values,
+        LLVMCompiler compiler,
+        InternalType target
+    )
     {
         var result = new Value[values.Length];
         uint index = 0;
@@ -207,7 +221,7 @@ public static class ArrayExtensions
 
         return result;
     }
-    
+
     public static LLVMValueRef[] AsLLVMValues(this Value[] values)
     {
         var result = new LLVMValueRef[values.Length];
@@ -233,7 +247,7 @@ public static class ArrayExtensions
 
         return types.ToArray().AsLLVMTypes();
     }
-    
+
     public static LLVMTypeRef[] AsLLVMTypes(this InternalType[] types)
     {
         var result = new LLVMTypeRef[types.Length];
@@ -259,7 +273,7 @@ public static class ArrayExtensions
 
         return hash;
     }
-    
+
     public static ulong[] ToULong(this byte[] bytes)
     {
         var values = new ulong[bytes.Length / 8];
@@ -267,11 +281,11 @@ public static class ArrayExtensions
             values[i] = Unsafe.ReadUnaligned<ulong>(ref bytes[i * 8]);
         return values;
     }
-    
+
     public static bool TryGetNamespace(this Namespace[] imports, string name, out Namespace nmspace)
     {
         nmspace = null;
-        
+
         foreach (var import in imports)
         {
             if (import.Namespaces.TryGetValue(name, out nmspace))
@@ -295,14 +309,21 @@ public static class ArrayExtensions
         }
     }
 
-    public static bool TryGetFunction(this Namespace[] imports, string name, IReadOnlyList<InternalType> paramTypes, out Function func)
+    public static bool TryGetFunction(
+        this Namespace[] imports,
+        string name,
+        IReadOnlyList<InternalType> paramTypes,
+        out Function func
+    )
     {
         func = null;
-        
+
         foreach (var import in imports)
         {
-            if (import.Functions.TryGetValue(name, out OverloadList overloads)
-                && overloads.TryGet(paramTypes, out func))
+            if (
+                import.Functions.TryGetValue(name, out OverloadList overloads)
+                && overloads.TryGet(paramTypes, out func)
+            )
             {
                 if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Priv)
                 {
@@ -328,7 +349,7 @@ public static class ArrayExtensions
     public static bool TryGetType(this Namespace[] imports, string name, out TypeDecl typeDecl)
     {
         typeDecl = null;
-        
+
         foreach (var import in imports)
         {
             if (import.Types.TryGetValue(name, out typeDecl))
@@ -353,11 +374,11 @@ public static class ArrayExtensions
             return false;
         }
     }
-    
+
     public static bool TryGetTrait(this Namespace[] imports, string name, out TraitDecl traitDecl)
     {
         traitDecl = null;
-        
+
         foreach (var import in imports)
         {
             if (import.Traits.TryGetValue(name, out traitDecl))
@@ -382,11 +403,11 @@ public static class ArrayExtensions
             return false;
         }
     }
-    
+
     public static bool TryGetTemplate(this Namespace[] imports, string name, out Template template)
     {
         template = null;
-        
+
         foreach (var import in imports)
         {
             if (import.Templates.TryGetValue(name, out template))

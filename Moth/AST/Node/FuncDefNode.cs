@@ -13,9 +13,18 @@ public class FuncDefNode : DefinitionNode
     public bool IsStatic { get; set; }
     public bool IsForeign { get; set; }
 
-    public FuncDefNode(string name, PrivacyType privacyType, TypeRefNode returnTypeRef,
-        List<ParameterNode> @params, ScopeNode? executionBlock, bool isVariadic, bool isStatic, bool isForeign,
-        List<AttributeNode> attributes) : base(attributes)
+    public FuncDefNode(
+        string name,
+        PrivacyType privacyType,
+        TypeRefNode returnTypeRef,
+        List<ParameterNode> @params,
+        ScopeNode? executionBlock,
+        bool isVariadic,
+        bool isStatic,
+        bool isForeign,
+        List<AttributeNode> attributes
+    )
+        : base(attributes)
     {
         Name = name;
         Privacy = privacyType;
@@ -40,7 +49,9 @@ public class FuncDefNode : DefinitionNode
         if (IsStatic)
             builder.Append($"{Reserved.Static} ");
 
-        builder.Append($"{Reserved.Function} {Name}{GetSourceForParams()} {ReturnTypeRef.GetSource()}");
+        builder.Append(
+            $"{Reserved.Function} {Name}{GetSourceForParams()} {ReturnTypeRef.GetSource()}"
+        );
 
         if (ExecutionBlock != default)
             builder.Append($" {ExecutionBlock.GetSource()}");
@@ -63,7 +74,7 @@ public class FuncDefNode : DefinitionNode
             builder.Append($"{Reserved.Variadic}");
         else if (builder.Length > 1)
             builder.Remove(builder.Length - 2, 2);
-        
+
         builder.Append(")");
         return builder.ToString();
     }

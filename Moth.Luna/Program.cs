@@ -1,8 +1,8 @@
-﻿using CommandLine;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using CommandLine;
 using Tomlet;
 using Tomlet.Models;
 
@@ -47,27 +47,33 @@ internal class Program
         }
 
         var action = args[0];
-        
-        Parser.Default.ParseArguments<Options>(args.Skip(1)).WithParsed(options =>
-        {
-            switch (action)
+
+        Parser
+            .Default.ParseArguments<Options>(args.Skip(1))
+            .WithParsed(options =>
             {
-                case "build":
-                    ExecuteBuild(options);
-                    break;
-                case "run":
-                    var proj = ExecuteBuild(options);
-                    Console.WriteLine("Running project...\n--------------------------------------------");
-                    var exitCode = ExecuteRun(options, proj);
-                    Console.WriteLine($"\n--------------------------------------------\nProject exited with code {exitCode}");
-                    break;
-                case "init":
-                    ExecuteInit(options);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-        });
+                switch (action)
+                {
+                    case "build":
+                        ExecuteBuild(options);
+                        break;
+                    case "run":
+                        var proj = ExecuteBuild(options);
+                        Console.WriteLine(
+                            "Running project...\n--------------------------------------------"
+                        );
+                        var exitCode = ExecuteRun(options, proj);
+                        Console.WriteLine(
+                            $"\n--------------------------------------------\nProject exited with code {exitCode}"
+                        );
+                        break;
+                    case "init":
+                        ExecuteInit(options);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+            });
 
         return 0;
     }
@@ -75,13 +81,13 @@ internal class Program
     private static Project ExecuteBuild(Options options)
     {
         string projfile = options.ProjFile;
-        
+
         if (projfile == null)
             projfile = $"{Environment.CurrentDirectory}/Luna.toml";
-        
+
         if (options.ClearCache)
             Directory.Delete(CacheDir, true);
-        
+
         Project project = TomletMain.To<Project>(File.ReadAllText(projfile));
         CallMothc(options, project);
         return project;
@@ -89,10 +95,12 @@ internal class Program
 
     private static int ExecuteRun(Options options, Project project)
     {
-        var run = Process.Start(new ProcessStartInfo($"{project.FullOutputPath}", options.RunArgs)
-        {
-            WorkingDirectory = options.RunDir
-        });
+        var run = Process.Start(
+            new ProcessStartInfo($"{project.FullOutputPath}", options.RunArgs)
+            {
+                WorkingDirectory = options.RunDir
+            }
+        );
 
         if (run == null)
             throw new Exception($"Call to {project.FullOutputPath} failed.");
@@ -100,7 +108,7 @@ internal class Program
         run.WaitForExit();
         return run.ExitCode;
     }
-    
+
     private static void ExecuteInit(Options options)
     {
         string projName = options.ProjName == null ? QueryProjName() : options.ProjName;
@@ -109,29 +117,28 @@ internal class Program
 
         if (Directory.Exists(projDir))
         {
-            throw new Exception($"Cannot create new Luna project as directory \"{projDir}\" already exists.");
+            throw new Exception(
+                $"Cannot create new Luna project as directory \"{projDir}\" already exists."
+            );
         }
-        
+
         Directory.CreateDirectory(projDir);
         Directory.CreateDirectory(mainDir);
-        
+
         var project = new Project()
         {
             Name = projName,
             Version = "1.0",
             Type = options.InitLib ? "lib" : "exe",
-            Platforms = new string[]
-            {
-                CurrentOS
-            }
+            Platforms = new string[] { CurrentOS }
         };
-        
+
         string tomlString = TomletMain.TomlStringFrom(project);
         string gitignoreString = "[Bb]uild/\n[Cc]ache/";
         string programString = options.InitLib
             ? $"namespace {projName};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
             : $"namespace {projName};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
-        
+
         using (var file = File.OpenWrite($"{projDir}/Luna.toml"))
         {
             file.Write(Encoding.UTF8.GetBytes(tomlString));
@@ -147,11 +154,10 @@ internal class Program
             file.Write(Encoding.UTF8.GetBytes(programString));
         }
 
-        var init = Process.Start(new ProcessStartInfo("git", "init")
-        {
-            WorkingDirectory = projDir
-        });
-        
+        var init = Process.Start(
+            new ProcessStartInfo("git", "init") { WorkingDirectory = projDir }
+        );
+
         if (init == null)
             throw new Exception("Call to git init failed.");
 
@@ -160,11 +166,10 @@ internal class Program
         if (init.ExitCode != 0)
             throw new Exception($"git init finished with exit code {init.ExitCode}");
 
-        var add = Process.Start(new ProcessStartInfo("git", "add --all")
-        {
-            WorkingDirectory = projDir
-        });
-        
+        var add = Process.Start(
+            new ProcessStartInfo("git", "add --all") { WorkingDirectory = projDir }
+        );
+
         if (add == null)
             throw new Exception("Call to git add failed.");
 
@@ -174,12 +179,14 @@ internal class Program
             throw new Exception($"git add finished with exit code {add.ExitCode}");
 
         Console.WriteLine("Creating initial commit...");
-        
-        var commit = Process.Start(new ProcessStartInfo("git", "commit -m \"Initial Commit\"")
-        {
-            WorkingDirectory = projDir
-        });
-        
+
+        var commit = Process.Start(
+            new ProcessStartInfo("git", "commit -m \"Initial Commit\"")
+            {
+                WorkingDirectory = projDir
+            }
+        );
+
         if (commit == null)
             throw new Exception("Call to git commit failed.");
 
@@ -187,7 +194,7 @@ internal class Program
 
         if (commit.ExitCode != 0)
             throw new Exception($"git commit finished with exit code {commit.ExitCode}");
-        
+
         Console.WriteLine($"Successfully initialized new project: {projName}");
     }
 
@@ -197,20 +204,26 @@ internal class Program
 
         if (!project.Platforms.Contains(CurrentOS))
         {
-            throw new Exception($"Cannot build project \"{project.Name}\" for the current operating system.");
+            throw new Exception(
+                $"Cannot build project \"{project.Name}\" for the current operating system."
+            );
         }
-        
+
         string buildDir = $"{Environment.CurrentDirectory}/{project.Out}";
         var files = new StringBuilder();
 
-        foreach (var file in Directory.GetFiles(project.Root, "*.moth", SearchOption.AllDirectories))
+        foreach (
+            var file in Directory.GetFiles(project.Root, "*.moth", SearchOption.AllDirectories)
+        )
         {
             files.Append($"{Environment.CurrentDirectory}/{file} ");
         }
-        
-        if (options.Verbose) args.Append("--verbose ");
-        if (options.NoMetadata) args.Append("--no-meta ");
-        
+
+        if (options.Verbose)
+            args.Append("--verbose ");
+        if (options.NoMetadata)
+            args.Append("--no-meta ");
+
         args.Append($"--output-file {project.OutputName} ");
         args.Append($"--output-type {project.Type} ");
 
@@ -249,7 +262,7 @@ internal class Program
                     mothlibs.Append($"{BuildFromGit(lib)} ");
                 }
             }
-            
+
             args.Append($"--moth-libs {mothlibs}");
         }
 
@@ -261,19 +274,18 @@ internal class Program
             {
                 clibs.Append($"{lib} ");
             }
-            
+
             args.Append($"--c-libs {clibs}");
         }
-        
+
         args.Append($"--input {files}");
 
         Directory.CreateDirectory(buildDir);
         Console.WriteLine($"Calling mothc with arguments \"{args}\"...");
-        
-        var mothc = Process.Start(new ProcessStartInfo("mothc", args.ToString())
-        {
-            WorkingDirectory = buildDir
-        });
+
+        var mothc = Process.Start(
+            new ProcessStartInfo("mothc", args.ToString()) { WorkingDirectory = buildDir }
+        );
 
         if (mothc == null)
             throw new Exception("Call to mothc failed.");
@@ -298,7 +310,7 @@ internal class Program
         {
             return dest;
         }
-        
+
         using (var client = new WebClient())
         {
             client.DownloadFile(url, dest);
@@ -310,10 +322,12 @@ internal class Program
     private static string BuildFromProject(ProjectSource source)
     {
         Project project = TomletMain.To<Project>(File.ReadAllText($"{source.Dir}/Luna.toml"));
-        var build = Process.Start(new ProcessStartInfo(source.Build.Command, source.Build.Args)
-        {
-            WorkingDirectory = source.Dir
-        });
+        var build = Process.Start(
+            new ProcessStartInfo(source.Build.Command, source.Build.Args)
+            {
+                WorkingDirectory = source.Dir
+            }
+        );
 
         if (build == null)
             throw new Exception($"Call to {source.Build.Command} failed.");
@@ -322,32 +336,37 @@ internal class Program
 
         if (build.ExitCode != 0)
             throw new Exception($"{source.Build.Command} finished with exit code {build.ExitCode}");
-        
+
         return $"{source.Dir}/{project.Out}/{project.FullOutputName}";
     }
-    
+
     private static string BuildFromGit(GitSource source)
     {
-        string repoName = source.Source != null
-            ? source.Source.Remove(source.Source.LastIndexOf('.')).Substring(source.Source.LastIndexOf('/') + 1)
-            : throw new Exception("Git source not set.");
+        string repoName =
+            source.Source != null
+                ? source
+                    .Source.Remove(source.Source.LastIndexOf('.'))
+                    .Substring(source.Source.LastIndexOf('/') + 1)
+                : throw new Exception("Git source not set.");
         string repoDir = $"{CacheDir}/{repoName}";
         var args = new StringBuilder();
-        
+
         if (source.Branch != null)
             args.Append($"--branch {source.Branch} ");
 
         if (source.Commit != null)
             args.Append("--depth 1 ");
-        
-        var gitClone = Process.Start(new ProcessStartInfo("git-force-clone", $"{args}{source.Source} {repoDir}")
-        {
-            WorkingDirectory = CacheDir
-        });
+
+        var gitClone = Process.Start(
+            new ProcessStartInfo("git-force-clone", $"{args}{source.Source} {repoDir}")
+            {
+                WorkingDirectory = CacheDir
+            }
+        );
 
         if (gitClone == null)
             throw new Exception("Call to git-force-clone failed.");
-        
+
         gitClone.WaitForExit();
 
         if (gitClone.ExitCode != 0)
@@ -355,11 +374,10 @@ internal class Program
 
         if (source.Commit != null)
         {
-            var gitCheckout = Process.Start(new ProcessStartInfo("git", $"")
-            {
-                WorkingDirectory = repoDir
-            });
-            
+            var gitCheckout = Process.Start(
+                new ProcessStartInfo("git", $"") { WorkingDirectory = repoDir }
+            );
+
             if (gitCheckout == null)
                 throw new Exception("Call to git checkout failed.");
 
@@ -369,10 +387,6 @@ internal class Program
                 throw new Exception($"git checkout finished with exit code {gitCheckout.ExitCode}");
         }
 
-        return BuildFromProject(new ProjectSource()
-        {
-            Dir = repoDir,
-            Build = source.Build
-        });
+        return BuildFromProject(new ProjectSource() { Dir = repoDir, Build = source.Build });
     }
 }

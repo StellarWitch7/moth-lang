@@ -2,14 +2,27 @@ using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
-public class EnumDecl : TypeDecl<EnumDecl>
+public class EnumDecl : TypeDecl
 {
     public Dictionary<string, EnumFlag> Flags { get; } = new Dictionary<string, EnumFlag>();
 
     private UnsignedInt _requiredSize;
 
-    public EnumDecl(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, Dictionary<string, IAttribute> attributes)
-        : base(compiler, parent, name, (llvmCompiler, decl) => decl.MakeLLVMTaggedUnionType(llvmCompiler), privacy, attributes) { }
+    public EnumDecl(
+        LLVMCompiler compiler,
+        Namespace parent,
+        string name,
+        PrivacyType privacy,
+        Dictionary<string, IAttribute> attributes
+    )
+        : base(
+            compiler,
+            parent,
+            name,
+            (decl) => (decl as EnumDecl).MakeLLVMTaggedUnionType(),
+            privacy,
+            attributes
+        ) { }
 
     public UnsignedInt FlagType
     {
@@ -17,7 +30,7 @@ public class EnumDecl : TypeDecl<EnumDecl>
         {
             if (_requiredSize == default)
                 _requiredSize = RequiredSize();
-            
+
             return _requiredSize;
         }
     }
@@ -28,7 +41,7 @@ public class EnumDecl : TypeDecl<EnumDecl>
         bool u16 = false;
         bool u32 = false;
         bool u64 = false;
-        
+
         foreach (var flag in Flags.Values)
         {
             if (flag.Value > Byte.MaxValue)
@@ -45,20 +58,20 @@ public class EnumDecl : TypeDecl<EnumDecl>
         }
 
         if (u64)
-            return Primitives.UInt128;
+            return _compiler.UInt128;
         else if (u32)
-            return Primitives.UInt64;
+            return _compiler.UInt64;
         else if (u16)
-            return Primitives.UInt32;
+            return _compiler.UInt32;
         else if (u8)
-            return Primitives.UInt16;
+            return _compiler.UInt16;
         else
-            return Primitives.UInt8;
+            return _compiler.UInt8;
     }
-    
-    private LLVMTypeRef MakeLLVMTaggedUnionType(LLVMCompiler compiler)
+
+    public LLVMTypeRef MakeLLVMTaggedUnionType()
     {
-        var llvmStruct = compiler.Context.CreateNamedStruct($"__internal_{FullName}");
+        var llvmStruct = _compiler.Context.CreateNamedStruct($"__internal_{FullName}");
         var llvmTypes = new List<LLVMTypeRef>() { FlagType.LLVMType };
         int index = 0;
 
@@ -66,7 +79,7 @@ public class EnumDecl : TypeDecl<EnumDecl>
         {
             Type greatest = null;
             bool b = false;
-            
+
             foreach (var flag in Flags.Values.OfType<UnionEnumFlag>())
             {
                 if (flag.UnionTypes.Count > index)
@@ -80,11 +93,12 @@ public class EnumDecl : TypeDecl<EnumDecl>
                     greatest = t;
             }
 
-            if (!b) break;
+            if (!b)
+                break;
             llvmTypes.Add(greatest.LLVMType);
             index++;
         }
-        
+
         llvmStruct.StructSetBody(llvmTypes.ToArray(), false);
         return llvmStruct;
     }

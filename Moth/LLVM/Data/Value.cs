@@ -35,7 +35,9 @@ public class Value : ICompilerData
         }
         else
         {
-            throw new Exception($"Cannot implicitly convert value of type \"{Type}\" to \"{target}\".");
+            throw new Exception(
+                $"Cannot implicitly convert value of type \"{Type}\" to \"{target}\"."
+            );
         }
     }
 
@@ -45,7 +47,7 @@ public class Value : ICompilerData
         {
             return DeRef().GetRef();
         }
-        
+
         LLVMValueRef newVal = _compiler.Builder.BuildAlloca(Type.LLVMType);
         _compiler.Builder.BuildStore(LLVMValue, newVal);
         return new Pointer(_compiler, new RefType(_compiler, Type), newVal);

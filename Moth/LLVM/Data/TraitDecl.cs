@@ -8,15 +8,26 @@ namespace Moth.LLVM.Data;
 public class TraitDecl : TypeDecl
 {
     public VTableDef VTable { get; } = new VTableDef();
-    public override bool IsUnion { get => false; }
+    public override bool IsUnion
+    {
+        get => false;
+    }
 
-    public TraitDecl(LLVMCompiler compiler, Namespace parent, string name, PrivacyType privacy, Dictionary<string, IAttribute> attributes)
-        : base(compiler, parent, name, (llvmCompiler, decl) => LLVMTypeRef.Int8, privacy, attributes) { }
+    public TraitDecl(
+        LLVMCompiler compiler,
+        Namespace parent,
+        string name,
+        PrivacyType privacy,
+        Dictionary<string, IAttribute> attributes
+    )
+        : base(compiler, parent, name, (decl) => LLVMTypeRef.Int8, privacy, attributes) { }
 
     public Function GetMethod(string name, IReadOnlyList<Type> paramTypes)
     {
-        if (Methods.TryGetValue(name, out OverloadList overloads)
-            && overloads.TryGet(paramTypes, out Function func))
+        if (
+            Methods.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func)
+        )
         {
             return func;
         }

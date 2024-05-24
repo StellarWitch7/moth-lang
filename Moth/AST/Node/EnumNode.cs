@@ -8,8 +8,15 @@ public class EnumNode : DefinitionNode
     public PrivacyType Privacy { get; set; }
     public List<EnumFlagNode> EnumFlags { get; set; }
     public ScopeNode? Scope { get; set; }
-    
-    public EnumNode(string name, PrivacyType privacy, List<EnumFlagNode> enumFlags, ScopeNode? scope, List<AttributeNode>? attributes) : base(attributes)
+
+    public EnumNode(
+        string name,
+        PrivacyType privacy,
+        List<EnumFlagNode> enumFlags,
+        ScopeNode? scope,
+        List<AttributeNode>? attributes
+    )
+        : base(attributes)
     {
         Name = name;
         Privacy = privacy;
@@ -35,7 +42,7 @@ public class EnumNode : DefinitionNode
 
         if (Scope != null)
             builder.Append($" {Reserved.Extend} {Scope.GetSource()}");
-        
+
         return builder.ToString();
     }
 }

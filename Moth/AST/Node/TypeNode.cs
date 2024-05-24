@@ -9,7 +9,14 @@ public class TypeNode : DefinitionNode
     public ScopeNode? Scope { get; set; }
     public bool IsUnion { get; set; }
 
-    public TypeNode(string name, PrivacyType privacy, ScopeNode? scope, bool isUnion, List<AttributeNode> attributes) : base(attributes)
+    public TypeNode(
+        string name,
+        PrivacyType privacy,
+        ScopeNode? scope,
+        bool isUnion,
+        List<AttributeNode> attributes
+    )
+        : base(attributes)
     {
         Name = name;
         Privacy = privacy;
@@ -33,7 +40,7 @@ public class TypeNode : DefinitionNode
             builder.Append($" {Scope.GetSource()}");
         else
             builder.Append(";");
-        
+
         return builder.ToString();
     }
 }

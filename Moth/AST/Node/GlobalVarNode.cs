@@ -10,7 +10,15 @@ public class GlobalVarNode : DefinitionNode
     public bool IsConstant { get; set; }
     public bool IsForeign { get; set; }
 
-    public GlobalVarNode(string name, TypeRefNode typeRef, PrivacyType privacy, bool isConstant, bool isForeign, List<AttributeNode> attributes) : base(attributes)
+    public GlobalVarNode(
+        string name,
+        TypeRefNode typeRef,
+        PrivacyType privacy,
+        bool isConstant,
+        bool isForeign,
+        List<AttributeNode> attributes
+    )
+        : base(attributes)
     {
         Name = name;
         TypeRef = typeRef;
@@ -25,7 +33,7 @@ public class GlobalVarNode : DefinitionNode
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
-        
+
         if (IsForeign)
             builder.Append($"{Reserved.Foreign} ");
 

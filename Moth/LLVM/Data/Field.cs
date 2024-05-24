@@ -9,12 +9,26 @@ public class Field : IContainer
     public uint FieldIndex { get; }
     public Type Type { get; }
     public PrivacyType Privacy { get; }
-    public bool IsExternal { get => Parent.IsExternal; init { } }
-    public string FullName { get => $"{Parent.FullName}.{Name}"; }
+    public bool IsExternal
+    {
+        get => Parent.IsExternal;
+        init { }
+    }
+    public string FullName
+    {
+        get => $"{Parent.FullName}.{Name}";
+    }
 
     private LLVMCompiler _compiler;
 
-    public Field(LLVMCompiler compiler, StructDecl parent, string name, uint index, Type type, PrivacyType privacy)
+    public Field(
+        LLVMCompiler compiler,
+        StructDecl parent,
+        string name,
+        uint index,
+        Type type,
+        PrivacyType privacy
+    )
     {
         _compiler = compiler;
         Parent = parent;
@@ -26,10 +40,15 @@ public class Field : IContainer
 
     public Pointer GetValue(Value parent)
     {
-        return new Pointer(new VarType(Type),
-            _compiler.Builder.BuildStructGEP2((Parent as StructDecl).LLVMType,
+        return new Pointer(
+            _compiler,
+            new VarType(_compiler, Type),
+            _compiler.Builder.BuildStructGEP2(
+                (Parent as StructDecl).LLVMType,
                 parent.LLVMValue,
                 FieldIndex,
-                Name));
+                Name
+            )
+        );
     }
 }

@@ -28,7 +28,8 @@ public class Logger
 
     public void WriteEmptyLine() => WriteUnsignedLine("\n");
 
-    public void WriteSeparator() => WriteUnsignedLine("///////////////////////////////////////////////////////////");
+    public void WriteSeparator() =>
+        WriteUnsignedLine("///////////////////////////////////////////////////////////");
 
     public void WriteLine(string message)
     {
@@ -47,10 +48,7 @@ public class Logger
     public void WriteToLog(string message)
     {
         FileStream fs = File.Open(LogFile, FileMode.Append);
-        var writer = new StreamWriter(fs)
-        {
-            AutoFlush = true
-        };
+        var writer = new StreamWriter(fs) { AutoFlush = true };
 
         writer.Write(message);
         writer.Close();

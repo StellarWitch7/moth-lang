@@ -6,7 +6,12 @@ public class FieldDefNode : DefinitionNode
     public PrivacyType Privacy { get; set; }
     public TypeRefNode TypeRef { get; set; }
 
-    public FieldDefNode(string name, PrivacyType privacy, TypeRefNode typeRef, List<AttributeNode> attributes)
+    public FieldDefNode(
+        string name,
+        PrivacyType privacy,
+        TypeRefNode typeRef,
+        List<AttributeNode> attributes
+    )
         : base(attributes)
     {
         Name = name;

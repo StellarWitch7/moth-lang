@@ -25,9 +25,8 @@ public readonly struct Token
         }
     }
 
-    public override string ToString() => Text.IsEmpty
-        ? $"Token<{Type}>"
-        : $"Token<{Type}>(\"{Text}\")";
+    public override string ToString() =>
+        Text.IsEmpty ? $"Token<{Type}>" : $"Token<{Type}>(\"{Text}\")";
 }
 
 public enum TokenType
