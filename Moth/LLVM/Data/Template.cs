@@ -33,7 +33,7 @@ public class Template : ICompilerData
         
         foreach (AttributeNode attribute in attributes)
         {
-            Attributes.Add(attribute.Name, _compiler.MakeAttribute(attribute.Name, _compiler.CleanAttributeArgs(attribute.Arguments.ToArray())));
+            Attributes.Add(attribute.Name, _compiler.MakeAttribute(attribute.Name, LLVMCompiler.CleanAttributeArgs(attribute.Arguments.ToArray())));
         }
     }
 
@@ -78,10 +78,10 @@ public class Template : ICompilerData
         @struct = new StructDecl(_compiler,
             Parent,
             structNode.Name,
-            _compiler.Context.CreateNamedStruct(structNode.Name),
             Privacy,
             IsUnion,
-            Attributes);
+            Attributes,
+            Contents);
         _builtTypes.Add(sig, @struct);
         _compiler.BuildTemplate(this, structNode, @struct, args);
         return @struct;

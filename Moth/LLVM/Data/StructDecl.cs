@@ -112,16 +112,16 @@ public class StructDecl : TypeDecl
     public override ImplicitConversionTable GetImplicitConversions()
     {
         if (_internalImplicits == default)
-            _internalImplicits = new ImplicitConversionTable();
+            _internalImplicits = new ImplicitConversionTable(_compiler);
         
         return _internalImplicits;
     }
 
-    public Field GetField(string name, StructDecl currentStructDecl)
+    public Field GetField(string name, TypeDecl currentTypeDecl)
     {
         if (Fields.TryGetValue(name, out Field field))
         {
-            if (field.Privacy == PrivacyType.Priv && currentStructDecl != this)
+            if (field.Privacy == PrivacyType.Priv && currentTypeDecl != this)
             {
                 throw new Exception($"Cannot access private field \"{name}\" on type \"{Name}\".");
             }
@@ -154,55 +154,10 @@ public class StructDecl : TypeDecl
         }
     }
 
-    public virtual Function GetFunction(string name, IReadOnlyList<Type> paramTypes, StructDecl? currentStruct, bool recursive)
-    {
-        if (StaticMethods.TryGetValue(name, out OverloadList overloads)
-            && overloads.TryGet(paramTypes, out Function func))
-        {
-            if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Priv && currentStruct != this)
-            {
-                throw new Exception($"Cannot access private function \"{name}\" on type \"{Name}\".");
-            }
-
-            return func;
-        }
-        else
-        {
-            if (recursive)
-            {
-                return ParentNamespace.GetFunction(name, paramTypes);
-            }
-            else
-            {
-                throw new Exception($"Function \"{name}\" does not exist on type \"{Name}\".");
-            }
-        }
-    }
-
-    public bool TryGetFunction(string name, IReadOnlyList<Type> paramTypes, StructDecl? currentStruct, bool recursive, out Function func)
-    {
-        try
-        {
-            func = GetFunction(name, paramTypes, currentStruct, recursive);
-
-            if (func == null)
-            {
-                throw new Exception();
-            }
-            
-            return true;
-        }
-        catch
-        {
-            func = null;
-            return false;
-        }
-    }
-
     public virtual Variable Init()
     {
-        return new Variable(Reserved.Self,
-            new VarType(this),
+        return new Variable(_compiler, Reserved.Self,
+            new VarType(_compiler, this),
             _compiler.Builder.BuildAlloca(LLVMType));
     }
 }

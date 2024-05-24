@@ -70,12 +70,11 @@ public sealed class ArrStructDecl : PrimitiveStructDecl
         : base(compiler, $"[{elementType}]",
             compiler.Context.GetStructType(new []
             {
-                new PtrType(elementType).LLVMType,
+                new PtrType(compiler, elementType).LLVMType,
                 LLVMTypeRef.Int32
                 
             }, false), 64)
     {
-        _compiler = compiler;
         Fields.Add("Length", new Field(compiler, this, "Length", 1, compiler.UInt32, PrivacyType.Pub));
         ElementType = elementType;
     }
@@ -122,18 +121,20 @@ public class Void : PrimitiveStructDecl
 
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
+        public ImplicitConversionTable(LLVMCompiler compiler) : base(compiler) { }
+        
         public override bool Contains(Type key)
         {
             return key is PtrType;
         }
         
-        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<Value, Value> value)
         {
             if (key is PtrType ptrType)
             {
-                value = (compiler, prev) =>
+                value = (prev) =>
                 {
-                    return new Pointer(ptrType, prev.LLVMValue);
+                    return new Pointer(_compiler, ptrType, prev.LLVMValue);
                 };
                 return true;
             }
@@ -150,7 +151,7 @@ public class Null : PrimitiveStructDecl
 {
     public Null(LLVMCompiler compiler) : base(compiler, Reserved.Null, LLVMTypeRef.Int8, 8) { }
 
-    public override ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
+    public override ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable(_compiler);
 
     protected override Dictionary<string, OverloadList> GenerateDefaultMethods()
     {
@@ -159,26 +160,28 @@ public class Null : PrimitiveStructDecl
     
     public class ImplicitConversionTable : LLVM.ImplicitConversionTable
     {
+        public ImplicitConversionTable(LLVMCompiler compiler) : base(compiler) { }
+        
         public override bool Contains(Type key)
         {
             return true;
         }
         
-        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<LLVMCompiler, Value, Value> value)
+        public override bool TryGetValue(Type key, [MaybeNullWhen(false)] out Func<Value, Value> value)
         {
             if (key is PtrType)
             {
-                value = (compiler, prev) =>
+                value = (prev) =>
                 {
-                    return Value.Create(key, LLVMValueRef.CreateConstPointerNull(key.LLVMType));
+                    return Value.Create(_compiler, key, LLVMValueRef.CreateConstPointerNull(key.LLVMType));
                 };
                 return true;
             }
             else
             {
-                value = (compiler, prev) =>
+                value = (prev) =>
                 {
-                    return Value.Create(key, LLVMValueRef.CreateConstNull(key.LLVMType));
+                    return Value.Create(_compiler, key, LLVMValueRef.CreateConstNull(key.LLVMType));
                 };
                 return true;
             }

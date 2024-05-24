@@ -8,7 +8,7 @@ public class AbstractInt : PrimitiveStructDecl
     private ImplicitConversionTable _internalImplicits = null;
     private long _value;
     
-    public AbstractInt(long value) : base("__abstract_integer", LLVMTypeRef.Int32, 32)
+    public AbstractInt(LLVMCompiler compiler, long value) : base(compiler, "__abstract_integer", LLVMTypeRef.Int32, 32)
     {
         _value = value;
     }
@@ -18,51 +18,51 @@ public class AbstractInt : PrimitiveStructDecl
         var dict = new Dictionary<string, OverloadList>();
 
         var addition = InitOperatorList(dict, OperationType.Addition);
-        addition.Add(new AbstractIntOperation(this, OperationType.Addition));
+        addition.Add(new AbstractIntOperation(_compiler, this, OperationType.Addition));
 
         var subtraction = InitOperatorList(dict, OperationType.Subtraction);
-        subtraction.Add(new AbstractIntOperation(this, OperationType.Subtraction));
+        subtraction.Add(new AbstractIntOperation(_compiler, this, OperationType.Subtraction));
 
         var multiplication = InitOperatorList(dict, OperationType.Multiplication);
-        multiplication.Add(new AbstractIntOperation(this, OperationType.Multiplication));
+        multiplication.Add(new AbstractIntOperation(_compiler, this, OperationType.Multiplication));
 
         var division = InitOperatorList(dict, OperationType.Division);
-        division.Add(new AbstractIntOperation(this, OperationType.Division));
+        division.Add(new AbstractIntOperation(_compiler, this, OperationType.Division));
 
         var exponential = InitOperatorList(dict, OperationType.Exponential);
-        exponential.Add(new AbstractIntOperation(this, OperationType.Exponential));
+        exponential.Add(new AbstractIntOperation(_compiler, this, OperationType.Exponential));
 
         var modulus = InitOperatorList(dict, OperationType.Modulus);
-        modulus.Add(new AbstractIntOperation(this, OperationType.Modulus));
+        modulus.Add(new AbstractIntOperation(_compiler, this, OperationType.Modulus));
 
         var lesserThan = InitOperatorList(dict, OperationType.LesserThan);
-        lesserThan.Add(new AbstractIntOperation(this, OperationType.LesserThan));
+        lesserThan.Add(new AbstractIntOperation(_compiler, this, OperationType.LesserThan));
 
         var lesserThanOrEqual = InitOperatorList(dict, OperationType.LesserThanOrEqual);
-        lesserThanOrEqual.Add(new AbstractIntOperation(this, OperationType.LesserThanOrEqual));
+        lesserThanOrEqual.Add(new AbstractIntOperation(_compiler, this, OperationType.LesserThanOrEqual));
 
         var greaterThan = InitOperatorList(dict, OperationType.GreaterThan);
-        greaterThan.Add(new AbstractIntOperation(this, OperationType.GreaterThan));
+        greaterThan.Add(new AbstractIntOperation(_compiler, this, OperationType.GreaterThan));
 
         var greaterThanOrEqual = InitOperatorList(dict, OperationType.GreaterThanOrEqual);
-        greaterThanOrEqual.Add(new AbstractIntOperation(this, OperationType.GreaterThanOrEqual));
+        greaterThanOrEqual.Add(new AbstractIntOperation(_compiler, this, OperationType.GreaterThanOrEqual));
 
         var equal = InitOperatorList(dict, OperationType.Equal);
-        equal.Add(new AbstractIntOperation(this, OperationType.Equal));
+        equal.Add(new AbstractIntOperation(_compiler, this, OperationType.Equal));
 
         return dict;
     }
 
-    public static Value Create(long value)
+    public static Value Create(LLVMCompiler compiler, long value)
     {
-        return new LiteralIntValue(value);
+        return new LiteralIntValue(compiler, value);
     }
 
     public override ImplicitConversionTable GetImplicitConversions()
     {
         if (_internalImplicits == null)
         {
-            _internalImplicits = new ImplicitConversionTable(_value);
+            _internalImplicits = new ImplicitConversionTable(_compiler, _value);
         }
         
         return _internalImplicits;
@@ -74,7 +74,7 @@ public class AbstractInt : PrimitiveStructDecl
     {
         private long _value;
         
-        public ImplicitConversionTable(long value)
+        public ImplicitConversionTable(LLVMCompiler compiler, long value) : base(compiler)
         {
             _value = value;
         }
@@ -164,7 +164,7 @@ public class AbstractInt : PrimitiveStructDecl
 
                     value = (compiler, prev) =>
                     {
-                        return Value.Create(key, LLVMValueRef.CreateConstInt(key.LLVMType, (ulong)_value, isSigned));
+                        return Value.Create(compiler, key, LLVMValueRef.CreateConstInt(key.LLVMType, (ulong)_value, isSigned));
                     };
                 }
                 
@@ -191,9 +191,9 @@ public class AbstractInt : PrimitiveStructDecl
             }
         }
         
-        public LiteralIntValue(long value) : base(null, null)
+        public LiteralIntValue(LLVMCompiler compiler, long value) : base(compiler, null, null)
         {
-            Type = new AbstractInt(value);
+            Type = new AbstractInt(compiler, value);
             Value = value;
         }
     }
@@ -203,11 +203,11 @@ public class AbstractInt : PrimitiveStructDecl
         private AbstractInt _abstractIntType;
         private OperationType _opType;
         
-        public AbstractIntOperation(AbstractInt abstractIntType, OperationType opType)
-            : base(Utils.ExpandOpName(Utils.OpTypeToString(opType)),
+        public AbstractIntOperation(LLVMCompiler compiler, AbstractInt abstractIntType, OperationType opType)
+            : base(compiler, Utils.ExpandOpName(Utils.OpTypeToString(opType)),
                 new FuncType(opType is OperationType.LesserThan or OperationType.LesserThanOrEqual
                         or OperationType.GreaterThan or OperationType.GreaterThanOrEqual or OperationType.Equal
-                        ? Primitives.Bool
+                        ? compiler.Bool
                         : abstractIntType,
                     new Type[]
                     {
@@ -220,13 +220,13 @@ public class AbstractInt : PrimitiveStructDecl
             _opType = opType;
         }
 
-        public override Value Call(LLVMCompiler compiler, Value[] args)
+        public override Value Call(Value[] args)
         {
             if (args.Length != 2) throw new Exception($"Internal error: Operation must have exactly two operands. {args.Length} were provided.");
             if (args[0] is not Pointer ptr || ptr.Type.BaseType is not AbstractInt) throw new Exception($"Internal error: Left operand is not a literal int.");
             if (args[1] is not LiteralIntValue rightVal) throw new Exception($"Internal error: Right operand is not a literal int.");
 
-            var leftVal = new LiteralIntValue(_abstractIntType._value);
+            var leftVal = new LiteralIntValue(_compiler, _abstractIntType._value);
             object result = _opType switch
             {
                 OperationType.Addition => leftVal.Value + rightVal.Value,
@@ -244,8 +244,8 @@ public class AbstractInt : PrimitiveStructDecl
             };
             
             return result is bool b
-                ? Value.Create(Primitives.Bool, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(b ? 1 : 0)))
-                : AbstractInt.Create((long)result);
+                ? Value.Create(_compiler, _compiler.Bool, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(b ? 1 : 0)))
+                : AbstractInt.Create(_compiler, (long)result);
         }
     }
 }

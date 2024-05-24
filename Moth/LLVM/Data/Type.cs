@@ -18,9 +18,12 @@ public class Type : ICompilerData
     public bool IsExternal { get; init; }
     public virtual LLVMTypeRef LLVMType { get; }
     public virtual TypeKind Kind { get; }
+    
+    protected LLVMCompiler _compiler { get; }
 
-    public Type(LLVMTypeRef llvmType, TypeKind kind)
+    public Type(LLVMCompiler compiler, LLVMTypeRef llvmType, TypeKind kind)
     {
+        _compiler = compiler;
         LLVMType = llvmType;
         Kind = kind;
     }
@@ -39,7 +42,7 @@ public class Type : ICompilerData
         return GetImplicitConversions().Contains(other);
     }
     
-    public virtual ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
+    public virtual ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable(_compiler);
     
     public override string ToString() => throw new NotImplementedException();
 

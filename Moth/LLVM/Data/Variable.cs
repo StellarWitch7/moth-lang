@@ -5,7 +5,7 @@ public class Variable : Pointer
     public virtual string Name { get; }
     public override VarType Type { get; }
     
-    public Variable(string name, VarType type, LLVMValueRef llvmVariable) : base(null, llvmVariable)
+    public Variable(LLVMCompiler compiler, string name, VarType type, LLVMValueRef llvmVariable) : base(compiler, null, llvmVariable)
     {
         Name = name;
         Type = type;

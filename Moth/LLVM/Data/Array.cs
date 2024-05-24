@@ -9,12 +9,9 @@ public class Array : Value
     public override ArrStructDecl InternalStructDecl { get; }
     public override LLVMValueRef LLVMValue { get; }
 
-    private LLVMCompiler _compiler;
-
     public Array(LLVMCompiler compiler, Type elementType, Value[] elements)
-        : base(null, null)
+        : base(compiler, null, null)
     {
-        _compiler = compiler;
         InternalStructDecl = ResolveType(compiler, elementType);
         LLVMValue = compiler.Builder.BuildAlloca(InternalStructDecl.LLVMType);
 
@@ -57,7 +54,7 @@ public class ArrayIndexerFunction : DefinedFunction
         : base(compiler, internalArrayStruct, Reserved.Indexer, new FuncType(new RefType(elementType), new Type[]
         {
             new PtrType(internalArrayStruct),
-            Primitives.UInt32
+            compiler.UInt32
         }, false), new Parameter[0], PrivacyType.Pub, false, new Dictionary<string, IAttribute>())
     {
         using LLVMBuilderRef builder = compiler.Module.Context.CreateBuilder();

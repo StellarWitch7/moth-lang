@@ -5,7 +5,7 @@ namespace Moth.LLVM.Data;
 //TODO:
 // this is the underlying type of #IInterface*
 // it should not be possible to create an instance of this directly
-public class TraitDecl : TypeDecl<TraitDecl>
+public class TraitDecl : TypeDecl
 {
     public VTableDef VTable { get; } = new VTableDef();
     public override bool IsUnion { get => false; }

@@ -8,8 +8,12 @@ public abstract class IntrinsicOperator : IntrinsicFunction
     protected PrimitiveStructDecl LeftStructDecl { get; }
     protected PrimitiveStructDecl RightStructDecl { get; }
 
-    public IntrinsicOperator(OperationType opType, PrimitiveStructDecl retStructDecl, PrimitiveStructDecl leftStructDecl, PrimitiveStructDecl rightStructDecl)
-        : base(Utils.ExpandOpName(Utils.OpTypeToString(opType)),
+    public IntrinsicOperator(LLVMCompiler compiler,
+        OperationType opType,
+        PrimitiveStructDecl retStructDecl,
+        PrimitiveStructDecl leftStructDecl,
+        PrimitiveStructDecl rightStructDecl)
+        : base(compiler, Utils.ExpandOpName(Utils.OpTypeToString(opType)),
             new FuncType(retStructDecl,
                 new Type[]
                 {
@@ -25,14 +29,14 @@ public abstract class IntrinsicOperator : IntrinsicFunction
     
     protected override LLVMValueRef GenerateLLVMData() => throw new NotImplementedException("Intrinsic operator does not return function.");
 
-    public override Value Call(LLVMCompiler compiler, Value[] args)
+    public override Value Call(Value[] args)
     {
         if (args.Length != 2)
         {
             throw new Exception("Intrinsic operator must be called with exactly two arguments.");
         }
 
-        var leftVal = args[0].DeRef(compiler);
+        var leftVal = args[0].DeRef(_compiler);
         var rightVal = args[1];
 
         if (!leftVal.Type.Equals(LeftStructDecl))
@@ -47,11 +51,11 @@ public abstract class IntrinsicOperator : IntrinsicFunction
 
         if (rightVal.Type.CanConvertTo(leftVal.Type))
         {
-            rightVal = rightVal.ImplicitConvertTo(compiler, leftVal.Type);
+            rightVal = rightVal.ImplicitConvertTo(_compiler, leftVal.Type);
         }
         else if (leftVal.Type.CanConvertTo(rightVal.Type))
         {
-            leftVal = leftVal.ImplicitConvertTo(compiler, rightVal.Type);
+            leftVal = leftVal.ImplicitConvertTo(_compiler, rightVal.Type);
         }
         else
         {
@@ -64,18 +68,18 @@ public abstract class IntrinsicOperator : IntrinsicFunction
 
         if (leftType is Float)
         {
-            value = OpFloat(compiler, leftVal, rightVal);
+            value = OpFloat(_compiler, leftVal, rightVal);
         }
         else if (leftType is Int)
         {
-            value = OpInt(compiler, leftVal, rightVal);
+            value = OpInt(_compiler, leftVal, rightVal);
         }
         else
         {
             throw new NotImplementedException("Unsupported primitive type for intrinsic operator.");
         }
 
-        return Value.Create(RetStructDecl, value);
+        return Value.Create(_compiler, RetStructDecl, value);
     }
 
     protected abstract LLVMValueRef OpFloat(LLVMCompiler compiler, Value leftVal, Value rightVal);
@@ -87,8 +91,8 @@ public sealed class ConstRetFn : IntrinsicFunction
     private Value _value { get; }
     private LLVMModuleRef _module { get; }
     
-    public ConstRetFn(string name, Value value, LLVMModuleRef module)
-        : base(name, new FuncType(value.Type, new Type[]{}, false))
+    public ConstRetFn(LLVMCompiler compiler, string name, Value value, LLVMModuleRef module)
+        : base(compiler, name, new FuncType(value.Type, new Type[]{}, false))
     {
         if (!value.LLVMValue.IsConstant)
         {
@@ -99,7 +103,7 @@ public sealed class ConstRetFn : IntrinsicFunction
         _module = module;
     }
 
-    public override Value Call(LLVMCompiler compiler, Value[] args) => _value;
+    public override Value Call(Value[] args) => _value;
 
     protected override LLVMValueRef GenerateLLVMData()
     {
@@ -117,8 +121,8 @@ public sealed class Pow : IntrinsicFunction
 {
     private LLVMModuleRef _module { get; }
 
-    public Pow(string name, LLVMModuleRef module, Type retType, Type left, Type right)
-        : base(name, new FuncType(retType, new Type[] { left, right }, false))
+    public Pow(LLVMCompiler compiler, string name, LLVMModuleRef module, Type retType, Type left, Type right)
+        : base(compiler, name, new FuncType(retType, new Type[] { left, right }, false))
     {
         _module = module;
     }

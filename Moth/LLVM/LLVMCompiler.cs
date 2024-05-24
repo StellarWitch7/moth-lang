@@ -12,25 +12,25 @@ namespace Moth.LLVM;
 
 public class LLVMCompiler : IDisposable
 {
-    public readonly Null Null = new Null(this);
-    public readonly Void Void = new Void(this);
+    public Null Null { get; }
+    public Void Void { get; }
     
-    public readonly UnsignedInt Bool = new UnsignedInt(this, Reserved.Bool, LLVMTypeRef.Int1, 1);
-    public readonly UnsignedInt UInt8 = new UnsignedInt(this, Reserved.UInt8, LLVMTypeRef.Int8, 8);
-    public readonly UnsignedInt UInt16 = new UnsignedInt(this, Reserved.UInt16, LLVMTypeRef.Int16, 16);
-    public readonly UnsignedInt UInt32 = new UnsignedInt(this, Reserved.UInt32, LLVMTypeRef.Int32, 32);
-    public readonly UnsignedInt UInt64 = new UnsignedInt(this, Reserved.UInt64, LLVMTypeRef.Int64, 64);
-    public readonly UnsignedInt UInt128 = new UnsignedInt(this, Reserved.UInt128, LLVMTypeRef.CreateInt(128), 128);
+    public UnsignedInt Bool { get; }
+    public UnsignedInt UInt8 { get; }
+    public UnsignedInt UInt16 { get; }
+    public UnsignedInt UInt32 { get; }
+    public UnsignedInt UInt64 { get; }
+    public UnsignedInt UInt128 { get; }
     
-    public readonly SignedInt Int8 = new SignedInt(this, Reserved.Int8, LLVMTypeRef.Int8, 8);
-    public readonly SignedInt Int16 = new SignedInt(this, Reserved.Int16, LLVMTypeRef.Int16, 16);
-    public readonly SignedInt Int32 = new SignedInt(this, Reserved.Int32, LLVMTypeRef.Int32, 32);
-    public readonly SignedInt Int64 = new SignedInt(this, Reserved.Int64, LLVMTypeRef.Int64, 64);
-    public readonly SignedInt Int128 = new SignedInt(this, Reserved.Int128, LLVMTypeRef.CreateInt(128), 128);
+    public SignedInt Int8 { get; }
+    public SignedInt Int16 { get; }
+    public SignedInt Int32 { get; }
+    public SignedInt Int64 { get; }
+    public SignedInt Int128 { get; }
 
-    public readonly Float Float16 = new Float(this, Reserved.Float16, LLVMTypeRef.Half, 16);
-    public readonly Float Float32 = new Float(this, Reserved.Float32, LLVMTypeRef.Float, 32);
-    public readonly Float Float64 = new Float(this, Reserved.Float64, LLVMTypeRef.Double, 64);
+    public Float Float16 { get; }
+    public Float Float32 { get; }
+    public Float Float64 { get; }
     
     public string ModuleName { get; }
     public bool DoOptimize { get; }
@@ -61,6 +61,27 @@ public class LLVMCompiler : IDisposable
         Context = LLVMContextRef.Global;
         Builder = Context.CreateBuilder();
         Module = Context.CreateModuleWithName(ModuleName);
+        
+        Null = new Null(this);
+        Void = new Void(this);
+        
+        Bool = new UnsignedInt(this, Reserved.Bool, LLVMTypeRef.Int1, 1);
+        UInt8 = new UnsignedInt(this, Reserved.UInt8, LLVMTypeRef.Int8, 8);
+        UInt16 = new UnsignedInt(this, Reserved.UInt16, LLVMTypeRef.Int16, 16);
+        UInt32 = new UnsignedInt(this, Reserved.UInt32, LLVMTypeRef.Int32, 32);
+        UInt64 = new UnsignedInt(this, Reserved.UInt64, LLVMTypeRef.Int64, 64);
+        UInt128 = new UnsignedInt(this, Reserved.UInt128, LLVMTypeRef.CreateInt(128), 128);
+    
+        Int8 = new SignedInt(this, Reserved.Int8, LLVMTypeRef.Int8, 8);
+        Int16 = new SignedInt(this, Reserved.Int16, LLVMTypeRef.Int16, 16);
+        Int32 = new SignedInt(this, Reserved.Int32, LLVMTypeRef.Int32, 32);
+        Int64 = new SignedInt(this, Reserved.Int64, LLVMTypeRef.Int64, 64);
+        Int128 = new SignedInt(this, Reserved.Int128, LLVMTypeRef.CreateInt(128), 128);
+
+        Float16 = new Float(this, Reserved.Float16, LLVMTypeRef.Half, 16);
+        Float32 = new Float(this, Reserved.Float32, LLVMTypeRef.Float, 32);
+        Float64 = new Float(this, Reserved.Float64, LLVMTypeRef.Double, 64);
+        
         GlobalNamespace = InitGlobalNamespace();
         AddDefaultForeigns();
 
@@ -724,16 +745,18 @@ public class LLVMCompiler : IDisposable
 
         if (funcDefNode.Name == Reserved.Init && func.IsStatic && func.Type is MethodType methodType)
         {
-            if (func.Type.ReturnType is TypeDecl retType)
+            if (func.Type.ReturnType is not StructDecl retType)
             {
-                if (retType != methodType.OwnerTypeDecl)
-                {
-                    throw new Exception($"Init method does not return the same type as its owner class " +
-                        $"(\"{methodType.OwnerTypeDecl.Name}\").");
-                }
+                throw new Exception("Init method must not be for a trait or enum.");
+            }
+            
+            if (retType != methodType.OwnerTypeDecl)
+            {
+                throw new Exception($"Init method does not return the same type as its owner class " +
+                    $"(\"{methodType.OwnerTypeDecl.Name}\").");
             }
 
-            var @new = methodType.OwnerTypeDecl.Init();
+            var @new = retType.Init();
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
             if (!(@new.Type.BaseType is StructDecl structOfNew))
@@ -1063,7 +1086,7 @@ public class LLVMCompiler : IDisposable
             LLVMValueRef llvmFunc = Module.AddFunction(Reserved.LocalFunc, funcType.BaseType.LLVMType);
 
             Function? parentFunction = CurrentFunction;
-            var func = new Function(funcType, llvmFunc, @params.ToArray())
+            var func = new Function(this, funcType, llvmFunc, @params.ToArray())
             {
                 OpeningScope = new Scope(llvmFunc.AppendBasicBlock("entry"))
             };
@@ -1112,7 +1135,7 @@ public class LLVMCompiler : IDisposable
             scope.LLVMBlock = @continue;
 
             return thenVal.Type.Equals(elseVal.Type)
-                ? Value.Create(thenVal.Type, result)
+                ? Value.Create(this, thenVal.Type, result)
                 : throw new Exception("Then and else statements of inline if are not of the same type.");
         }
         else if (expr is LiteralArrayNode literalArrayNode)
@@ -1127,7 +1150,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is ThisNode @this)
         {
-            if (CurrentFunction.OwnerStruct == null)
+            if (CurrentFunction.OwnerType == null)
             {
                 throw new Exception("Attempted self-instance reference in a global function.");
             }
@@ -1145,7 +1168,7 @@ public class LLVMCompiler : IDisposable
             }
             else
             {
-                return Value.Create(new PtrType(CurrentFunction.OwnerStruct), CurrentFunction.LLVMValue.FirstParam);
+                return Value.Create(this, new PtrType(CurrentFunction.OwnerType), CurrentFunction.LLVMValue.FirstParam);
             }
         }
         else if (expr is IndexAccessNode indexAccess)
@@ -1177,7 +1200,7 @@ public class LLVMCompiler : IDisposable
             }
             else if (arrType is StructDecl @struct)
             {
-                return CompileFuncCall(scope, new FuncCallNode(Reserved.Indexer, indexAccess.Params, indexAccess.ToBeIndexed), CurrentFunction.OwnerStruct);
+                return CompileFuncCall(scope, new FuncCallNode(Reserved.Indexer, indexAccess.Params, indexAccess.ToBeIndexed), CurrentFunction.OwnerType);
             }
             else
             {
@@ -1188,7 +1211,7 @@ public class LLVMCompiler : IDisposable
         {
             var value = CompileExpression(scope, inverse.Value).ImplicitConvertTo(this, Bool);
             
-            return Value.Create(Bool,
+            return Value.Create(this, Bool,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
                     value.LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)));
@@ -1208,7 +1231,7 @@ public class LLVMCompiler : IDisposable
             }
             
             var valToAdd = LLVMValueRef.CreateConstInt(ptr.Type.BaseType.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, Value.Create(ptr.Type.BaseType,
+            ptr.Store(this, Value.Create(this, ptr.Type.BaseType,
                 Builder.BuildAdd(value.ImplicitConvertTo(this, ptr.Type.BaseType).LLVMValue, valToAdd)));
             return value;
         }
@@ -1227,7 +1250,7 @@ public class LLVMCompiler : IDisposable
             }
             
             var valToAdd = LLVMValueRef.CreateConstInt(ptr.Type.BaseType.LLVMType, 1); //TODO: float compat?
-            ptr.Store(this, Value.Create(ptr.Type.BaseType,
+            ptr.Store(this, Value.Create(this, ptr.Type.BaseType,
                 Builder.BuildSub(value.ImplicitConvertTo(this, ptr.Type.BaseType).LLVMValue, valToAdd)));
             return value;
         }
@@ -1243,7 +1266,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is FuncCallNode funcCall)
         {
-            return CompileFuncCall(scope, funcCall, CurrentFunction.OwnerStruct);
+            return CompileFuncCall(scope, funcCall, CurrentFunction.OwnerType);
         }
         else if (expr is RefNode @ref)
         {
@@ -1274,31 +1297,31 @@ public class LLVMCompiler : IDisposable
             global.Initializer = constStr;
             global.Linkage = LLVMLinkage.LLVMPrivateLinkage;
             global.IsGlobalConstant = true;
-            return Value.Create(new PtrType(typeDecl), global);
+            return Value.Create(this, new PtrType(typeDecl), global);
         }
         else if (literalNode.Value is bool @bool)
         {
             TypeDecl typeDecl = Bool;
-            return Value.Create(typeDecl, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
+            return Value.Create(this, typeDecl, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0)));
         }
         else if (literalNode.Value is int i32)
         {
-            return AbstractInt.Create((long)i32);
+            return AbstractInt.Create(this, (long)i32);
         }
         else if (literalNode.Value is float f32)
         {
             TypeDecl typeDecl = Float32;
-            return Value.Create(typeDecl, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
+            return Value.Create(this, typeDecl, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32));
         }
         else if (literalNode.Value is char ch)
         {
             TypeDecl typeDecl = UInt8;
-            return Value.Create(typeDecl, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
+            return Value.Create(this, typeDecl, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, ch));
         }
         else if (literalNode.Value == null)
         {
             TypeDecl typeDecl = Null;
-            return Value.Create(typeDecl, LLVMValueRef.CreateConstNull(typeDecl.LLVMType));
+            return Value.Create(this, typeDecl, LLVMValueRef.CreateConstNull(typeDecl.LLVMType));
         }
         else
         {
@@ -1310,13 +1333,13 @@ public class LLVMCompiler : IDisposable
     {
         var result = binaryOp.Type switch
         {
-            OperationType.And => Value.Create(Bool,
+            OperationType.And => Value.Create(this, Bool,
                 Builder.BuildAnd(CompileExpression(scope, binaryOp.Left).ImplicitConvertTo(this, Bool).LLVMValue,
                     CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, Bool).LLVMValue)),
-            OperationType.Or => Value.Create(Bool,
+            OperationType.Or => Value.Create(this, Bool,
                 Builder.BuildOr(CompileExpression(scope, binaryOp.Left).ImplicitConvertTo(this, Bool).LLVMValue,
                     CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(this, Bool).LLVMValue)),
-            OperationType.NotEqual => Value.Create(Bool,
+            OperationType.NotEqual => Value.Create(this, Bool,
                 Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ,
                     CompileFuncCall(scope,
                         new FuncCallNode(Utils.ExpandOpName(Utils.OpTypeToString(OperationType.Equal)),
@@ -1325,7 +1348,7 @@ public class LLVMCompiler : IDisposable
                                 binaryOp.Right
                             },
                             binaryOp.Left),
-                        CurrentFunction.OwnerStruct).ImplicitConvertTo(this, Bool).LLVMValue,
+                        CurrentFunction.OwnerType).ImplicitConvertTo(this, Bool).LLVMValue,
                     LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0))),
             _ => CompileFuncCall(scope,
                 new FuncCallNode(Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
@@ -1334,7 +1357,7 @@ public class LLVMCompiler : IDisposable
                         binaryOp.Right
                     },
                     binaryOp.Left),
-                CurrentFunction.OwnerStruct)
+                CurrentFunction.OwnerType)
         };
 
         if (binaryOp.Type == OperationType.Equal)
@@ -1442,7 +1465,7 @@ public class LLVMCompiler : IDisposable
             }
         }
         
-        return Value.Create(destType, builtVal);
+        return Value.Create(this, destType, builtVal);
     }
 
     // public Value CompilePow(Value left, Value right)
@@ -1471,7 +1494,7 @@ public class LLVMCompiler : IDisposable
     //             : left.Type is UnsignedInt
     //                 ? Builder.BuildUIToFP(left.LLVMValue, destType)
     //                 : throw new NotImplementedException();
-    //         left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+    //         left = Value.Create(this, val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
     //                 ? f64
     //                 : f32,
     //             val);
@@ -1480,7 +1503,7 @@ public class LLVMCompiler : IDisposable
     //         && !left.Type.Equals(Float64))
     //     {
     //         val = Builder.BuildFPCast(left.LLVMValue, destType);
-    //         left = Value.Create(val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
+    //         left = Value.Create(this, val.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
     //                 ? f64
     //                 : f32,
     //             val);
@@ -1497,7 +1520,7 @@ public class LLVMCompiler : IDisposable
     //             if (right.Type.Equals(Float64))
     //             {
     //                 val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Double);
-    //                 right = Value.Create(f64, val);
+    //                 right = Value.Create(this, f64, val);
     //             }
     //
     //             intrinsic = "llvm.pow.f64";
@@ -1507,7 +1530,7 @@ public class LLVMCompiler : IDisposable
     //             if (right.Type.Equals(Float32))
     //             {
     //                 val = Builder.BuildFPCast(right.LLVMValue, LLVMTypeRef.Float);
-    //                 right = Value.Create(f32, val);
+    //                 right = Value.Create(this, f32, val);
     //             }
     //
     //             intrinsic = "llvm.pow.f32";
@@ -1521,7 +1544,7 @@ public class LLVMCompiler : IDisposable
     //                 && !right.Type.Equals(Int16))
     //             {
     //                 val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int16);
-    //                 right = Value.Create(i16, val);
+    //                 right = Value.Create(this, i16, val);
     //             }
     //
     //             intrinsic = "llvm.powi.f64.i16";
@@ -1532,7 +1555,7 @@ public class LLVMCompiler : IDisposable
     //                 || right.Type.Equals(Int32))
     //             {
     //                 val = Builder.BuildIntCast(right.LLVMValue, LLVMTypeRef.Int32);
-    //                 right = Value.Create(i32, val);
+    //                 right = Value.Create(this, i32, val);
     //             }
     //
     //             intrinsic = "llvm.powi.f32.i32";
@@ -1554,10 +1577,10 @@ public class LLVMCompiler : IDisposable
     //     if (returnInt)
     //     {
     //         result = result.LLVMValue.TypeOf.Kind == LLVMTypeKind.LLVMDoubleTypeKind
-    //             ? Value.Create(i64,
+    //             ? Value.Create(this, i64,
     //                 Builder.BuildFPToSI(result.LLVMValue,
     //                     LLVMTypeRef.Int64))
-    //             : Value.Create(i32,
+    //             : Value.Create(this, i32,
     //                 Builder.BuildFPToSI(result.LLVMValue,
     //                     LLVMTypeRef.Int32));
     //     }
@@ -1628,7 +1651,7 @@ public class LLVMCompiler : IDisposable
                 throw new Exception($"Cannot do field access on value of type \"{parent.Type}\".");
             }
             
-            Field field = structDecl.GetField(@ref.Name, CurrentFunction.OwnerStruct);
+            Field field = structDecl.GetField(@ref.Name, CurrentFunction.OwnerType);
             return field.GetValue(parent);
         }
         else
@@ -1648,7 +1671,7 @@ public class LLVMCompiler : IDisposable
         }
     }
 
-    public Value CompileFuncCall(Scope scope, FuncCallNode funcCall, StructDecl? sourceStruct = null)
+    public Value CompileFuncCall(Scope scope, FuncCallNode funcCall, TypeDecl? sourceType = null)
     {
         Function? func;
         Value? toCallOn = null;
@@ -1699,7 +1722,7 @@ public class LLVMCompiler : IDisposable
                 {
                     if (varType.BaseType is StructDecl)
                     {
-                        toCallOn = Value.Create(new PtrType(@varType.BaseType), toCallOn.LLVMValue);
+                        toCallOn = Value.Create(this, new PtrType(@varType.BaseType), toCallOn.LLVMValue);
                     }
                     else
                     {
@@ -1718,9 +1741,9 @@ public class LLVMCompiler : IDisposable
                     newArgTypes.AddRange(argTypes);
                     argTypes = newArgTypes;
                     toCallOn = ptrToTemporary;
-                    func = temporary.GetMethod(funcCall.Name, argTypes, CurrentFunction.OwnerStruct);
+                    func = temporary.GetMethod(funcCall.Name, argTypes, CurrentFunction.OwnerType);
                 }
-                else if (toCallOn.Type is AspectPtrType aspectPtrType)
+                else if (toCallOn.Type is TraitPtrType aspectPtrType)
                 {
                     var newArgTypes = new List<InternalType>
                     {
@@ -1740,7 +1763,7 @@ public class LLVMCompiler : IDisposable
             
                     newArgTypes.AddRange(argTypes);
                     argTypes = newArgTypes;
-                    func = baseType.GetMethod(funcCall.Name, argTypes, CurrentFunction.OwnerStruct);
+                    func = baseType.GetMethod(funcCall.Name, argTypes, CurrentFunction.OwnerType);
                 }
                 else
                 {
@@ -1759,10 +1782,10 @@ public class LLVMCompiler : IDisposable
         else if (scope.Variables.TryGetValue(funcCall.Name, out Variable funcVar) && funcVar.Type.BaseType is FuncType funcVarType)
         {
             var funcVal = funcVar.DeRef(this);
-            func = new Function(funcVarType, funcVal.LLVMValue, new Parameter[0]);
+            func = new Function(this, funcVarType, funcVal.LLVMValue, new Parameter[0]);
         }
-        else if (sourceStruct != null
-            && sourceStruct.TryGetFunction(funcCall.Name, argTypes, CurrentFunction.OwnerStruct, false, out func))
+        else if (sourceType != null
+            && sourceType.TryGetFunction(funcCall.Name, argTypes, CurrentFunction.OwnerType, false, out func))
         {
             // Keep empty
         }
@@ -1781,7 +1804,7 @@ public class LLVMCompiler : IDisposable
 
         if (func is AspectMethod aspMethod)
         {
-            if (toCallOn == null || toCallOn is not AspectPointer aspPtr)
+            if (toCallOn == null || toCallOn is not TraitPointer aspPtr)
             {
                 throw new Exception("How did you get that method from that source"); //TODO
             }
@@ -1789,7 +1812,7 @@ public class LLVMCompiler : IDisposable
             return aspPtr.CallMethod(this, aspMethod, args.ToArray());
         }
             
-        return func.Call(this, args.ToArray());
+        return func.Call(args.ToArray());
     }
 
     public Namespace GetNamespace(string name)
@@ -1863,8 +1886,8 @@ public class LLVMCompiler : IDisposable
     public Function GetFunction(string name, IReadOnlyList<InternalType> paramTypes)
     {
         if (CurrentFunction != null
-            && CurrentFunction.OwnerStruct != null
-            && CurrentFunction.OwnerStruct.TryGetFunction(name, paramTypes, CurrentFunction.OwnerStruct, true, out Function func))
+            && CurrentFunction.OwnerType != null
+            && CurrentFunction.OwnerType.TryGetFunction(name, paramTypes, CurrentFunction.OwnerType, true, out Function func))
         {
             return func;
         }
@@ -1933,7 +1956,7 @@ public class LLVMCompiler : IDisposable
 
         return @namespace;
     }
-
+    
     private void AddDefaultForeigns()
     {
         Dictionary<string, FuncType> entries = new Dictionary<string, FuncType>();
@@ -1975,10 +1998,10 @@ public class LLVMCompiler : IDisposable
     {
         Pow func = name switch
         {
-            "llvm.powi.f32.i32" => new Pow(name, Module, Float32, Float32, Int32),
-            "llvm.powi.f64.i16" => new Pow(name, Module, Float64, Float64, Int64),
-            "llvm.pow.f32" => new Pow(name, Module, Float32, Float32, Float32),
-            "llvm.pow.f64" => new Pow(name, Module, Float64, Float64, Float64),
+            "llvm.powi.f32.i32" => new Pow(this, name, Module, Float32, Float32, Int32),
+            "llvm.powi.f64.i16" => new Pow(this, name, Module, Float64, Float64, Int64),
+            "llvm.pow.f32" => new Pow(this, name, Module, Float32, Float32, Float32),
+            "llvm.pow.f64" => new Pow(this, name, Module, Float64, Float64, Float64),
             _ => throw new NotImplementedException($"Intrinsic \"{name}\" is not implemented."),
         };
 

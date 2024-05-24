@@ -201,7 +201,7 @@ public static class ArrayExtensions
 
         foreach (Value value in values)
         {
-            result[index] = value.ImplicitConvertTo(compiler, target);
+            result[index] = value.ImplicitConvertTo(target);
             index++;
         }
 

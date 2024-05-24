@@ -8,7 +8,7 @@ public class Function : Value
     public Parameter[] Params { get; }
     public Scope? OpeningScope { get; set; }
 
-    public Function(FuncType type, LLVMValueRef value, Parameter[] @params) : base(type, value)
+    public Function(LLVMCompiler compiler, FuncType type, LLVMValueRef value, Parameter[] @params) : base(compiler, type, value)
     {
         Type = type;
         Params = @params;
@@ -54,7 +54,7 @@ public class Function : Value
         }
     }
     
-    public StructDecl? OwnerStruct
+    public TypeDecl? OwnerType
     {
         get
         {
@@ -70,7 +70,7 @@ public class Function : Value
         }
     }
 
-    public virtual Value Call(LLVMCompiler compiler, Value[] args) => Type.Call(compiler, LLVMValue, args);
+    public virtual Value Call(Value[] args) => Type.Call(_compiler, LLVMValue, args);
 }
 
 public class DefinedFunction : Function
@@ -81,15 +81,13 @@ public class DefinedFunction : Function
     public bool IsForeign { get; }
     public Dictionary<string, IAttribute> Attributes { get; }
 
-    private LLVMCompiler _compiler { get; }
     private LLVMValueRef _internalValue;
     
     public DefinedFunction(LLVMCompiler compiler, IContainer? parent, string name,
         FuncType type, Parameter[] @params, PrivacyType privacy,
         bool isForeign, Dictionary<string, IAttribute> attributes)
-        : base(type, null, @params)
+        : base(compiler, type, null, @params)
     {
-        _compiler = compiler;
         Name = name;
         Parent = parent;
         Privacy = privacy;
@@ -155,7 +153,7 @@ public abstract class IntrinsicFunction : Function
     
     private LLVMValueRef _internalValue;
 
-    public IntrinsicFunction(string name, FuncType type) : base(type, default, new Parameter[0])
+    public IntrinsicFunction(LLVMCompiler compiler, string name, FuncType type) : base(compiler, type, default, new Parameter[0])
     {
         Name = name;
     }
@@ -172,9 +170,6 @@ public abstract class IntrinsicFunction : Function
             return _internalValue;
         }
     }
-    
-    public override Value Call(LLVMCompiler compiler, Value[] args)
-        => Type.Call(compiler, LLVMValue, args);
     
     protected virtual LLVMValueRef GenerateLLVMData()
         => throw new NotImplementedException("This function does not support LLVM data generation.");

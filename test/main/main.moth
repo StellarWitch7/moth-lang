@@ -14,15 +14,16 @@ enum Privacy {
 }
 
 // type Thing {
+//     pub Value #i32;
 // }
 
-// impl root::test#Disposable for root::test#Thing {
+// impl #Disposable for #Thing {
 //     fn Dispose() {
 //         ret
 //     }
 // }
 
-// impl root::test#Animal for root::test#Thing {
+// impl #Animal for #Thing {
 //     fn Eat() {
 //         ret
 //     }

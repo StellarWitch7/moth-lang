@@ -1,5 +1,5 @@
 using Moth.AST.Node;
-using System.Runtime.InteropServices;
+using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM.Data;
 
@@ -7,8 +7,8 @@ public class PtrType : InternalType
 {
     public virtual InternalType BaseType { get; }
 
-    protected PtrType(InternalType baseType, TypeKind kind)
-        : base(LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind)
+    protected PtrType(LLVMCompiler compiler, Type baseType, TypeKind kind)
+        : base(compiler, LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind)
     {
         if (baseType is VarType)
         {
@@ -18,7 +18,7 @@ public class PtrType : InternalType
         BaseType = baseType;
     }
     
-    public PtrType(InternalType baseType) : this(baseType, TypeKind.Pointer) { }
+    public PtrType(LLVMCompiler compiler, Type baseType) : this(compiler, baseType, TypeKind.Pointer) { }
 
     public uint GetDepth()
     {
@@ -49,7 +49,7 @@ public class PtrType : InternalType
         //     return new Void.ImplicitConversionTable();
         // }
 
-        var table = new ImplicitConversionTable();
+        var table = new ImplicitConversionTable(_compiler);
         
         // table.Add(new PtrType(Primitives.Void), (compiler, prev) =>
         // {
@@ -66,27 +66,28 @@ public class PtrType : InternalType
     public override int GetHashCode() => BaseType.GetHashCode();
 }
 
-public class AspectPtrType : PtrType
+public class TraitPtrType : PtrType
 {
     public override TraitDecl BaseType { get; }
-    public override LLVMTypeRef LLVMType { get => llvmType; }
-    
-    private static LLVMTypeRef llvmType = LLVMTypeRef.CreateStruct(new LLVMTypeRef[]
-    {
-        LLVMTypeRef.CreatePointer(Primitives.Int8.LLVMType, 0),
-        LLVMTypeRef.CreatePointer(Primitives.Int8.LLVMType, 0)
-    }, false);
+    public override LLVMTypeRef LLVMType { get; }
 
-    public AspectPtrType(TraitDecl baseType) : base(baseType, TypeKind.Pointer) { }
+    public TraitPtrType(LLVMCompiler compiler, TraitDecl baseType) : base(compiler, baseType, TypeKind.Pointer)
+    {
+        LLVMType = LLVMTypeRef.CreateStruct(new LLVMTypeRef[]
+        {
+            LLVMTypeRef.CreatePointer(_compiler.Int8.LLVMType, 0),
+            LLVMTypeRef.CreatePointer(_compiler.Int8.LLVMType, 0)
+        }, false);
+    }
     
-    public override bool Equals(object? obj) => obj is AspectPtrType && base.Equals(obj);
+    public override bool Equals(object? obj) => obj is TraitPtrType && base.Equals(obj);
 }
 
 public class RefType : PtrType
 {
-    public RefType(InternalType baseType) : base(baseType, TypeKind.Reference)
+    public RefType(LLVMCompiler compiler, Type baseType) : base(compiler, baseType, TypeKind.Reference)
     {
-        if (baseType.Equals(Primitives.Void))
+        if (baseType.Equals(_compiler.Void))
         {
             throw new Exception("Cannot create reference to void.");
         }
@@ -94,16 +95,16 @@ public class RefType : PtrType
 
     public override ImplicitConversionTable GetImplicitConversions()
     {
-        var table = new ImplicitConversionTable();
+        var table = new ImplicitConversionTable(_compiler);
         
-        table.Add(new PtrType(BaseType), (compiler, prev) =>
+        table.Add(new PtrType(_compiler, BaseType), (prev) =>
         {
-            return new Pointer(new PtrType(BaseType), prev.LLVMValue);
+            return new Pointer(_compiler, new PtrType(_compiler, BaseType), prev.LLVMValue);
         });
         
-        table.Add(BaseType, (compiler, prev) =>
+        table.Add(BaseType, (prev) =>
         {
-            return Value.Create(BaseType, compiler.Builder.BuildLoad2(BaseType.LLVMType, prev.LLVMValue));
+            return Value.Create(_compiler, BaseType, _compiler.Builder.BuildLoad2(BaseType.LLVMType, prev.LLVMValue));
         });
 
         return table;
@@ -116,12 +117,12 @@ public class RefType : PtrType
 
 public sealed class VarType : RefType
 {
-    public VarType(InternalType baseType) : base(baseType) { }
+    public VarType(LLVMCompiler compiler, Type baseType) : base(compiler, baseType) { }
 
     public override ImplicitConversionTable GetImplicitConversions()
     {
         var table = base.GetImplicitConversions();
-        table.Remove(new PtrType(BaseType));
+        table.Remove(new PtrType(_compiler, BaseType));
         return table;
     }
 

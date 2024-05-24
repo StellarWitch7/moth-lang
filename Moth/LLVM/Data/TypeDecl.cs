@@ -14,16 +14,14 @@ public class TypeDecl : Type, IContainer
     public virtual Dictionary<string, OverloadList> StaticMethods { get; } = new Dictionary<string, OverloadList>();
     // public Dictionary<string, Property> Properties { get; } = new Dictionary<string, Property>();
 
-    protected LLVMCompiler _compiler;
     private Func<LLVMCompiler, TypeDecl, LLVMTypeRef> _llvmTypeFn;
     private LLVMTypeRef _internalLLVMType;
     private TInfo? _internalTInfo;
 
     protected TypeDecl(LLVMCompiler compiler, Namespace parent, string name,
         Func<LLVMCompiler, TypeDecl, LLVMTypeRef> llvmTypeFn, PrivacyType privacy,
-        Dictionary<string, IAttribute> attributes) : base(null, TypeKind.Decl)
+        Dictionary<string, IAttribute> attributes) : base(compiler, null, TypeKind.Decl)
     {
-        _compiler = compiler;
         Parent = parent;
         Name = name;
         _llvmTypeFn = llvmTypeFn;
@@ -66,8 +64,8 @@ public class TypeDecl : Type, IContainer
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0)
                 : LLVMType.SizeOf;
 
-            var value = Value.Create(_compiler.UInt64, retValue);
-            var func = new ConstRetFn(Reserved.SizeOf, value, _compiler.Module);
+            var value = Value.Create(_compiler, _compiler.UInt64, retValue);
+            var func = new ConstRetFn(_compiler, Reserved.SizeOf, value, _compiler.Module);
             StaticMethods.TryAdd(Reserved.SizeOf, new OverloadList(Reserved.SizeOf));
             StaticMethods[Reserved.SizeOf].Add(func);
         }
@@ -78,8 +76,8 @@ public class TypeDecl : Type, IContainer
                 ? LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 1)
                 : LLVMType.AlignOf;
 
-            var value = Value.Create(_compiler.UInt64, retValue);
-            var func = new ConstRetFn(Reserved.AlignOf, value, _compiler.Module);
+            var value = Value.Create(_compiler, _compiler.UInt64, retValue);
+            var func = new ConstRetFn(_compiler, Reserved.AlignOf, value, _compiler.Module);
             StaticMethods.TryAdd(Reserved.AlignOf, new OverloadList(Reserved.AlignOf));
             StaticMethods[Reserved.AlignOf].Add(func);
         }
@@ -102,6 +100,51 @@ public class TypeDecl : Type, IContainer
         else
         {
             throw new Exception($"Method \"{name}\" does not exist on type \"{Name}\".");
+        }
+    }
+
+    public virtual Function GetFunction(string name, IReadOnlyList<Type> paramTypes, TypeDecl? currentTypeDecl, bool recursive)
+    {
+        if (StaticMethods.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func))
+        {
+            if (func is DefinedFunction defFunc && defFunc.Privacy == PrivacyType.Priv && currentTypeDecl != this)
+            {
+                throw new Exception($"Cannot access private function \"{name}\" on type \"{Name}\".");
+            }
+
+            return func;
+        }
+        else
+        {
+            if (recursive)
+            {
+                return Parent.GetFunction(name, paramTypes, currentTypeDecl, recursive);
+            }
+            else
+            {
+                throw new Exception($"Function \"{name}\" does not exist on type \"{Name}\".");
+            }
+        }
+    }
+
+    public bool TryGetFunction(string name, IReadOnlyList<Type> paramTypes, TypeDecl? currentTypeDecl, bool recursive, out Function func)
+    {
+        try
+        {
+            func = GetFunction(name, paramTypes, currentTypeDecl, recursive);
+
+            if (func == null)
+            {
+                throw new Exception();
+            }
+            
+            return true;
+        }
+        catch
+        {
+            func = null;
+            return false;
         }
     }
     
