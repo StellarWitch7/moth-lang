@@ -311,6 +311,7 @@ public unsafe class HeaderParser : IDisposable
                     break;
                 case CXTypeKind.CXType_DependentSizedArray:
                 case CXTypeKind.CXType_IncompleteArray:
+                case CXTypeKind.CXType_VariableArray:
                 case CXTypeKind.CXType_Vector:
                     result = TranslateTypeRef(t.ElementType);
                     result.PointerDepth++;

@@ -22,7 +22,4 @@ public class Options
         HelpText = "The directory to place output files in."
     )]
     public string? OutputDir { get; set; }
-
-    [Option('i', "include", Required = true, HelpText = "The directory to process.")]
-    public string? Include { get; set; }
 }

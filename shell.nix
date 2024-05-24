@@ -12,4 +12,6 @@ pkgs.mkShell {
     git
     git-extras
   ];
+
+  _TEST_SILK_GLIBC = "${pkgs.glibc.dev}/include";
 }
