@@ -215,7 +215,7 @@ public unsafe class MetadataDeserializer
             var parent = GetNamespace(fullname);
             var result = parent.Types[name];
 
-            if (result is StructDecl structDecl)
+            if (result is StructDecl structDecl && structDecl is not OpaqueStructDecl) //TODO: do other type decls need to be handled?
             {
                 var fields = GetFields(structDecl, type.field_table_index, type.field_table_length);
                 result.LLVMType.StructSetBody(fields.AsLLVMTypes(), false);

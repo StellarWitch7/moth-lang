@@ -1,5 +1,5 @@
 [env]
-glibc = "_TEST_SILK_GLIBC"
+glibc = "__SILK_INCLUDE_GLIBC"
 
 [dir]
 raylib = "raylib"

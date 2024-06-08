@@ -1,17 +1,21 @@
-{ pkgs ? import <nixpkgs> {} }:
+let
+  nixpkgsVer = "24.05";
+  pkgs = import (fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-${nixpkgsVer}") { config = {}; overlays = []; };
+  sdk = pkgs.dotnetCorePackages.sdk_8_0;
+  clang = pkgs.clang_16;
+  priorityDeps = [ sdk clang ];
+  DOTNET_ROOT = "${sdk.out}";
+  DOTNET_HOST_PATH = "${DOTNET_ROOT}/bin/dotnet";
+in pkgs.mkShell {
+  name = "moth-lang";
 
-pkgs.mkShell {
-  name = "moth-lang-env";
-  packages = with pkgs; [
-    dotnetCorePackages.sdk_8_0
-  ];
+  inherit DOTNET_ROOT;
+  inherit DOTNET_HOST_PATH;
 
-  buildInputs = with pkgs; [
-    msbuild
-    clang_16
+  buildInputs = with pkgs; priorityDeps ++ [
     git
     git-extras
   ];
 
-  _TEST_SILK_GLIBC = "${pkgs.glibc.dev}/include";
+  __SILK_INCLUDE_GLIBC = "${pkgs.glibc.dev}/include";
 }

@@ -118,7 +118,7 @@ internal class Program
                             )
                         )
                         {
-                            if (options.MothLibraryFiles.LongCount() > 0)
+                            if (options.MothLibraryFiles.Count() > 0)
                             {
                                 logger.WriteLine("Loading external Moth libraries...");
 
@@ -232,11 +232,9 @@ internal class Program
                                     logger.WriteSeparator();
 
                                     var linker = Process.Start(
-                                        new ProcessStartInfo
+                                        new ProcessStartInfo(linkerName, arguments.ToString())
                                         {
-                                            FileName = linkerName,
                                             WorkingDirectory = binOut,
-                                            Arguments = arguments.ToString(),
                                             RedirectStandardOutput = true,
                                             RedirectStandardError = true,
                                         }
