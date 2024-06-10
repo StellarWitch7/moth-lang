@@ -8,6 +8,91 @@ namespace Moth;
 
 public static class Utils
 {
+    public static string MakeStubName(Language lang, string orig)
+    {
+        string result;
+
+        if (lang == Language.C)
+        {
+            int i = orig.IndexOf('(');
+
+            if (i != -1)
+                result = orig.Remove(i);
+            else
+                result = orig;
+
+            result = result
+                .Replace("root::", "")
+                .Replace("root#", "")
+                .Replace("root.", "")
+                .Replace("::", "_")
+                .Replace("#", "_")
+                .Replace(".", "_");
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+
+        return result;
+    }
+
+    public static FuncType MakeStubType(LLVMCompiler compiler, Language lang, FuncType orig)
+    {
+        FuncType result;
+
+        if (lang == Language.C)
+        {
+            result = new FuncType(
+                compiler,
+                Utils.ExportType(compiler, lang, orig.ReturnType),
+                orig.ParameterTypes.ExecuteOverAll(compiler, lang, Utils.ExportType),
+                orig.IsVariadic
+            );
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+
+        return result;
+    }
+
+    public static Type ExportType(LLVMCompiler compiler, Language lang, Type orig)
+    {
+        if (orig is StructDecl structDecl && structDecl is not PrimitiveStructDecl)
+        {
+            if (structDecl is OpaqueStructDecl)
+            {
+                return structDecl; //TODO: this doesn't really work
+            }
+
+            var llvmType = compiler.Context.CreateNamedStruct(
+                MakeStubName(lang, structDecl.FullName)
+            );
+            llvmType.StructSetBody(structDecl.LLVMType.StructElementTypes, false);
+            return new Type(compiler, llvmType, TypeKind.Decl);
+        }
+        else if (orig is PtrType ptrType)
+        {
+            if (ptrType.BaseType is PtrType ptrType2)
+            {
+                return new PtrType(compiler, ExportType(compiler, lang, ptrType2));
+            }
+
+            if (ptrType.BaseType is StructDecl structDecl2)
+            {
+                return new PtrType(compiler, ExportType(compiler, lang, structDecl2));
+            }
+
+            return new PtrType(compiler, ptrType.BaseType);
+        }
+        else
+        {
+            return orig;
+        }
+    }
+
     public static string ExpandOpName(string op)
     {
         return $"{Reserved.Operator}{{{op}}}";
@@ -51,6 +136,16 @@ public static class Utils
             Reserved.Linux => OS.Linux,
             Reserved.MacOS => OS.MacOS,
             _ => throw new Exception($"Invalid OS: \"{str}\".")
+        };
+    }
+
+    public static Language StringToLanguage(string str)
+    {
+        return str switch
+        {
+            Reserved.C => Language.C,
+            Reserved.CPP => Language.CPP,
+            _ => throw new Exception($"Invalid language: \"{str}\".")
         };
     }
 
@@ -144,11 +239,11 @@ public static class ListExtensions
         return span[..list.Count];
     }
 
-    public static List<LLVMTypeRef> AsLLVMTypes(this List<InternalType> types)
+    public static List<LLVMTypeRef> AsLLVMTypes(this List<Type> types)
     {
         var result = new List<LLVMTypeRef>();
 
-        foreach (InternalType type in types)
+        foreach (Type type in types)
         {
             result.Add(type.LLVMType);
         }
@@ -160,15 +255,48 @@ public static class ListExtensions
 public static class ArrayExtensions
 {
     public static RESULT[] ExecuteOverAll<ORIGINAL, RESULT>(
-        this ORIGINAL[] original,
+        this ORIGINAL[] orig,
         Func<ORIGINAL, RESULT> func
     )
     {
         var result = new List<RESULT>();
 
-        foreach (var val in original)
+        foreach (var val in orig)
         {
             result.Add(func(val));
+        }
+
+        return result.ToArray();
+    }
+
+    public static RESULT[] ExecuteOverAll<ORIGINAL, RESULT>(
+        this ORIGINAL[] orig,
+        LLVMCompiler compiler,
+        Func<LLVMCompiler, ORIGINAL, RESULT> func
+    )
+    {
+        var result = new List<RESULT>();
+
+        foreach (var val in orig)
+        {
+            result.Add(func(compiler, val));
+        }
+
+        return result.ToArray();
+    }
+
+    public static RESULT[] ExecuteOverAll<ORIGINAL, RESULT>(
+        this ORIGINAL[] orig,
+        LLVMCompiler compiler,
+        Language lang,
+        Func<LLVMCompiler, Language, ORIGINAL, RESULT> func
+    )
+    {
+        var result = new List<RESULT>();
+
+        foreach (var val in orig)
+        {
+            result.Add(func(compiler, lang, val));
         }
 
         return result.ToArray();
@@ -207,7 +335,7 @@ public static class ArrayExtensions
     public static Value[] ImplicitConvertAll(
         this Value[] values,
         LLVMCompiler compiler,
-        InternalType target
+        Type target
     )
     {
         var result = new Value[values.Length];
@@ -238,7 +366,7 @@ public static class ArrayExtensions
 
     public static LLVMTypeRef[] AsLLVMTypes(this Field[] fields)
     {
-        var types = new List<InternalType>();
+        var types = new List<Type>();
 
         foreach (var field in fields)
         {
@@ -248,12 +376,12 @@ public static class ArrayExtensions
         return types.ToArray().AsLLVMTypes();
     }
 
-    public static LLVMTypeRef[] AsLLVMTypes(this InternalType[] types)
+    public static LLVMTypeRef[] AsLLVMTypes(this Type[] types)
     {
         var result = new LLVMTypeRef[types.Length];
         uint index = 0;
 
-        foreach (InternalType type in types)
+        foreach (Type type in types)
         {
             result[index] = type.LLVMType;
             index++;
@@ -262,11 +390,11 @@ public static class ArrayExtensions
         return result;
     }
 
-    public static int GetHashes(this InternalType[] types)
+    public static int GetHashes(this Type[] types)
     {
         int hash = 3;
 
-        foreach (InternalType type in types)
+        foreach (Type type in types)
         {
             hash *= 31 + type.GetHashCode();
         }
@@ -312,7 +440,7 @@ public static class ArrayExtensions
     public static bool TryGetFunction(
         this Namespace[] imports,
         string name,
-        IReadOnlyList<InternalType> paramTypes,
+        IReadOnlyList<Type> paramTypes,
         out Function func
     )
     {

@@ -1,15 +1,25 @@
 namespace test;
 
 fn main() #i32 {
+    //ret #Privacy.Pub.Asi32()
     ret 0
+}
+
+@Export
+fn DoSomething(val #u8, val2 #SomeStruct) #u8 {
+    ret val + val2.inner
+}
+
+type SomeStruct {
+    pub inner #u8;
 }
 
 enum Privacy {
     Priv,
     Pub,
 } extend {
-    pub fn DoSomething() #i32 {
-        ret 0
+    pub fn Asi32() #i32 {
+        ret #u8(self)
     }
 }
 

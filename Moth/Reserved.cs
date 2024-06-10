@@ -66,6 +66,7 @@ public static class Reserved
     public const string False = "false";
 
     // attributes
+    public const string Export = "Export";
     public const string CallConv = "CallConv";
     public const string TargetOS = "TargetOS";
 
@@ -73,4 +74,8 @@ public static class Reserved
     public const string Windows = "windows";
     public const string Linux = "linux";
     public const string MacOS = "macos";
+
+    // languages
+    public const string C = "c";
+    public const string CPP = "cpp";
 }

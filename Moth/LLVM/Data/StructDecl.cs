@@ -90,12 +90,12 @@ public class StructDecl : TypeDecl
 
     public LLVMTypeRef FillLLVMType()
     {
-        var fieldTypes = new List<InternalType>();
+        var fieldTypes = new List<Type>();
         uint index = 0;
 
         foreach (FieldDefNode field in Scope.Statements.OfType<FieldDefNode>())
         {
-            InternalType fieldType = _compiler.ResolveType(field.TypeRef);
+            Type fieldType = _compiler.ResolveType(field.TypeRef);
             Fields.Add(
                 field.Name,
                 new Field(_compiler, this, field.Name, index, fieldType, field.Privacy)

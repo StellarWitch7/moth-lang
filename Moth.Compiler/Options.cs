@@ -43,6 +43,7 @@ internal class Options
     public string OutputType { get; set; }
 
     [Option(
+        'm',
         "moth-libs",
         Required = false,
         HelpText = "External Moth library files to include in the compiled program."
@@ -50,11 +51,20 @@ internal class Options
     public IEnumerable<string>? MothLibraryFiles { get; set; }
 
     [Option(
+        'c',
         "c-libs",
         Required = false,
         HelpText = "External C library files to include in the compiled program."
     )]
     public IEnumerable<string>? CLibraryFiles { get; set; }
+
+    [Option(
+        'e',
+        "export-for",
+        Required = false,
+        HelpText = "Languages to @Export() functions for. Use the file extension for the language."
+    )]
+    public IEnumerable<string>? ExportLanguages { get; set; }
 }
 
 public enum OutputType

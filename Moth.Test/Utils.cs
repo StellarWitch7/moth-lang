@@ -39,7 +39,7 @@ internal class Utils
         List<Token> tokens = Tokenizer.Tokenize(code);
         var context = new ParseContext(tokens);
         ScriptAST ast = ASTGenerator.ProcessScript(context);
-        var compiler = new LLVMCompiler("fullcomp", new ScriptAST[] { ast });
+        var compiler = new LLVMCompiler("fullcomp", new BuildOptions(), new ScriptAST[] { ast });
         compiler.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
         return (compiler, InitJIT(compiler));
     }

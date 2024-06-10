@@ -1,7 +1,6 @@
 using System.Text.RegularExpressions;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
-using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM; //TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
 
@@ -377,10 +376,10 @@ public unsafe class MetadataDeserializer
         return result.ToArray();
     }
 
-    private Type GetType(ulong index, ulong length)
+    private Data.Type GetType(ulong index, ulong length)
     {
         var ptrOrRef = new List<bool>();
-        Type result = null;
+        Data.Type result = null;
 
         for (ulong i = 0; i < length; i++)
         {
@@ -533,9 +532,9 @@ public unsafe class MetadataDeserializer
         return result;
     }
 
-    private Type[] GetParamTypes(ulong index, ulong length)
+    private Data.Type[] GetParamTypes(ulong index, ulong length)
     {
-        var types = new Type[length];
+        var types = new Data.Type[length];
 
         for (ulong i = 0; i < length; i++)
         {

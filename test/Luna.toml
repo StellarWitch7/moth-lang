@@ -4,7 +4,8 @@ type = "exe"
 root = "main"
 out = "build"
 include = "include"
-platforms = [ "linux", "windows" ]
+target-platforms = [ "linux", "windows" ]
+target-languages = [ "c" ]
 
 [dependencies.project]
-moth-core = { dir = "/home/aurora/MothProjects/moth-core" }
+moth-core = { dir = "/home/aur/MothProjects/moth-core" }

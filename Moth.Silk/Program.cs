@@ -19,7 +19,7 @@ internal class Program
             .Default.ParseArguments<Options>(args.Skip(1))
             .WithParsed(options =>
             {
-                string conf = Path.Combine(Environment.CurrentDirectory, "Silk.toml");
+                string conf = "Silk.toml";
 
                 switch (action)
                 {
@@ -88,7 +88,11 @@ internal class Program
                                 .Except(new string[] { conf })
                         )
                         {
-                            using var parser = new HeaderParser(options, header);
+                            using var parser = new HeaderParser(
+                                options.Verbose,
+                                options.TopNamespace,
+                                header
+                            );
                             var ast = parser.Parse();
                             string outputFile = Path.Combine(
                                 options.OutputDir,

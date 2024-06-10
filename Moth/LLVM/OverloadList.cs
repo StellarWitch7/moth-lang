@@ -1,5 +1,4 @@
 using Moth.LLVM.Data;
-using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM;
 
@@ -19,7 +18,7 @@ public class OverloadList
         _functions.Add(func);
     }
 
-    public Function Get(IReadOnlyList<Type> paramTypes)
+    public Function Get(IReadOnlyList<Data.Type> paramTypes)
     {
         Function? sufficient = null;
         bool hasMultipleCandidates = false;
@@ -56,7 +55,7 @@ public class OverloadList
         return sufficient;
     }
 
-    public bool TryGet(IReadOnlyList<Type> paramTypes, out Function func)
+    public bool TryGet(IReadOnlyList<Data.Type> paramTypes, out Function func)
     {
         try
         {
@@ -77,8 +76,8 @@ public class OverloadList
     }
 
     private MatchResult CompareParams(
-        IReadOnlyList<Type> definition,
-        IReadOnlyList<Type> call,
+        IReadOnlyList<Data.Type> definition,
+        IReadOnlyList<Data.Type> call,
         bool isVariadic
     )
     {
@@ -109,7 +108,7 @@ public class OverloadList
         return MatchResult.Insufficient;
     }
 
-    private bool ParamsAreEqual(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    private bool ParamsAreEqual(IReadOnlyList<Data.Type> definition, IReadOnlyList<Data.Type> call)
     {
         int index = 0;
 
@@ -126,7 +125,10 @@ public class OverloadList
         return true;
     }
 
-    private bool ParamsAreSuitable(IReadOnlyList<Type> definition, IReadOnlyList<Type> call)
+    private bool ParamsAreSuitable(
+        IReadOnlyList<Data.Type> definition,
+        IReadOnlyList<Data.Type> call
+    )
     {
         int index = 0;
 

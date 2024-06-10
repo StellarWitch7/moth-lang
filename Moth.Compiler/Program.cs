@@ -114,7 +114,13 @@ internal class Program
                         using (
                             var compiler = new LLVMCompiler(
                                 options.OutputFile,
-                                !options.DoNotOptimizeIR
+                                new BuildOptions
+                                {
+                                    DoOptimize = !options.DoNotOptimizeIR,
+                                    ExportLanguages = options
+                                        .ExportLanguages.ToArray()
+                                        .ExecuteOverAll(s => Utils.StringToLanguage(s))
+                                }
                             )
                         )
                         {
@@ -237,6 +243,7 @@ internal class Program
                                             WorkingDirectory = binOut,
                                             RedirectStandardOutput = true,
                                             RedirectStandardError = true,
+                                            //UseShellExecute = true //TODO
                                         }
                                     );
 

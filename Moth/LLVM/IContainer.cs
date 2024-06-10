@@ -1,5 +1,4 @@
 using Moth.LLVM.Data;
-using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM;
 

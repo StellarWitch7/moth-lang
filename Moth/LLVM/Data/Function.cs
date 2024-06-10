@@ -92,6 +92,45 @@ public class DefinedFunction : Function
                 _internalValue = IsForeign
                     ? _compiler.HandleForeign(Name, Type)
                     : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
+
+                if (
+                    _compiler.Options.DoExport
+                    && !IsForeign
+                    && Attributes.ContainsKey(Reserved.Export)
+                )
+                {
+                    foreach (var lang in _compiler.Options.ExportLanguages)
+                    {
+                        string stubName = Utils.MakeStubName(lang, llvmFuncName);
+                        FuncType stubType = Utils.MakeStubType(_compiler, lang, Type);
+
+                        if (_compiler.Module.GetNamedFunction(stubName) != null)
+                            throw new Exception(
+                                $"Cannot export overload of function \"{FullName}\"."
+                            );
+
+                        var stub = _compiler.Module.AddFunction(
+                            stubName,
+                            stubType.BaseType.LLVMType
+                        );
+
+                        using (var builder = _compiler.Context.CreateBuilder())
+                        {
+                            builder.PositionAtEnd(stub.AppendBasicBlock("entry"));
+
+                            var ret = builder.BuildCall2(
+                                stubType.BaseType.LLVMType,
+                                _internalValue,
+                                stub.Params
+                            );
+
+                            if (stubType.ReturnType.Equals(_compiler.Void))
+                                builder.BuildRetVoid();
+                            else
+                                builder.BuildRet(ret);
+                        }
+                    }
+                }
             }
 
             return _internalValue;

@@ -42,8 +42,9 @@ mothc [-v] [-n] [--no-advanced-ir-opt] [--moth-libs <paths>] [--c-libs <paths>] 
 -t, --output-type => The type of file to output. Options are "exe" and "lib". 
 -o, --output => The name of the output file. Please forego the extension.
 -i, --input => The files to compile.
---moth-libs => External Moth library files to include in the compiled program. 
---c-libs => External C library files to include in the compiled program. 
+-m, --moth-libs => External Moth library files to include in the compiled program. 
+-c, --c-libs => External C library files to include in the compiled program. 
+-e, --export-for => Languages to @Export functions for. Use the file extension for the language. 
 ```
 
 ### Hello World

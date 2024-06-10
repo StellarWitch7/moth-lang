@@ -23,11 +23,14 @@ public class Project
     [TomlProperty("include")]
     public string Include { get; set; } = "include";
 
-    [TomlProperty("platforms")]
-    public string[] Platforms { get; set; }
+    [TomlProperty("target-platforms")]
+    public string[] PlatformTargets { get; set; }
 
     [TomlProperty("c-libs")]
     public string[] CLibraryFiles { get; set; }
+
+    [TomlProperty("target-languages")]
+    public string[] LanguageTargets { get; set; }
 
     [TomlProperty("dependencies")]
     public Dependencies Dependencies { get; set; }
@@ -54,6 +57,6 @@ public class Project
     [TomlNonSerialized]
     public string FullOutputPath
     {
-        get => Path.Combine(Environment.CurrentDirectory, Out, "bin", FullOutputName);
+        get => Path.Combine(Out, "bin", FullOutputName);
     }
 }

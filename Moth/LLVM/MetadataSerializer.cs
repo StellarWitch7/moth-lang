@@ -259,7 +259,7 @@ public unsafe class MetadataSerializer
         _nameTablePosition += (uint)name.Length;
     }
 
-    public (ulong, ulong) AddTypeRef(InternalType type)
+    public (ulong, ulong) AddTypeRef(Type type)
     {
         var result = new List<byte>();
 

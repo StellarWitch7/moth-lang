@@ -1,16 +1,15 @@
 using System.Text;
 using ClangSharp;
 using ClangSharp.Interop;
-using Microsoft.VisualBasic.FileIO;
 using Moth.AST;
 using Moth.AST.Node;
-using Index = ClangSharp.Index;
 
-namespace Moth.Silk;
+namespace Moth;
 
 public unsafe class HeaderParser : IDisposable
 {
-    private Options _options { get; }
+    private bool _isVerbose { get; }
+    private string _topNamespace { get; }
     private string _path { get; }
     private Index _index { get; } = Index.Create(false, false);
     private CXTranslationUnit _unit { get; }
@@ -39,9 +38,10 @@ public unsafe class HeaderParser : IDisposable
     private List<ParameterNode> _funcParameters { get; set; } = new List<ParameterNode>();
     private List<EnumFlagNode> _enumFlags { get; set; } = new List<EnumFlagNode>();
 
-    public HeaderParser(Options options, string path)
+    public HeaderParser(bool isVerbose, string topNamespace, string path)
     {
-        _options = options;
+        _isVerbose = isVerbose;
+        _topNamespace = topNamespace;
         _path = path;
         _unit = CXTranslationUnit.Parse(
             _index.Handle,
@@ -68,7 +68,7 @@ public unsafe class HeaderParser : IDisposable
         CXCursor c = _unit.Cursor;
         Visit(c, TopLevel);
 
-        var baseNamespace = new NamespaceNode(_options.TopNamespace);
+        var baseNamespace = new NamespaceNode(_topNamespace);
         var interopNamespace = new NamespaceNode("interop");
         var libNamespace = new NamespaceNode(Path.GetFileNameWithoutExtension(_path));
         baseNamespace.Child = interopNamespace;
@@ -95,7 +95,7 @@ public unsafe class HeaderParser : IDisposable
     {
         var cKind = c.Kind;
 
-        if (_options.Verbose)
+        if (_isVerbose)
             Console.WriteLine($"[TopLevel] Cursor '{c.DisplayName}' of kind '{c.KindSpelling}'");
 
         switch (cKind)
@@ -185,7 +185,7 @@ public unsafe class HeaderParser : IDisposable
     {
         var cKind = c.Kind;
 
-        if (_options.Verbose)
+        if (_isVerbose)
             Console.WriteLine($"[StructLevel] Cursor '{c.DisplayName}' of kind '{c.KindSpelling}'");
 
         switch (cKind)
@@ -213,7 +213,7 @@ public unsafe class HeaderParser : IDisposable
     {
         var cKind = c.Kind;
 
-        if (_options.Verbose)
+        if (_isVerbose)
             Console.WriteLine($"[EnumLevel] Cursor '{c.DisplayName}' of kind '{c.KindSpelling}'");
 
         switch (cKind)
@@ -239,7 +239,7 @@ public unsafe class HeaderParser : IDisposable
     {
         var cKind = c.Kind;
 
-        if (_options.Verbose)
+        if (_isVerbose)
             Console.WriteLine(
                 $"[FunctionLevel] Cursor '{c.DisplayName}' of kind '{c.KindSpelling}'"
             );
@@ -428,7 +428,7 @@ public unsafe class HeaderParser : IDisposable
             }
         }
 
-        if (_options.Verbose)
+        if (_isVerbose)
             Console.WriteLine($"{oldT} becomes {result.GetSource()}");
 
         return result;

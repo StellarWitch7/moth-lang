@@ -35,40 +35,6 @@ public class EnumDecl : TypeDecl
         }
     }
 
-    private UnsignedInt RequiredSize() //TODO: this should default to usize/size_t/ptrsize
-    {
-        bool u8 = false;
-        bool u16 = false;
-        bool u32 = false;
-        bool u64 = false;
-
-        foreach (var flag in Flags.Values)
-        {
-            if (flag.Value > Byte.MaxValue)
-                u8 = true;
-
-            if (flag.Value > UInt16.MaxValue)
-                u16 = true;
-
-            if (flag.Value > UInt32.MaxValue)
-                u32 = true;
-
-            if (flag.Value > UInt64.MaxValue)
-                u64 = true;
-        }
-
-        if (u64)
-            return _compiler.UInt128;
-        else if (u32)
-            return _compiler.UInt64;
-        else if (u16)
-            return _compiler.UInt32;
-        else if (u8)
-            return _compiler.UInt16;
-        else
-            return _compiler.UInt8;
-    }
-
     public LLVMTypeRef MakeLLVMTaggedUnionType()
     {
         var llvmStruct = _compiler.Context.CreateNamedStruct($"__internal_{FullName}");
@@ -101,5 +67,102 @@ public class EnumDecl : TypeDecl
 
         llvmStruct.StructSetBody(llvmTypes.ToArray(), false);
         return llvmStruct;
+    }
+
+    public override ImplicitConversionTable GetImplicitConversions()
+    {
+        var table = new ImplicitConversionTable(_compiler);
+
+        table.Add(
+            FlagType,
+            prev =>
+            {
+                return Value.Create(
+                    _compiler,
+                    FlagType,
+                    _compiler.Builder.BuildExtractElement(
+                        prev.LLVMValue,
+                        LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0)
+                    )
+                );
+            }
+        );
+
+        return table;
+    }
+
+    public Value MakeValue(string flagName, IReadOnlyList<Value> args = null) =>
+        MakeValue(Flags[flagName], args);
+
+    public Value MakeValue(EnumFlag flag, IReadOnlyList<Value> args = null)
+    {
+        args = args ?? new List<Value>();
+
+        if (args.Count > 0)
+        {
+            if (flag is not UnionEnumFlag unionEnumFlag)
+                throw new Exception(
+                    $"Cannot make enum value \"{flag.Name}\" as it cannot hold values."
+                );
+
+            if (unionEnumFlag.UnionTypes.Count != args.Count)
+                throw new Exception(
+                    $"Cannot make enum value \"{flag.Name}\" as the amount of arguments ({args.Count}) "
+                        + "does not match the amount of parameters ({unionEnumFlag.UnionTypes.Count}) required."
+                );
+
+            int index = 0;
+
+            foreach (var val in args)
+            {
+                if (!val.Type.Equals(args[index].Type))
+                    throw new Exception();
+                index++;
+            }
+        }
+
+        var argsFinal = new LLVMValueRef[args.Count + 1];
+        argsFinal[0] = LLVMValueRef.CreateConstInt(FlagType.LLVMType, flag.Value);
+        args.ToArray().AsLLVMValues().CopyTo(argsFinal, 1);
+
+        return Value.Create(
+            _compiler,
+            this,
+            LLVMValueRef.CreateConstNamedStruct(LLVMType, argsFinal)
+        );
+    }
+
+    private UnsignedInt RequiredSize() //TODO: this should default to usize/size_t/ptrsize
+    {
+        bool u8 = false;
+        bool u16 = false;
+        bool u32 = false;
+        bool u64 = false;
+
+        foreach (var flag in Flags.Values)
+        {
+            if (flag.Value > Byte.MaxValue)
+                u8 = true;
+
+            if (flag.Value > UInt16.MaxValue)
+                u16 = true;
+
+            if (flag.Value > UInt32.MaxValue)
+                u32 = true;
+
+            if (flag.Value > UInt64.MaxValue)
+                u64 = true;
+        }
+
+        if (u64)
+            return _compiler.UInt128;
+        else if (u32)
+            return _compiler.UInt64;
+        else if (u16)
+            return _compiler.UInt32;
+        else if (u8)
+            return _compiler.UInt16;
+        else
+            return _compiler.UInt8;
     }
 }

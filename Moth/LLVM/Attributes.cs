@@ -1,5 +1,15 @@
 namespace Moth.LLVM;
 
+public sealed class ExportAttribute : IAttributeImpl
+{
+    public static string Identifier => Reserved.Export;
+
+    public static IAttribute Create(IReadOnlyList<object> parameters)
+    {
+        return new ExportAttribute();
+    }
+}
+
 public sealed class CallingConventionAttribute : IAttributeImpl
 {
     public static string Identifier => Reserved.CallConv;
@@ -25,7 +35,7 @@ public sealed class TargetOSAttribute : IAttributeImpl
     {
         return new TargetOSAttribute
         {
-            Targets = parameters.Cast<string>().ToArray().ExecuteOverAll(s => Utils.StringToOS(s)) // could use Select instead
+            Targets = parameters.Cast<string>().ToArray().ExecuteOverAll(s => Utils.StringToOS(s))
         };
     }
 }

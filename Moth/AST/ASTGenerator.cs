@@ -473,10 +473,7 @@ public static class ASTGenerator
                 }
                 else
                 {
-                    throw new UnexpectedTokenException(
-                        context.Current.Value,
-                        TokenType.OpeningParentheses
-                    );
+                    return new AttributeNode(name, new List<ExpressionNode>());
                 }
             }
             else
@@ -698,6 +695,7 @@ public static class ASTGenerator
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.LiteralInt);
 
             enumFlags.Add(new EnumFlagNode(entryName, index));
+            index++;
 
             if (context.Current?.Type != TokenType.Comma)
                 break;

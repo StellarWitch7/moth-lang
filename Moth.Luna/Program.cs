@@ -14,7 +14,7 @@ internal class Program
     {
         get
         {
-            string dir = Path.Combine(Environment.CurrentDirectory, "cache");
+            string dir = "cache";
             Directory.CreateDirectory(dir);
             return dir;
         }
@@ -83,7 +83,7 @@ internal class Program
         string projfile = options.ProjFile;
 
         if (projfile == null)
-            projfile = Path.Combine(Environment.CurrentDirectory, "Luna.toml");
+            projfile = "Luna.toml";
 
         if (options.ClearCache)
             Directory.Delete(CacheDir, true);
@@ -95,7 +95,7 @@ internal class Program
 
     private static int ExecuteRun(Options options, Project project)
     {
-        string defaultRunDir = Path.Combine(Environment.CurrentDirectory, "run");
+        string defaultRunDir = "run";
         Directory.CreateDirectory(defaultRunDir);
 
         var run = Process.Start(
@@ -114,8 +114,7 @@ internal class Program
 
     private static void ExecuteInit(Options options)
     {
-        string projName = options.ProjName == null ? QueryProjName() : options.ProjName;
-        string projDir = Path.Combine(Environment.CurrentDirectory, projName);
+        string projDir = options.ProjName == null ? QueryProjName() : options.ProjName;
         string mainDir = Path.Combine(projDir, "main");
         string includeDir = Path.Combine(projDir, "include");
 
@@ -134,17 +133,17 @@ internal class Program
 
             var project = new Project()
             {
-                Name = projName,
+                Name = projDir,
                 Version = "1.0",
                 Type = options.InitLib ? "lib" : "exe",
-                Platforms = new string[] { CurrentOS }
+                PlatformTargets = new string[] { CurrentOS }
             };
 
             string tomlString = TomletMain.TomlStringFrom(project);
             string gitignoreString = "[Bb]uild/\n[Cc]ache/\n[Rr]un";
             string programString = options.InitLib
-                ? $"namespace {projName};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
-                : $"namespace {projName};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
+                ? $"namespace {projDir};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
+                : $"namespace {projDir};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
 
             using (var file = File.OpenWrite(Path.Combine(projDir, "Luna.toml")))
             {
@@ -214,7 +213,7 @@ internal class Program
             if (gitCommit.ExitCode != 0)
                 throw new Exception($"git commit finished with exit code {gitCommit.ExitCode}");
 
-            Console.WriteLine($"Successfully initialized new project: {projName}");
+            Console.WriteLine($"Successfully initialized new project: {projDir}");
         }
         catch (Exception e)
         {
@@ -231,7 +230,7 @@ internal class Program
     {
         var args = new StringBuilder();
 
-        if (!project.Platforms.Contains(CurrentOS))
+        if (!project.PlatformTargets.Contains(CurrentOS))
         {
             throw new Exception(
                 $"Cannot build project \"{project.Name}\" for the current operating system."
@@ -305,6 +304,18 @@ internal class Program
             }
 
             args.Append($"--c-libs {clibs}");
+        }
+
+        if (project.LanguageTargets != null)
+        {
+            var langs = new StringBuilder();
+
+            foreach (var lang in project.LanguageTargets)
+            {
+                langs.Append($"{lang} ");
+            }
+
+            args.Append($"--export-for {langs}");
         }
 
         args.Append($"--input {files}");

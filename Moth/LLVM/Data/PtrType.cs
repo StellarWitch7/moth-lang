@@ -1,11 +1,10 @@
 using Moth.AST.Node;
-using Type = Moth.LLVM.Data.Type;
 
 namespace Moth.LLVM.Data;
 
-public class PtrType : InternalType
+public class PtrType : Type
 {
-    public virtual InternalType BaseType { get; }
+    public virtual Type BaseType { get; }
 
     protected PtrType(LLVMCompiler compiler, Type baseType, TypeKind kind)
         : base(compiler, LLVMTypeRef.CreatePointer(baseType.LLVMType, 0), kind)
@@ -23,7 +22,7 @@ public class PtrType : InternalType
 
     public uint GetDepth()
     {
-        InternalType? type = BaseType;
+        Type? type = BaseType;
         uint depth = 0;
 
         while (type != null)
