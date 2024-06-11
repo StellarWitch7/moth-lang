@@ -20,6 +20,7 @@ public class TypeDecl : Type, IContainer
     private Func<TypeDecl, LLVMTypeRef> _llvmTypeFn;
     private LLVMTypeRef _internalLLVMType;
     private TInfo? _internalTInfo;
+    private Version? _internalVersionOverride;
 
     protected TypeDecl(
         LLVMCompiler compiler,
@@ -36,6 +37,30 @@ public class TypeDecl : Type, IContainer
         _llvmTypeFn = llvmTypeFn;
         Privacy = privacy;
         Attributes = attributes;
+
+        if (_compiler.Options.DoExport && attributes.ContainsKey(Reserved.Export))
+        {
+            if (this is StructDecl structDecl)
+            {
+                _compiler.Header.Structs.Add(structDecl);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+    }
+
+    public Version OriginModuleVersion
+    {
+        get
+        {
+            if (_internalVersionOverride != null)
+                return (Version)_internalVersionOverride;
+
+            return _compiler.ModuleVersion;
+        }
+        set { _internalVersionOverride = value; }
     }
 
     public virtual string FullName
@@ -217,6 +242,5 @@ public class TypeDecl : Type, IContainer
 
     public override bool Equals(object? obj) => obj is TypeDecl type && UUID == type.UUID;
 
-    public override int GetHashCode() =>
-        Name.GetHashCode() * Privacy.GetHashCode() * (int)LLVMType.Kind;
+    public override int GetHashCode() => Name.GetHashCode() * Privacy.GetHashCode();
 }

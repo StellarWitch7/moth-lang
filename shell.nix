@@ -18,4 +18,7 @@ in pkgs.mkShell {
   ];
 
   __SILK_INCLUDE_GLIBC = "${pkgs.glibc.dev}/include";
+  
+  # can't debug without this
+  LIBCLANG_DISABLE_CRASH_RECOVERY = 1;
 }

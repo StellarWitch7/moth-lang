@@ -37,6 +37,7 @@ public class LLVMCompiler : IDisposable
     public LLVMBuilderRef Builder { get; set; }
     public LLVMPassManagerRef FunctionPassManager { get; }
     public Namespace GlobalNamespace { get; }
+    public HeaderBuilder Header { get; }
     public List<TypeDecl> Types { get; } = new List<TypeDecl>();
     public List<EnumDecl> Enums { get; } = new List<EnumDecl>();
     public List<TraitDecl> Traits { get; } = new List<TraitDecl>();
@@ -60,6 +61,7 @@ public class LLVMCompiler : IDisposable
         Context = LLVMContextRef.Global;
         Builder = Context.CreateBuilder();
         Module = Context.CreateModuleWithName(ModuleName);
+        Header = new HeaderBuilder(this);
 
         Null = new Null(this);
         Void = new Void(this);
@@ -116,9 +118,14 @@ public class LLVMCompiler : IDisposable
     )
         : this(moduleName, options) => Compile(scripts);
 
+    public Version ModuleVersion
+    {
+        get => Options.Version;
+    }
+
     public IContainer Parent
     {
-        get { return CurrentNamespace; }
+        get => CurrentNamespace;
     }
 
     private Namespace CurrentNamespace
@@ -1174,7 +1181,7 @@ public class LLVMCompiler : IDisposable
                 paramTypes.Add(paramType);
             }
 
-            return new LocalFuncType(this, retType, paramTypes.ToArray());
+            type = new LocalFuncType(this, retType, paramTypes.ToArray());
         }
         else if (typeRef is ArrayTypeRefNode arrayTypeRef)
         {

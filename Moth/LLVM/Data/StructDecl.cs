@@ -122,7 +122,7 @@ public class StructDecl : TypeDecl
             }
         }
 
-        var llvmType = _compiler.Context.CreateNamedStruct(FullName);
+        var llvmType = _compiler.Context.CreateNamedStruct($"__{OriginModuleVersion}__{FullName}");
         llvmType.StructSetBody(fieldTypes.AsLLVMTypes().AsReadonlySpan(), false);
         return llvmType;
     }

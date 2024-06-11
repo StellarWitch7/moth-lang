@@ -5,8 +5,8 @@ namespace Moth.LLVM.Metadata;
 public struct Field
 {
     public PrivacyType privacy;
-    public ulong name_table_index;
-    public ulong name_table_length;
-    public ulong typeref_table_index;
-    public ulong typeref_table_length;
+    public uint name_table_index;
+    public uint name_table_length;
+    public uint typeref_table_index;
+    public uint typeref_table_length;
 }

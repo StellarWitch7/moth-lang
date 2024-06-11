@@ -43,6 +43,14 @@ internal class Options
     public string OutputType { get; set; }
 
     [Option(
+        'V',
+        "module-version",
+        Required = false,
+        HelpText = "The version of the compiled module."
+    )]
+    public string? ModuleVersion { get; set; }
+
+    [Option(
         'm',
         "moth-libs",
         Required = false,

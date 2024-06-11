@@ -62,6 +62,7 @@ public class DefinedFunction : Function
     public Dictionary<string, IAttribute> Attributes { get; }
 
     private LLVMValueRef _internalValue;
+    private Version? _internalVersionOverride;
 
     public DefinedFunction(
         LLVMCompiler compiler,
@@ -82,13 +83,27 @@ public class DefinedFunction : Function
         Attributes = attributes;
     }
 
+    public Version OriginModuleVersion
+    {
+        get
+        {
+            if (_internalVersionOverride != null)
+                return (Version)_internalVersionOverride;
+
+            return _compiler.ModuleVersion;
+        }
+        set { _internalVersionOverride = value; }
+    }
+
     public override LLVMValueRef LLVMValue
     {
         get
         {
             if (_internalValue == default)
             {
-                string llvmFuncName = !(Name == Reserved.Main || IsForeign) ? FullName : Name;
+                string llvmFuncName = !(Name == Reserved.Main || IsForeign)
+                    ? $"__{OriginModuleVersion}__{FullName}"
+                    : Name;
                 _internalValue = IsForeign
                     ? _compiler.HandleForeign(Name, Type)
                     : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
@@ -99,32 +114,37 @@ public class DefinedFunction : Function
                     && Attributes.ContainsKey(Reserved.Export)
                 )
                 {
+                    _compiler.Header.Functions.Add(this);
+
+                    Utils.TypeAutoExport(_compiler, Type.ReturnType);
+
+                    foreach (var type in Type.ParameterTypes)
+                    {
+                        Utils.TypeAutoExport(_compiler, type);
+                    }
+
                     foreach (var lang in _compiler.Options.ExportLanguages)
                     {
-                        string stubName = Utils.MakeStubName(lang, llvmFuncName);
-                        FuncType stubType = Utils.MakeStubType(_compiler, lang, Type);
+                        string stubName = Utils.MakeStubName(lang, FullName);
 
                         if (_compiler.Module.GetNamedFunction(stubName) != null)
                             throw new Exception(
                                 $"Cannot export overload of function \"{FullName}\"."
                             );
 
-                        var stub = _compiler.Module.AddFunction(
-                            stubName,
-                            stubType.BaseType.LLVMType
-                        );
+                        var stub = _compiler.Module.AddFunction(stubName, Type.BaseType.LLVMType);
 
                         using (var builder = _compiler.Context.CreateBuilder())
                         {
                             builder.PositionAtEnd(stub.AppendBasicBlock("entry"));
 
                             var ret = builder.BuildCall2(
-                                stubType.BaseType.LLVMType,
+                                Type.BaseType.LLVMType,
                                 _internalValue,
                                 stub.Params
                             );
 
-                            if (stubType.ReturnType.Equals(_compiler.Void))
+                            if (Type.ReturnType.Equals(_compiler.Void))
                                 builder.BuildRetVoid();
                             else
                                 builder.BuildRet(ret);
@@ -141,13 +161,23 @@ public class DefinedFunction : Function
     {
         get
         {
+            var builder = new StringBuilder();
+
+            foreach (var type in ParameterTypes)
+            {
+                builder.Append($"{type}, ");
+            }
+
+            if (builder.Length > 0)
+                builder.Remove(builder.Length - 2, 2);
+
             if (Parent is StructDecl @struct)
             {
-                return $"{@struct.FullName}.{Name}{Type}";
+                return $"{@struct.FullName}.{Name}({builder})";
             }
             else if (Parent is Namespace nmspace)
             {
-                return $"{nmspace.FullName}.{Name}{Type}";
+                return $"{nmspace.FullName}.{Name}({builder})";
             }
             else
             {

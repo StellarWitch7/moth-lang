@@ -5,13 +5,13 @@ fn main() #i32 {
     ret 0
 }
 
-@Export
-fn DoSomething(val #u8, val2 #SomeStruct) #u8 {
-    ret val + val2.inner
-}
-
 type SomeStruct {
     pub inner #u8;
+}
+
+@Export
+fn DoSomething(val #u8, val2 #SomeStruct, func #(#u32)* #void) #u8 {
+    ret val + val2.inner
 }
 
 enum Privacy {

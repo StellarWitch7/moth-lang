@@ -15,4 +15,5 @@ global using TraitDecl = Moth.LLVM.Data.TraitDecl;
 global using Type = Moth.LLVM.Data.Type;
 global using TypeDecl = Moth.LLVM.Data.TypeDecl;
 global using Value = Moth.LLVM.Data.Value;
+global using Version = Moth.LLVM.Metadata.Version;
 global using Void = Moth.LLVM.Data.Void;

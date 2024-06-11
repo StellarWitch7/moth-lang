@@ -8,6 +8,31 @@ namespace Moth;
 
 public static class Utils
 {
+    public static void TypeAutoExport(LLVMCompiler compiler, Type type, bool child = false)
+    {
+        if (type is StructDecl structDecl)
+        {
+            if (structDecl is PrimitiveStructDecl)
+                return;
+
+            if (child && !compiler.Header.Structs.Contains(structDecl))
+                structDecl = new OpaqueStructDecl(
+                    compiler,
+                    structDecl.ParentNamespace,
+                    structDecl.Name,
+                    structDecl.Privacy,
+                    structDecl.IsUnion,
+                    structDecl.Attributes
+                );
+
+            compiler.Header.Structs.Add(structDecl);
+        }
+        else if (type is PtrType ptrType)
+        {
+            TypeAutoExport(compiler, ptrType.BaseType, true);
+        }
+    }
+
     public static string MakeStubName(Language lang, string orig)
     {
         string result;
@@ -35,62 +60,6 @@ public static class Utils
         }
 
         return result;
-    }
-
-    public static FuncType MakeStubType(LLVMCompiler compiler, Language lang, FuncType orig)
-    {
-        FuncType result;
-
-        if (lang == Language.C)
-        {
-            result = new FuncType(
-                compiler,
-                Utils.ExportType(compiler, lang, orig.ReturnType),
-                orig.ParameterTypes.ExecuteOverAll(compiler, lang, Utils.ExportType),
-                orig.IsVariadic
-            );
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-
-        return result;
-    }
-
-    public static Type ExportType(LLVMCompiler compiler, Language lang, Type orig)
-    {
-        if (orig is StructDecl structDecl && structDecl is not PrimitiveStructDecl)
-        {
-            if (structDecl is OpaqueStructDecl)
-            {
-                return structDecl; //TODO: this doesn't really work
-            }
-
-            var llvmType = compiler.Context.CreateNamedStruct(
-                MakeStubName(lang, structDecl.FullName)
-            );
-            llvmType.StructSetBody(structDecl.LLVMType.StructElementTypes, false);
-            return new Type(compiler, llvmType, TypeKind.Decl);
-        }
-        else if (orig is PtrType ptrType)
-        {
-            if (ptrType.BaseType is PtrType ptrType2)
-            {
-                return new PtrType(compiler, ExportType(compiler, lang, ptrType2));
-            }
-
-            if (ptrType.BaseType is StructDecl structDecl2)
-            {
-                return new PtrType(compiler, ExportType(compiler, lang, structDecl2));
-            }
-
-            return new PtrType(compiler, ptrType.BaseType);
-        }
-        else
-        {
-            return orig;
-        }
     }
 
     public static string ExpandOpName(string op)
@@ -300,6 +269,19 @@ public static class ArrayExtensions
         }
 
         return result.ToArray();
+    }
+
+    // for parsing version strings
+    public static void Deconstruct(
+        this string[] strings,
+        out int major,
+        out int minor,
+        out int patch
+    )
+    {
+        major = Int32.Parse(strings[0]);
+        minor = Int32.Parse(strings[1]);
+        patch = Int32.Parse(strings[2]);
     }
 
     public static Value[] CompileToValues(

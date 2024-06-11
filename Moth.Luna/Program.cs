@@ -247,6 +247,8 @@ internal class Program
             files.Append($"{Path.Combine(Environment.CurrentDirectory, file)} ");
         }
 
+        if (files.Length > 0)
+            files.Remove(files.Length - 1, 1);
         if (options.Verbose)
             args.Append("--verbose ");
         if (options.NoMetadata)
@@ -317,6 +319,8 @@ internal class Program
 
             args.Append($"--export-for {langs}");
         }
+
+        args.Append($"--module-version {project.Version} ");
 
         args.Append($"--input {files}");
 

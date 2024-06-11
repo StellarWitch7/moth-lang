@@ -60,7 +60,7 @@ public class FuncType : PtrType
 
     public override string ToString()
     {
-        var builder = new StringBuilder("(");
+        var builder = new StringBuilder("#(");
 
         foreach (var type in ParameterTypes)
         {
@@ -72,7 +72,7 @@ public class FuncType : PtrType
             builder.Remove(builder.Length - 2, 2);
         }
 
-        builder.Append(')');
+        builder.Append($") {ReturnType}");
         return builder.ToString();
     }
 

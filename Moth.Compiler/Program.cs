@@ -6,6 +6,7 @@ using LLVMSharp.Interop;
 using Moth.AST;
 using Moth.LLVM;
 using Moth.Tokens;
+using Version = Moth.LLVM.Metadata.Version;
 
 namespace Moth.Compiler;
 
@@ -117,6 +118,7 @@ internal class Program
                                 new BuildOptions
                                 {
                                     DoOptimize = !options.DoNotOptimizeIR,
+                                    Version = Version.Parse(options.ModuleVersion ?? "0.0.0"),
                                     ExportLanguages = options
                                         .ExportLanguages.ToArray()
                                         .ExecuteOverAll(s => Utils.StringToLanguage(s))
@@ -288,6 +290,17 @@ internal class Program
                             else
                             {
                                 throw new NotImplementedException("Output type not supported.");
+                            }
+
+                            logger.WriteLine(
+                                "Generating headers for supported export languages..."
+                            );
+
+                            foreach (var lang in compiler.Options.ExportLanguages)
+                            {
+                                logger.WriteLine(
+                                    $"{lang} header generated at {Path.Combine(Environment.CurrentDirectory, compiler.Header.Build(lang))}"
+                                );
                             }
                         }
                     }
