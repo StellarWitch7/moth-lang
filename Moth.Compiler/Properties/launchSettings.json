@@ -2,7 +2,7 @@
   "profiles": {
     "mothc core": {
       "commandName": "Project",
-      "commandLineArgs": "-v --no-advanced-ir-opt -t lib -e c -o mothcore-1.0.0-linux -V 1.0.0 -i /home/aur/MothProjects/moth-core/main/System.moth /home/aur/MothProjects/moth-core/main/Foreigns.moth /home/aur/MothProjects/moth-core/main/io/IO.moth /home/aur/MothProjects/moth-core/main/io/File.moth /home/aur/MothProjects/moth-core/main/threading/Thread.moth",
+      "commandLineArgs": "-v --no-advanced-ir-opt -t lib -e c -o mothcore-1.0.0-linux -V 1.0.0 -i /home/aur/MothProjects/moth-core/main/System.moth /home/aur/MothProjects/moth-core/main/Foreigns.moth /home/aur/MothProjects/moth-core/main/io/IO.moth /home/aur/MothProjects/moth-core/main/io/File.moth /home/aur/MothProjects/moth-core/main/math/Complex.moth /home/aur/MothProjects/moth-core/main/threading/Thread.moth",
       "workingDirectory": "/home/aur/MothProjects/moth-core/build",
       "executablePath": "/home/aur/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net8.0/mothc.exe",
       "externalTerminal": true,

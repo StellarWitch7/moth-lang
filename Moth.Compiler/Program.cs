@@ -6,13 +6,14 @@ using LLVMSharp.Interop;
 using Moth.AST;
 using Moth.LLVM;
 using Moth.Tokens;
+using Spectre.Console;
 using Version = Moth.LLVM.Metadata.Version;
 
 namespace Moth.Compiler;
 
-internal class Program
+public class Program
 {
-    private static int Main(string[] args)
+    public static int Main(string[] args)
     {
         try
         {
@@ -34,7 +35,7 @@ internal class Program
                         "lib" => OutputType.StaticLib,
                     };
 
-                    logger.WriteLine($"Building {options.OutputFile}...");
+                    logger.Log($"Building {options.OutputFile}...");
 
                     foreach (string filePath in options.InputFiles)
                     {
@@ -42,7 +43,7 @@ internal class Program
                         {
                             if (options.Verbose)
                             {
-                                logger.WriteLine($"Reading \"{filePath}\"");
+                                logger.Log($"Reading \"{filePath}\"");
                             }
 
                             string fileContents = File.ReadAllText(filePath);
@@ -52,7 +53,7 @@ internal class Program
                             {
                                 if (options.Verbose)
                                 {
-                                    logger.WriteLine($"Tokenizing \"{filePath}\"");
+                                    logger.Log($"Tokenizing \"{filePath}\"");
                                 }
 
                                 List<Token> tokens = Tokenizer.Tokenize(fileContents);
@@ -62,7 +63,7 @@ internal class Program
                                 {
                                     if (options.Verbose)
                                     {
-                                        logger.WriteLine($"Generating AST of \"{filePath}\"");
+                                        logger.Log($"Generating AST of \"{filePath}\"");
                                     }
 
                                     ScriptAST scriptAST = ASTGenerator.ProcessScript(
@@ -73,13 +74,13 @@ internal class Program
                                     if (options.Verbose)
                                     {
                                         logger.WriteSeparator();
-                                        logger.WriteUnsignedLine(scriptAST.GetDebugString("  "));
+                                        //TODO: logger.WriteTree(scriptAST);
                                         logger.WriteSeparator();
                                     }
                                 }
                                 catch (Exception e)
                                 {
-                                    logger.WriteLine(
+                                    logger.Error(
                                         $"Failed to parse tokens of \"{filePath}\" due to: {e}"
                                     );
                                     throw e;
@@ -87,15 +88,13 @@ internal class Program
                             }
                             catch (Exception e)
                             {
-                                logger.WriteLine($"Failed to tokenize \"{filePath}\" due to: {e}");
+                                logger.Error($"Failed to tokenize \"{filePath}\" due to: {e}");
                                 throw e;
                             }
                         }
                         catch (Exception e)
                         {
-                            logger.WriteLine(
-                                $"Failed to get contents of \"{filePath}\" due to: {e}"
-                            );
+                            logger.Error($"Failed to get contents of \"{filePath}\" due to: {e}");
                             throw e;
                         }
                     }
@@ -115,6 +114,7 @@ internal class Program
                         using (
                             var compiler = new LLVMCompiler(
                                 options.OutputFile,
+                                logger,
                                 new BuildOptions
                                 {
                                     DoOptimize = !options.DoNotOptimizeIR,
@@ -128,7 +128,7 @@ internal class Program
                         {
                             if (options.MothLibraryFiles.Count() > 0)
                             {
-                                logger.WriteLine("Loading external Moth libraries...");
+                                logger.Log("Loading external Moth libraries...");
 
                                 foreach (var path in options.MothLibraryFiles)
                                 {
@@ -136,7 +136,7 @@ internal class Program
                                 }
                             }
 
-                            logger.WriteLine("Compiling to LLVM IR...");
+                            logger.Log("Compiling to LLVM IR...");
 
                             try
                             {
@@ -144,11 +144,11 @@ internal class Program
 
                                 if (options.NoMetadata)
                                 {
-                                    logger.WriteLine("Skipping generation of assembly metadata...");
+                                    logger.Info("Skipping generation of assembly metadata...");
                                 }
                                 else
                                 {
-                                    logger.WriteLine("(unsafe) Generating assembly metadata...");
+                                    logger.Log("(unsafe) Generating assembly metadata...");
                                     var fs = File.Create(
                                         Path.Combine(
                                             Environment.CurrentDirectory,
@@ -166,7 +166,7 @@ internal class Program
                                     logger.WriteSeparator();
                                     logger.WriteUnsignedLine(compiler.Module.PrintToString());
                                     logger.WriteSeparator();
-                                    logger.WriteLine("Dumped LLVM IR for reviewal.");
+                                    logger.Log("Dumped LLVM IR for reviewal.");
                                 }
 
                                 Console.WriteLine(e);
@@ -180,7 +180,7 @@ internal class Program
                                 logger.WriteSeparator();
                             }
 
-                            logger.WriteLine("Verifying IR validity...");
+                            logger.Log("Verifying IR validity...");
                             compiler.Module.Verify(
                                 LLVMVerifierFailureAction.LLVMPrintMessageAction
                             );
@@ -206,9 +206,9 @@ internal class Program
                                         arguments.Append($" {lib}");
                                     }
 
-                                    logger.WriteLine($"Outputting IR to \"{path}\"");
+                                    logger.Log($"Outputting IR to \"{path}\"");
                                     compiler.Module.WriteBitcodeToFile(path);
-                                    logger.WriteLine("Compiling final product...");
+                                    logger.Log("Compiling final product...");
                                     Directory.CreateDirectory(binOut);
 
                                     linkerName = "clang";
@@ -234,9 +234,7 @@ internal class Program
                                         arguments.Append(" -v");
                                     }
 
-                                    logger.WriteLine(
-                                        $"Attempting to call {linkerName} with arguments \"{arguments}\""
-                                    );
+                                    logger.Call(linkerName, arguments);
                                     logger.WriteSeparator();
 
                                     var linker = Process.Start(
@@ -268,14 +266,14 @@ internal class Program
                                     }
 
                                     linkerLogger.WriteSeparator();
-                                    linkerLogger.WriteLine($"Exited with code {linker.ExitCode}");
+                                    linkerLogger.ExitCode(linker.ExitCode);
                                 }
                                 catch (Exception e)
                                 {
                                     linkerName ??= "UNKNOWN";
 
                                     logger.WriteEmptyLine();
-                                    logger.WriteLine(
+                                    logger.Error(
                                         $"Failed to interact with {linkerName} due to: {e}"
                                     );
                                     throw e;
@@ -284,7 +282,7 @@ internal class Program
                             else if (outputType == OutputType.StaticLib)
                             {
                                 var path = Path.Combine(dir, $"{options.OutputFile}.mothlib.bc");
-                                logger.WriteLine($"Outputting IR to \"{path}\"");
+                                logger.Log($"Outputting IR to \"{path}\"");
                                 compiler.Module.WriteBitcodeToFile(path);
                             }
                             else
@@ -292,13 +290,11 @@ internal class Program
                                 throw new NotImplementedException("Output type not supported.");
                             }
 
-                            logger.WriteLine(
-                                "Generating headers for supported export languages..."
-                            );
+                            logger.Log("Generating headers for supported export languages...");
 
                             foreach (var lang in compiler.Options.ExportLanguages)
                             {
-                                logger.WriteLine(
+                                logger.Log(
                                     $"{lang} header generated at {Path.Combine(Environment.CurrentDirectory, compiler.Header.Build(lang))}"
                                 );
                             }
@@ -306,14 +302,13 @@ internal class Program
                     }
                     catch (Exception e)
                     {
-                        logger.WriteLine($"Failed to compile due to: {e}");
+                        logger.Error($"Failed to compile due to: {e}");
                         throw e;
                     }
                 });
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Exited due to: {e}");
             return -1;
         }
 

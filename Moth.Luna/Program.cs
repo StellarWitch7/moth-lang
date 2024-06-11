@@ -3,13 +3,17 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
+using Spectre.Console;
 using Tomlet;
 using Tomlet.Models;
+using Color = System.Drawing.Color;
 
 namespace Moth.Luna;
 
 internal class Program
 {
+    public static Logger Logger { get; } = new Logger("luna");
+
     public static string CacheDir
     {
         get
@@ -59,13 +63,14 @@ internal class Program
                         break;
                     case "run":
                         var proj = ExecuteBuild(options);
-                        Console.WriteLine(
-                            "Running project...\n--------------------------------------------"
-                        );
+                        Logger.Log("Running project...");
+                        Logger.WriteSeparator();
+
                         var exitCode = ExecuteRun(options, proj);
-                        Console.WriteLine(
-                            $"\n--------------------------------------------\nProject exited with code {exitCode}"
-                        );
+                        Logger.WriteEmptyLine();
+                        Logger.WriteSeparator();
+                        Logger.Info($"Exit code: {exitCode}");
+
                         break;
                     case "init":
                         ExecuteInit(options);
@@ -80,6 +85,7 @@ internal class Program
 
     private static Project ExecuteBuild(Options options)
     {
+        var logger = Logger.MakeSubLogger("build");
         string projfile = options.ProjFile;
 
         if (projfile == null)
@@ -89,7 +95,7 @@ internal class Program
             Directory.Delete(CacheDir, true);
 
         Project project = TomletMain.To<Project>(File.ReadAllText(projfile));
-        CallMothc(options, project);
+        CallMothc(options, project, logger);
         return project;
     }
 
@@ -226,7 +232,7 @@ internal class Program
         }
     }
 
-    private static void CallMothc(Options options, Project project)
+    private static void CallMothc(Options options, Project project, Logger logger)
     {
         var args = new StringBuilder();
 
@@ -258,43 +264,7 @@ internal class Program
         args.Append($"--output-type {project.Type} ");
 
         if (project.Dependencies != null)
-        {
-            var mothlibs = new StringBuilder();
-
-            if (project.Dependencies.Local != null)
-            {
-                foreach (var lib in project.Dependencies.Local.Values)
-                {
-                    mothlibs.Append($"{lib} ");
-                }
-            }
-
-            if (project.Dependencies.Remote != null)
-            {
-                foreach (var lib in project.Dependencies.Remote.Values)
-                {
-                    mothlibs.Append($"{FetchRemoteFile(lib)} ");
-                }
-            }
-
-            if (project.Dependencies.Project != null)
-            {
-                foreach (var lib in project.Dependencies.Project.Values)
-                {
-                    mothlibs.Append($"{BuildFromProject(lib)} ");
-                }
-            }
-
-            if (project.Dependencies.Git != null)
-            {
-                foreach (var lib in project.Dependencies.Git.Values)
-                {
-                    mothlibs.Append($"{BuildFromGit(lib)} ");
-                }
-            }
-
-            args.Append($"--moth-libs {mothlibs}");
-        }
+            args.Append($"--moth-libs {DependencyBuildScheduler.Build(project.Dependencies)}");
 
         if (project.CLibraryFiles != null)
         {
@@ -321,118 +291,24 @@ internal class Program
         }
 
         args.Append($"--module-version {project.Version} ");
-
         args.Append($"--input {files}");
 
         Directory.CreateDirectory(buildDir);
-        Console.WriteLine($"Calling mothc with arguments \"{args}\"...");
+        Logger.Call("mothc", args);
 
-        var mothc = Process.Start(
-            new ProcessStartInfo("mothc", args.ToString()) { WorkingDirectory = buildDir }
-        );
+        var oldDir = Environment.CurrentDirectory;
+        Environment.CurrentDirectory = buildDir;
 
-        if (mothc == null)
-            throw new Exception("Call to mothc failed.");
+        var mothc = Moth.Compiler.Program.Main(args.ToString().Split(' '));
+        Environment.CurrentDirectory = oldDir;
 
-        mothc.WaitForExit();
-
-        if (mothc.ExitCode != 0)
-            throw new Exception($"mothc finished with exit code {mothc.ExitCode}");
+        if (mothc != 0)
+            throw new Exception($"mothc finished with exit code {mothc}");
     }
 
     private static string QueryProjName()
     {
         Console.Write("Enter a name for the new project: ");
         return Console.ReadLine();
-    }
-
-    private static string FetchRemoteFile(string url)
-    {
-        string dest = Path.Combine(CacheDir, url.Substring(url.LastIndexOf("/")));
-
-        if (File.Exists(dest))
-        {
-            return dest;
-        }
-
-        using (var client = new WebClient())
-        {
-            client.DownloadFile(url, dest);
-        }
-
-        return dest;
-    }
-
-    private static string BuildFromProject(ProjectSource source)
-    {
-        Project project = TomletMain.To<Project>(
-            File.ReadAllText(Path.Combine(source.Dir, "Luna.toml"))
-        );
-        var build = Process.Start(
-            new ProcessStartInfo(source.Build.Command, source.Build.Args)
-            {
-                WorkingDirectory = source.Dir
-            }
-        );
-
-        if (build == null)
-            throw new Exception($"Call to {source.Build.Command} failed.");
-
-        build.WaitForExit();
-
-        if (build.ExitCode != 0)
-            throw new Exception($"{source.Build.Command} finished with exit code {build.ExitCode}");
-
-        return Path.Combine(source.Dir, project.Out, project.FullOutputName);
-    }
-
-    private static string BuildFromGit(GitSource source)
-    {
-        string repoName =
-            source.Source != null
-                ? source
-                    .Source.Remove(source.Source.LastIndexOf('.'))
-                    .Substring(source.Source.LastIndexOf('/') + 1)
-                : throw new Exception("Git source not set.");
-        string repoDir = Path.Combine(CacheDir, repoName);
-        var args = new StringBuilder();
-
-        if (source.Branch != null)
-            args.Append($"--branch {source.Branch} ");
-
-        if (source.Commit != null)
-            args.Append("--depth 1 ");
-
-        var gitClone = Process.Start(
-            new ProcessStartInfo("git-force-clone", $"{args}{source.Source} {repoDir}")
-            {
-                WorkingDirectory = CacheDir
-            }
-        );
-
-        if (gitClone == null)
-            throw new Exception("Call to git-force-clone failed.");
-
-        gitClone.WaitForExit();
-
-        if (gitClone.ExitCode != 0)
-            throw new Exception($"git clone finished with exit code {gitClone.ExitCode}");
-
-        if (source.Commit != null)
-        {
-            var gitCheckout = Process.Start(
-                new ProcessStartInfo("git", $"") { WorkingDirectory = repoDir }
-            );
-
-            if (gitCheckout == null)
-                throw new Exception("Call to git checkout failed.");
-
-            gitCheckout.WaitForExit();
-
-            if (gitCheckout.ExitCode != 0)
-                throw new Exception($"git checkout finished with exit code {gitCheckout.ExitCode}");
-        }
-
-        return BuildFromProject(new ProjectSource() { Dir = repoDir, Build = source.Build });
     }
 }

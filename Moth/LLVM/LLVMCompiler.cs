@@ -5,6 +5,7 @@ using LLVMSharp;
 using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
+using Spectre.Console;
 
 namespace Moth.LLVM;
 
@@ -45,7 +46,7 @@ public class LLVMCompiler : IDisposable
     public List<IGlobal> Globals { get; } = new List<IGlobal>();
     public Func<string, IReadOnlyList<object>, IAttribute> MakeAttribute { get; }
 
-    private readonly Logger _logger = new Logger("mothc/llvm");
+    private readonly Logger _logger;
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics =
         new Dictionary<string, IntrinsicFunction>();
     private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>();
@@ -54,8 +55,9 @@ public class LLVMCompiler : IDisposable
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
 
-    public LLVMCompiler(string moduleName, BuildOptions options)
+    public LLVMCompiler(string moduleName, Logger parentLogger, BuildOptions options)
     {
+        _logger = parentLogger.MakeSubLogger("llvm");
         ModuleName = moduleName;
         Options = options;
         Context = LLVMContextRef.Global;
@@ -114,9 +116,10 @@ public class LLVMCompiler : IDisposable
     public LLVMCompiler(
         string moduleName,
         BuildOptions options,
+        Logger parentLogger,
         IReadOnlyCollection<ScriptAST> scripts
     )
-        : this(moduleName, options) => Compile(scripts);
+        : this(moduleName, parentLogger, options) => Compile(scripts);
 
     public Version ModuleVersion
     {
@@ -385,9 +388,13 @@ public class LLVMCompiler : IDisposable
         return result.ToArray();
     }
 
-    public void Warn(string message) => Log($"Warning: {message}");
+    public void Log(string message) => _logger.Log(message);
 
-    public void Log(string message) => _logger.WriteLine(message);
+    public void Info(string message) => _logger.Info(message);
+
+    public void Warn(string message) => _logger.Warn(message);
+
+    public void Error(string message) => _logger.Error(message);
 
     public unsafe void LoadLibrary(string path)
     {

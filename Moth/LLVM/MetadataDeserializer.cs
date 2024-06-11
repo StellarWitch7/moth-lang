@@ -4,6 +4,8 @@ using Moth.LLVM.Data;
 
 namespace Moth.LLVM; //TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
 
+//TODO: unless they don't? maybe it is better if attributes aren't kept in metadata
+
 public unsafe class MetadataDeserializer
 {
     private LLVMCompiler _compiler;
