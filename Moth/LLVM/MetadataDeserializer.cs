@@ -1,15 +1,16 @@
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
-namespace Moth.LLVM; //TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
-
+//TODO: note that all instances of "new Dictionary<string, IAttribute>()" probably need to be replaced
 //TODO: unless they don't? maybe it is better if attributes aren't kept in metadata
+namespace Moth.LLVM;
 
 public unsafe class MetadataDeserializer
 {
     private LLVMCompiler _compiler;
-    private MemoryStream _bytes;
+    private MemoryStream _stream;
     private Version _version = new Version();
     private Version _moduleVersion = new Version();
     private Metadata.Header _header = new Metadata.Header();
@@ -23,16 +24,16 @@ public unsafe class MetadataDeserializer
     private byte[] _typeRefs;
     private byte[] _names;
 
-    public MetadataDeserializer(LLVMCompiler compiler, MemoryStream bytes)
+    public MetadataDeserializer(LLVMCompiler compiler, MemoryStream stream)
     {
         _compiler = compiler;
-        _bytes = bytes;
+        _stream = stream;
     }
 
     public void Process(string libName)
     {
         var version = new Version();
-        _bytes.ReadExactly(new Span<byte>((byte*)&version, sizeof(Version)));
+        _stream.ReadExactly(new Span<byte>((byte*)&version, sizeof(Version)));
         _version = version;
 
         if (_version.Major != Meta.Version.Major)
@@ -63,106 +64,24 @@ public unsafe class MetadataDeserializer
         }
 
         var moduleVersion = new Version();
-        _bytes.ReadExactly(new Span<byte>(&moduleVersion, sizeof(Version)));
+        _stream.ReadExactly(new Span<byte>(&moduleVersion, sizeof(Version)));
         _moduleVersion = moduleVersion;
 
         var header = new Metadata.Header();
-        _bytes.ReadExactly(new Span<byte>(&header, sizeof(Metadata.Header)));
+        _stream.ReadExactly(new Span<byte>(&header, sizeof(Metadata.Header)));
         _header = header;
 
-        _types = new Metadata.Type[
-            (_header.field_table_offset - (uint)_bytes.Position) / (uint)sizeof(Metadata.Type)
-        ];
+        InArr(ref _types, _header.field_table_offset);
+        InArr(ref _fields, _header.function_table_offset);
+        InArr(ref _functions, _header.global_variable_table_offset);
+        InArr(ref _globals, _header.functype_table_offset);
+        InArr(ref _funcTypes, _header.param_table_offset);
+        InArr(ref _parameters, _header.paramtype_table_offset);
+        InArr(ref _paramTypes, _header.typeref_table_offset);
+        InArr(ref _typeRefs, _header.name_table_offset);
+        InArr(ref _names, _header.size);
 
-        fixed (Metadata.Type* ptr = _types)
-        {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Type) * _types.Length));
-        }
-
-        _fields = new Metadata.Field[
-            (_header.function_table_offset - (uint)_bytes.Position) / (uint)sizeof(Metadata.Type)
-        ];
-
-        fixed (Metadata.Field* ptr = _fields)
-        {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(Metadata.Field) * _fields.Length));
-        }
-
-        _functions = new Metadata.Function[
-            (_header.global_variable_table_offset - (uint)_bytes.Position)
-                / (uint)sizeof(Metadata.Function)
-        ];
-
-        fixed (Metadata.Function* ptr = _functions)
-        {
-            _bytes.ReadExactly(
-                new Span<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Length)
-            );
-        }
-
-        _globals = new Metadata.Global[
-            (_header.functype_table_offset - (uint)_bytes.Position) / (uint)sizeof(Metadata.Global)
-        ];
-
-        fixed (Metadata.Global* ptr = _globals)
-        {
-            _bytes.ReadExactly(
-                new Span<byte>((byte*)ptr, sizeof(Metadata.Global) * _globals.Length)
-            );
-        }
-
-        _funcTypes = new Metadata.FuncType[
-            (_header.param_table_offset - (uint)_bytes.Position) / (uint)sizeof(Metadata.FuncType)
-        ];
-
-        fixed (Metadata.FuncType* ptr = _funcTypes)
-        {
-            _bytes.ReadExactly(
-                new Span<byte>((byte*)ptr, sizeof(Metadata.FuncType) * _funcTypes.Length)
-            );
-        }
-
-        _parameters = new Metadata.Parameter[
-            (_header.paramtype_table_offset - (uint)_bytes.Position)
-                / (uint)sizeof(Metadata.Parameter)
-        ];
-
-        fixed (Metadata.Parameter* ptr = _parameters)
-        {
-            _bytes.ReadExactly(
-                new Span<byte>((byte*)ptr, sizeof(Metadata.Parameter) * _parameters.Length)
-            );
-        }
-
-        _paramTypes = new Metadata.ParamType[
-            (_header.typeref_table_offset - (uint)_bytes.Position)
-                / (uint)sizeof(Metadata.ParamType)
-        ];
-
-        fixed (Metadata.ParamType* ptr = _paramTypes)
-        {
-            _bytes.ReadExactly(
-                new Span<byte>((byte*)ptr, sizeof(Metadata.ParamType) * _paramTypes.Length)
-            );
-        }
-
-        _typeRefs = new byte[
-            (_header.name_table_offset - (uint)_bytes.Position) / (uint)sizeof(byte)
-        ];
-
-        fixed (byte* ptr = _typeRefs)
-        {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(byte) * _typeRefs.Length));
-        }
-
-        _names = new byte[(_header.size - (uint)_bytes.Position) / (uint)sizeof(byte)];
-
-        fixed (byte* ptr = _names)
-        {
-            _bytes.ReadExactly(new Span<byte>((byte*)ptr, sizeof(byte) * _names.Length));
-        }
-
-        if (_bytes.ReadByte() != -1)
+        if (_stream.ReadByte() != -1)
         {
             throw new Exception($"Failed to read the entirety of the metadata for \"{libName}\".");
         }
@@ -375,10 +294,10 @@ public unsafe class MetadataDeserializer
         return result.ToArray();
     }
 
-    private Data.Type GetType(uint index, uint length)
+    private Type GetType(uint index, uint length)
     {
         var ptrOrRef = new List<bool>();
-        Data.Type result = null;
+        Type result = null;
 
         for (uint i = 0; i < length; i++)
         {
@@ -534,9 +453,9 @@ public unsafe class MetadataDeserializer
         return result;
     }
 
-    private Data.Type[] GetParamTypes(uint index, uint length)
+    private Type[] GetParamTypes(uint index, uint length)
     {
-        var types = new Data.Type[length];
+        var types = new Type[length];
 
         for (uint i = 0; i < length; i++)
         {
@@ -573,5 +492,23 @@ public unsafe class MetadataDeserializer
         }
 
         return _compiler.ResolveNamespace(nmspace);
+    }
+
+    private Span<byte> VarSpan<T>(T* var, int count = 1)
+    {
+        return new Span<byte>((byte*)var, sizeof(T) * count);
+    }
+
+    private void In<T>(T* var, int count = 1)
+    {
+        _stream.ReadExactly(VarSpan(var, count));
+    }
+
+    private void InArr<T>(ref T[] var, uint offset)
+    {
+        var = new T[(offset - (uint)_stream.Position) / (uint)sizeof(T)];
+
+        fixed (T* ptr = var)
+            In(ptr, var.Length);
     }
 }

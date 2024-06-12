@@ -119,6 +119,9 @@ public class Program
                                 {
                                     DoOptimize = !options.DoNotOptimizeIR,
                                     Version = Version.Parse(options.ModuleVersion ?? "0.0.0"),
+                                    CompressionLevel = Utils.StringToCompLevel(
+                                        options.CompressionLevel
+                                    ),
                                     ExportLanguages = options
                                         .ExportLanguages.ToArray()
                                         .ExecuteOverAll(s => Utils.StringToLanguage(s))

@@ -22,6 +22,7 @@ luna run [-v] [-n] [-c] [--no-advanced-ir-opt] [-p <path>] [--run-args <args>] [
 luna init [--lib] [--name <project-name>] => Initialises a new project in the current directory. 
 
 -v, --verbose => Logs extra info to console. 
+-d, --do-not-compress => Tell mothc to not compress embedded metadata. 
 -n, --no-meta => Strips metadata from the output file. WARNING: disables reflection! 
 -c, --clear-cache => Whether to clear dependency cache prior to build. 
 --no-advanced-ir-opt => Whether to skip IR optimization passes. 
@@ -40,12 +41,13 @@ mothc [-v] [-n] [--no-advanced-ir-opt] [--moth-libs <paths>] [--c-libs <paths>] 
 -n, --no-meta => Strips metadata from the output file. WARNING: disables reflection! 
 --no-advanced-ir-opt => Whether to skip IR optimization passes. 
 -t, --output-type => The type of file to output. Options are "exe" and "lib". 
--o, --output => The name of the output file. Please forego the extension.
--V, --module-version => The version of the compiled module.
--i, --input => The files to compile.
--m, --moth-libs => External Moth library files to include in the compiled program.
--c, --c-libs => External C library files to include in the compiled program.
--e, --export-for => Languages to @Export functions for. Use the file extension for the language.
+-o, --output => The name of the output file. Please forego the extension. 
+-V, --module-version => The version of the compiled module. 
+-i, --input => The files to compile. 
+-m, --moth-libs => External Moth library files to include in the compiled program. 
+-c, --c-libs => External C library files to include in the compiled program. 
+-e, --export-for => Languages to @Export functions for. Use the file extension for the language. 
+-g, --compression-level => The type of compression to use for mothlib embedded metadata. Only really matters for huge projects. Options are: "none", "low", "mid", and "high". 
 ```
 
 ### Hello World

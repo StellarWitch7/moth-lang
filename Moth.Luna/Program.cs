@@ -69,7 +69,7 @@ internal class Program
                         var exitCode = ExecuteRun(options, proj);
                         Logger.WriteEmptyLine();
                         Logger.WriteSeparator();
-                        Logger.Info($"Exit code: {exitCode}");
+                        new Logger(proj.Name).ExitCode(exitCode);
 
                         break;
                     case "init":
@@ -260,6 +260,8 @@ internal class Program
         if (options.NoMetadata)
             args.Append("--no-meta ");
 
+        string compLevel = options.NoCompress ? "none" : "high";
+        args.Append($"--compression-level {compLevel} ");
         args.Append($"--output-file {project.OutputName} ");
         args.Append($"--output-type {project.Type} ");
 

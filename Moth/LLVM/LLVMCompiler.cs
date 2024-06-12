@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text.RegularExpressions;
 using LLVMSharp;
@@ -418,36 +419,55 @@ public class LLVMCompiler : IDisposable
                 throw new Exception($"Cannot load mothlibs, missing metadata for \"{libName}\".");
             }
 
-            using (var metadata = new MemoryStream(Utils.Unescape(match.Value), false))
+            using (
+                var gzip = new GZipStream(
+                    new MemoryStream(Utils.Unescape(match.Value), false),
+                    CompressionMode.Decompress
+                )
+            )
             {
-                var deserializer = new MetadataDeserializer(this, metadata);
-                deserializer.Process(libName);
+                using (var metadata = new MemoryStream())
+                {
+                    gzip.CopyTo(metadata);
+                    metadata.Seek(0, SeekOrigin.Begin);
+
+                    var deserializer = new MetadataDeserializer(this, metadata);
+                    deserializer.Process(libName);
+                }
             }
         }
     }
 
     public unsafe byte[] GenerateMetadata(string assemblyName)
     {
-        using (var bytes = new MemoryStream())
+        using (var result = new MemoryStream())
         {
-            MetadataSerializer serializer = new MetadataSerializer(this, bytes);
-            bytes.Write(Encoding.UTF8.GetBytes("<metadata>"));
-            serializer.Process();
-            bytes.Write(Encoding.UTF8.GetBytes("</metadata>"));
+            result.Write(Encoding.UTF8.GetBytes("<metadata>"));
+
+            using (var serializer = new MetadataSerializer(this))
+            {
+                var bytes = serializer.Process();
+                var gzip = new GZipStream(result, Options.CompressionLevel);
+
+                bytes.WriteTo(gzip);
+                gzip.Flush();
+            }
+
+            result.Write(Encoding.UTF8.GetBytes("</metadata>"));
 
             var global = Module.AddGlobal(
-                LLVMTypeRef.CreateArray(LLVMTypeRef.Int8, (uint)bytes.Length),
+                LLVMTypeRef.CreateArray(LLVMTypeRef.Int8, (uint)result.Length),
                 $"<{assemblyName}/metadata>"
             );
 
             global.Initializer = LLVMValueRef.CreateConstArray(
                 LLVMTypeRef.Int8,
-                bytes.ToArray().AsLLVMValues()
+                result.ToArray().AsLLVMValues()
             );
             global.Linkage = LLVMLinkage.LLVMDLLExportLinkage;
             global.IsGlobalConstant = true;
 
-            return bytes.ToArray();
+            return result.ToArray();
         }
     }
 

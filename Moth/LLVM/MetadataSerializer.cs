@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using LLVMSharp;
@@ -5,7 +6,7 @@ using Moth.LLVM.Data;
 
 namespace Moth.LLVM;
 
-public unsafe class MetadataSerializer
+public unsafe class MetadataSerializer : IDisposable
 {
     private MemoryStream _stream = new MemoryStream();
     private List<Metadata.Type> _types = new List<Metadata.Type>();
@@ -17,18 +18,17 @@ public unsafe class MetadataSerializer
     private List<Metadata.ParamType> _paramTypes = new List<Metadata.ParamType>();
     private List<byte> _typeRefs = new List<byte>();
     private List<string> _names = new List<string>();
-    private Dictionary<Data.Type, uint> _typeIndexes = new Dictionary<Data.Type, uint>();
-    private Dictionary<Data.FuncType, uint> _functypeIndexes =
-        new Dictionary<Data.FuncType, uint>();
-    private uint _typeTablePosition = 0;
-    private uint _fieldTablePosition = 0;
-    private uint _functionTablePosition = 0;
-    private uint _globalTablePosition = 0;
-    private uint _functypeTablePosition = 0;
-    private uint _paramTablePosition = 0;
-    private uint _paramTypeTablePosition = 0;
-    private uint _nameTablePosition = 0;
-    private uint _typeRefTablePosition = 0;
+    private Dictionary<Type, uint> _typeIndexes = new Dictionary<Type, uint>();
+    private Dictionary<FuncType, uint> _functypeIndexes = new Dictionary<FuncType, uint>();
+    private uint _typeTablePosition;
+    private uint _fieldTablePosition;
+    private uint _functionTablePosition;
+    private uint _globalTablePosition;
+    private uint _functypeTablePosition;
+    private uint _paramTablePosition;
+    private uint _paramTypeTablePosition;
+    private uint _nameTablePosition;
+    private uint _typeRefTablePosition;
     private LLVMCompiler _compiler;
 
     public MetadataSerializer(LLVMCompiler compiler)
@@ -36,220 +36,156 @@ public unsafe class MetadataSerializer
         _compiler = compiler;
     }
 
-    public MetadataSerializer(LLVMCompiler compiler, MemoryStream stream)
-        : this(compiler)
+    public void Dispose()
     {
-        _stream = stream;
+        _stream.Dispose();
     }
 
     public MemoryStream Process()
     {
-        var startPos = (uint)_stream.Position;
-
-        foreach (var typeDecl in _compiler.Types)
-        {
-            var newType = new Metadata.Type();
-            newType.privacy = typeDecl.Privacy;
-            newType.is_foreign = typeDecl is OpaqueStructDecl;
-            newType.is_union = typeDecl.IsUnion;
-            newType.name_table_index = _nameTablePosition;
-            newType.name_table_length = (uint)typeDecl.FullName.Length;
-            AddName(typeDecl.FullName);
-
-            if (typeDecl is StructDecl structDecl)
-            {
-                newType.field_table_index = _fieldTablePosition;
-                newType.field_table_length = (uint)structDecl.Fields.Count;
-
-                foreach (var field in structDecl.Fields.Values)
-                {
-                    var newField = new Metadata.Field();
-                    (uint typerefIndex, uint typerefLength) = AddTypeRef(field.Type);
-                    newField.privacy = field.Privacy;
-                    newField.typeref_table_index = typerefIndex;
-                    newField.typeref_table_length = typerefLength;
-                    newField.name_table_index = _nameTablePosition;
-                    newField.name_table_length = (uint)field.Name.Length;
-                    AddName(field.Name);
-                    AddField(newField);
-                }
-            }
-
-            AddType(typeDecl, newType);
-        }
-
-        foreach (var func in _compiler.Functions)
-        {
-            var newFunc = new Metadata.Function();
-            (uint typerefIndex, uint typerefLength) = AddTypeRef(func.Type);
-            newFunc.is_method = !func.IsStatic;
-            newFunc.privacy = func.Privacy;
-            newFunc.typeref_table_index = typerefIndex;
-            newFunc.typeref_table_length = typerefLength;
-            newFunc.name_table_index = _nameTablePosition;
-            newFunc.name_table_length = (uint)func.FullName.Length;
-            AddName(func.FullName);
-
-            foreach (var param in func.Params)
-            {
-                var newParam = new Metadata.Parameter();
-                newParam.name_table_index = _nameTablePosition;
-                newParam.name_table_length = (uint)param.Name.Length;
-                newParam.param_index = param.ParamIndex;
-                AddName(param.Name);
-                AddParam(newParam);
-            }
-
-            AddFunction(newFunc);
-        }
-
-        foreach (var global in _compiler.Globals)
-        {
-            var newGlobal = new Metadata.Global();
-            (uint typerefIndex, uint typerefLength) = AddTypeRef(global.Type.BaseType);
-            newGlobal.privacy = global.Privacy;
-            newGlobal.is_constant = global is GlobalConstant;
-            newGlobal.typeref_table_index = typerefIndex;
-            newGlobal.typeref_table_length = typerefLength;
-            newGlobal.name_table_index = _nameTablePosition;
-            newGlobal.name_table_length = (uint)global.FullName.Length;
-            AddName(global.FullName);
-            AddGlobal(newGlobal);
-        }
-
-        // write the results
-        // metadata version first
         var version = Meta.Version;
-        _stream.Write(new ReadOnlySpan<byte>((byte*)&version, sizeof(Version)));
-        // then module version
         var moduleVersion = _compiler.ModuleVersion;
-        _stream.Write(new ReadOnlySpan<byte>((byte*)&moduleVersion, sizeof(Version)));
-        // and then the metadata header
-        Metadata.Header header = new Metadata.Header();
-        _stream.Write(new ReadOnlySpan<byte>((byte*)&header, sizeof(Metadata.Header)));
+        var header = new Metadata.Header();
+        _compiler.Types.ForEach(AddType);
+        _compiler.Functions.ForEach(AddFunction);
+        _compiler.Globals.ForEach(AddGlobal);
+        _stream.Seek(sizeof(Version) * 2 + sizeof(Metadata.Header), SeekOrigin.Current);
 
-        header.type_table_offset = (uint)_stream.Position - startPos;
+        OutListWithPos(&header.type_table_offset, _types);
+        OutListWithPos(&header.field_table_offset, _fields);
+        OutListWithPos(&header.function_table_offset, _functions);
+        OutListWithPos(&header.global_variable_table_offset, _globals);
+        OutListWithPos(&header.functype_table_offset, _funcTypes);
+        OutListWithPos(&header.param_table_offset, _params);
+        OutListWithPos(&header.paramtype_table_offset, _paramTypes);
+        OutListWithPos(&header.typeref_table_offset, _typeRefs);
 
-        fixed (Metadata.Type* ptr = CollectionsMarshal.AsSpan(_types))
-        {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Type) * _types.Count));
-        }
-
-        header.field_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (Metadata.Field* ptr = CollectionsMarshal.AsSpan(_fields))
-        {
-            _stream.Write(
-                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Field) * _fields.Count)
-            );
-        }
-
-        header.function_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (Metadata.Function* ptr = CollectionsMarshal.AsSpan(_functions))
-        {
-            _stream.Write(
-                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Function) * _functions.Count)
-            );
-        }
-
-        header.global_variable_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (Metadata.Global* ptr = CollectionsMarshal.AsSpan(_globals))
-        {
-            _stream.Write(
-                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Global) * _globals.Count)
-            );
-        }
-
-        header.functype_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (Metadata.FuncType* ptr = CollectionsMarshal.AsSpan(_funcTypes))
-        {
-            _stream.Write(
-                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.FuncType) * _funcTypes.Count)
-            );
-        }
-
-        header.param_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (Metadata.Parameter* ptr = CollectionsMarshal.AsSpan(_params))
-        {
-            _stream.Write(
-                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.Parameter) * _params.Count)
-            );
-        }
-
-        header.paramtype_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (Metadata.ParamType* ptr = CollectionsMarshal.AsSpan(_paramTypes))
-        {
-            _stream.Write(
-                new ReadOnlySpan<byte>((byte*)ptr, sizeof(Metadata.ParamType) * _paramTypes.Count)
-            );
-        }
-
-        header.typeref_table_offset = (uint)_stream.Position - startPos;
-
-        fixed (byte* ptr = CollectionsMarshal.AsSpan(_typeRefs))
-        {
-            _stream.Write(new ReadOnlySpan<byte>((byte*)ptr, sizeof(byte) * _typeRefs.Count));
-        }
-
-        header.name_table_offset = (uint)_stream.Position - startPos;
+        header.name_table_offset = (uint)_stream.Position;
 
         foreach (var name in _names)
         {
             _stream.Write(System.Text.Encoding.UTF8.GetBytes(name));
         }
 
-        header.size = (uint)_stream.Position - startPos;
+        header.size = (uint)_stream.Position;
 
-        _stream.Seek((long)startPos, SeekOrigin.Begin);
-        _stream.Write(new ReadOnlySpan<byte>((byte*)&version, sizeof(Version)));
-        _stream.Write(new ReadOnlySpan<byte>((byte*)&moduleVersion, sizeof(Version)));
-        _stream.Write(new ReadOnlySpan<byte>((byte*)&header, sizeof(Metadata.Header)));
+        _stream.Seek(0, SeekOrigin.Begin);
+        Out(&version);
+        Out(&moduleVersion);
+        Out(&header);
         _stream.Seek(0, SeekOrigin.End);
         return _stream;
     }
 
-    public void AddType(Data.TypeDecl typeDecl, Metadata.Type metaType)
+    public void AddType(TypeDecl typeDecl)
     {
+        var newType = new Metadata.Type();
+        newType.privacy = typeDecl.Privacy;
+        newType.is_foreign = typeDecl is OpaqueStructDecl;
+        newType.is_union = typeDecl.IsUnion;
+        newType.name_table_index = _nameTablePosition;
+        newType.name_table_length = (uint)typeDecl.FullName.Length;
+        AddName(typeDecl.FullName);
+
+        if (typeDecl is StructDecl structDecl && structDecl is not OpaqueStructDecl)
+        {
+            newType.field_table_index = _fieldTablePosition;
+            newType.field_table_length = (uint)structDecl.Fields.Count;
+            structDecl.Fields.Values.ToList().ForEach(AddField);
+        }
+
         _typeIndexes.Add(typeDecl, _typeTablePosition);
-        _types.Add(metaType);
+        _types.Add(newType);
         _typeTablePosition++;
     }
 
-    public uint AddFuncType(Data.FuncType originalType, Metadata.FuncType type)
+    public uint AddFuncType(FuncType fnType)
     {
+        var newFuncType = new Metadata.FuncType();
+        (uint retTyperefIndex, uint retTyperefLength) = AddTypeRef(fnType.ReturnType);
+
+        newFuncType.is_variadic = fnType.IsVariadic;
+        newFuncType.return_typeref_table_index = retTyperefIndex;
+        newFuncType.return_typeref_table_length = retTyperefLength;
+        newFuncType.paramtype_table_index = _paramTypeTablePosition;
+        newFuncType.paramtype_table_length = (uint)fnType.ParameterTypes.Length;
+
+        foreach (var paramType in fnType.ParameterTypes)
+        {
+            var newParamType = new Metadata.ParamType();
+            (uint typerefIndex, uint typerefLength) = AddTypeRef(paramType);
+            newParamType.typeref_table_index = typerefIndex;
+            newParamType.typeref_table_length = typerefLength;
+            AddParamType(newParamType);
+        }
+
         var pos = _functypeTablePosition;
-        _functypeIndexes.Add(originalType, _functypeTablePosition);
-        _funcTypes.Add(type);
+        _functypeIndexes.Add(fnType, _functypeTablePosition);
+        _funcTypes.Add(newFuncType);
         _functypeTablePosition++;
         return pos;
     }
 
-    public void AddField(Metadata.Field field)
+    public void AddField(Field field)
     {
-        _fields.Add(field);
+        var newField = new Metadata.Field();
+        (uint typerefIndex, uint typerefLength) = AddTypeRef(field.Type);
+
+        newField.privacy = field.Privacy;
+        newField.typeref_table_index = typerefIndex;
+        newField.typeref_table_length = typerefLength;
+        newField.name_table_index = _nameTablePosition;
+        newField.name_table_length = (uint)field.Name.Length;
+
+        AddName(field.Name);
+        _fields.Add(newField);
         _fieldTablePosition++;
     }
 
-    public void AddFunction(Metadata.Function func)
+    public void AddFunction(DefinedFunction func)
     {
-        _functions.Add(func);
+        var newFunc = new Metadata.Function();
+        (uint typerefIndex, uint typerefLength) = AddTypeRef(func.Type);
+
+        newFunc.is_method = !func.IsStatic;
+        newFunc.privacy = func.Privacy;
+        newFunc.typeref_table_index = typerefIndex;
+        newFunc.typeref_table_length = typerefLength;
+        newFunc.name_table_index = _nameTablePosition;
+        newFunc.name_table_length = (uint)func.FullName.Length;
+
+        AddName(func.FullName);
+        func.Params.ToList().ForEach(AddParam);
+        _functions.Add(newFunc);
         _functionTablePosition++;
     }
 
-    public void AddGlobal(Metadata.Global global)
+    public void AddGlobal(IGlobal global)
     {
-        _globals.Add(global);
+        var newGlobal = new Metadata.Global();
+        (uint typerefIndex, uint typerefLength) = AddTypeRef(global.Type.BaseType);
+
+        newGlobal.privacy = global.Privacy;
+        newGlobal.is_constant = global is GlobalConstant;
+        newGlobal.typeref_table_index = typerefIndex;
+        newGlobal.typeref_table_length = typerefLength;
+        newGlobal.name_table_index = _nameTablePosition;
+        newGlobal.name_table_length = (uint)global.FullName.Length;
+
+        AddName(global.FullName);
+        _globals.Add(newGlobal);
         _globalTablePosition++;
     }
 
-    public void AddParam(Metadata.Parameter param)
+    public void AddParam(Parameter param)
     {
-        _params.Add(param);
+        var newParam = new Metadata.Parameter();
+        newParam.name_table_index = _nameTablePosition;
+        newParam.name_table_length = (uint)param.Name.Length;
+        newParam.param_index = param.ParamIndex;
+        AddName(param.Name);
+
+        _params.Add(newParam);
         _paramTablePosition++;
     }
 
@@ -341,38 +277,14 @@ public unsafe class MetadataSerializer
                 }
                 else
                 {
-                    if (type is Data.FuncType fnType)
+                    if (type is FuncType fnType)
                     {
                         result.Add((byte)Metadata.TypeTag.FuncType);
 
                         if (!_functypeIndexes.TryGetValue(fnType, out index))
-                        {
-                            var newFuncType = new Metadata.FuncType();
-                            (uint retTyperefIndex, uint retTyperefLength) = AddTypeRef(
-                                fnType.ReturnType
-                            );
+                            index = AddFuncType(fnType);
 
-                            newFuncType.is_variadic = fnType.IsVariadic;
-                            newFuncType.return_typeref_table_index = retTyperefIndex;
-                            newFuncType.return_typeref_table_length = retTyperefLength;
-                            newFuncType.paramtype_table_index = _paramTypeTablePosition;
-                            newFuncType.paramtype_table_length = (uint)fnType.ParameterTypes.Length;
-
-                            foreach (var paramType in fnType.ParameterTypes)
-                            {
-                                var newParamType = new Metadata.ParamType();
-                                (uint typerefIndex, uint typerefLength) = AddTypeRef(paramType);
-                                newParamType.typeref_table_index = typerefIndex;
-                                newParamType.typeref_table_length = typerefLength;
-                                AddParamType(newParamType);
-                            }
-
-                            index = AddFuncType(fnType, newFuncType);
-                        }
-
-                        result.AddRange(
-                            new ReadOnlySpan<byte>((byte*)&index, sizeof(uint)).ToArray()
-                        );
+                        result.AddRange(VarSpan(&index).ToArray());
                         type = null;
                     }
                     else
@@ -390,5 +302,23 @@ public unsafe class MetadataSerializer
         _typeRefs.AddRange(result);
         _typeRefTablePosition += (uint)result.Count;
         return (tableIndex, (uint)result.Count);
+    }
+
+    private ReadOnlySpan<byte> VarSpan<T>(T* var, int count = 1)
+    {
+        return new ReadOnlySpan<byte>((byte*)var, sizeof(T) * count);
+    }
+
+    private void Out<T>(T* var, int count = 1)
+    {
+        _stream.Write(VarSpan(var, count));
+    }
+
+    private void OutListWithPos<T>(uint* var, List<T> items)
+    {
+        (*var) = (uint)_stream.Position;
+
+        fixed (T* ptr = CollectionsMarshal.AsSpan(items))
+            Out(ptr, items.Count);
     }
 }

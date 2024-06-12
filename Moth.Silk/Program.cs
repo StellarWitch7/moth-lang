@@ -4,9 +4,9 @@ using Tomlet;
 
 namespace Moth.Silk;
 
-internal class Program
+public class Program
 {
-    private static int Main(string[] args)
+    public static int Main(string[] args)
     {
         if (args.Length < 1)
         {

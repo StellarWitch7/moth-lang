@@ -51,6 +51,15 @@ internal class Options
     public string? ModuleVersion { get; set; }
 
     [Option(
+        'g',
+        "compression-level",
+        Required = false,
+        HelpText = "The type of compression to use for mothlib embedded metadata. Only really matters for huge projects. "
+            + "Options are: \"none\", \"low\", \"mid\", and \"high\"."
+    )]
+    public string CompressionLevel { get; set; } = "mid";
+
+    [Option(
         'm',
         "moth-libs",
         Required = false,

@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.IO.Compression;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Moth.AST.Node;
 using Moth.LLVM;
@@ -8,6 +10,18 @@ namespace Moth;
 
 public static class Utils
 {
+    public static CompressionLevel StringToCompLevel(string str)
+    {
+        return str switch
+        {
+            "none" => CompressionLevel.NoCompression,
+            "low" => CompressionLevel.Fastest,
+            "mid" => CompressionLevel.Optimal,
+            "high" => CompressionLevel.SmallestSize,
+            _ => throw new NotImplementedException($"Unsupported compression type: \"{str}\"")
+        };
+    }
+
     public static void TypeAutoExport(LLVMCompiler compiler, Type type, bool child = false)
     {
         if (type is StructDecl structDecl)

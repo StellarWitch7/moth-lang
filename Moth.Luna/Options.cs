@@ -9,6 +9,14 @@ internal class Options
     public bool Verbose { get; set; }
 
     [Option(
+        'd',
+        "do-not-compress",
+        Required = false,
+        HelpText = "Tell mothc to not compress embedded metadata."
+    )]
+    public bool NoCompress { get; set; }
+
+    [Option(
         'c',
         "clear-cache",
         Required = false,

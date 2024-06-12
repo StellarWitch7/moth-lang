@@ -8,6 +8,7 @@ global using EnumDecl = Moth.LLVM.Data.EnumDecl;
 global using Function = Moth.LLVM.Data.Function;
 global using GlobalVariable = Moth.LLVM.Data.GlobalVariable;
 global using Index = ClangSharp.Index;
+global using Parameter = Moth.LLVM.Data.Parameter;
 global using Pointer = Moth.LLVM.Data.Pointer;
 global using StructDecl = Moth.LLVM.Data.StructDecl;
 global using SystemType = System.Type;
