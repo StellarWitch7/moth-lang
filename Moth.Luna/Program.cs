@@ -146,7 +146,7 @@ internal class Program
             };
 
             string tomlString = TomletMain.TomlStringFrom(project);
-            string gitignoreString = "[Bb]uild/\n[Cc]ache/\n[Rr]un";
+            string gitignoreString = "[Bb]uild/\n[Cc]ache/\n[Rr]un/\n[Ll]ogs/";
             string programString = options.InitLib
                 ? $"namespace {projDir};\n\nwith core;\n\npublic func Add(left #i32, right #i32) #i32 {{\n    return left + right;\n}}"
                 : $"namespace {projDir};\n\nwith core;\n\nfunc main() #i32 {{\n    WriteLine(\"Hello World!\");\n    return 0;\n}}";
