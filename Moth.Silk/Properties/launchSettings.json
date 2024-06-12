@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "silk bind": {
+      "commandName": "Project",
+      "commandLineArgs": "bind -v -n test -o /home/aur/RiderProjects/moth-lang/test/main/include",
+      "workingDirectory": "/home/aur/RiderProjects/moth-lang/test/include",
+      "executablePath": "/home/aur/RiderProjects/moth-lang/Moth.Silk/bin/Debug/net8.0/silk.exe",
+      "externalTerminal": true,
+      "leaveRunningOnClose": true
+    }
+  }
+}

@@ -2,9 +2,11 @@
 
 namespace Moth.LLVM.Data;
 
-public class Float : PrimitiveType
+public class Float : PrimitiveStructDecl
 {
-    public Float(string name, LLVMTypeRef llvmType, uint bitlength) : base(name, llvmType, bitlength) { }
+    public Float(LLVMCompiler compiler, string name, LLVMTypeRef llvmType, uint bitlength)
+        : base(compiler, name, llvmType, bitlength) { }
 
-    protected override Dictionary<string, OverloadList> GenerateDefaultMethods() => throw new NotImplementedException();
+    protected override Dictionary<string, OverloadList> GenerateDefaultMethods() =>
+        throw new NotImplementedException();
 }

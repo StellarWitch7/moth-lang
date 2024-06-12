@@ -6,13 +6,11 @@ public struct PeekStream
     private readonly string _text;
     public int Length
     {
-        get
-        {
-            return _text.Length;
-        }
+        get { return _text.Length; }
     }
 
-    public PeekStream() : this(string.Empty) => Position = 0;
+    public PeekStream()
+        : this(string.Empty) => Position = 0;
 
     public PeekStream(string text)
     {
@@ -22,26 +20,17 @@ public struct PeekStream
 
     public char? Current
     {
-        get
-        {
-            return Position < Length ? _text[Position] : null;
-        }
+        get { return Position < Length ? _text[Position] : null; }
     }
 
     public char? Next
     {
-        get
-        {
-            return Position < Length - 1 ? _text[Position + 1] : null;
-        }
+        get { return Position < Length - 1 ? _text[Position + 1] : null; }
     }
 
     public char? Next2
     {
-        get
-        {
-            return Position < Length - 2 ? _text[Position + 2] : null;
-        }
+        get { return Position < Length - 2 ? _text[Position + 2] : null; }
     }
 
     public bool MoveNext()
@@ -65,7 +54,8 @@ public struct PeekStream
         }
     }
 
-    public ReadOnlyMemory<char> Peek(int count) => Position + count <= Length ? _text.AsMemory(Position, count) : default;
+    public ReadOnlyMemory<char> Peek(int count) =>
+        Position + count <= Length ? _text.AsMemory(Position, count) : default;
 
     public ReadOnlyMemory<char> Peek(Func<char, bool> condition)
     {

@@ -7,7 +7,7 @@
 Moth's official compiler, written in C#. It takes Moth code and converts it to LLVM IR, which is then passed to the Clang C compiler. Currently only compatible with the Clang compiler. Read the [wiki](https://github.com/StellarWitch7/Moth/wiki) for Moth's documentation. Please report any bugs to the [issue tracker](https://github.com/StellarWitch7/Moth/issues), as it helps to improve Moth's compiler. 
 
 ### Dependencies
-1. [.NET 7](https://dotnet.microsoft.com/en-us/download/dotnet/7.0)
+1. [.NET 8](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 2. [Clang 16](https://clang.llvm.org/get_started.html)
 3. [Git](https://git-scm.com/downloads)
 4. [Git Extras](https://github.com/tj/git-extras)
@@ -22,6 +22,7 @@ luna run [-v] [-n] [-c] [--no-advanced-ir-opt] [-p <path>] [--run-args <args>] [
 luna init [--lib] [--name <project-name>] => Initialises a new project in the current directory. 
 
 -v, --verbose => Logs extra info to console. 
+-d, --do-not-compress => Tell mothc to not compress embedded metadata. 
 -n, --no-meta => Strips metadata from the output file. WARNING: disables reflection! 
 -c, --clear-cache => Whether to clear dependency cache prior to build. 
 --no-advanced-ir-opt => Whether to skip IR optimization passes. 
@@ -40,10 +41,13 @@ mothc [-v] [-n] [--no-advanced-ir-opt] [--moth-libs <paths>] [--c-libs <paths>] 
 -n, --no-meta => Strips metadata from the output file. WARNING: disables reflection! 
 --no-advanced-ir-opt => Whether to skip IR optimization passes. 
 -t, --output-type => The type of file to output. Options are "exe" and "lib". 
--o, --output => The name of the output file. Please forego the extension.
--i, --input => The files to compile.
---moth-libs => External Moth library files to include in the compiled program. 
---c-libs => External C library files to include in the compiled program. 
+-o, --output => The name of the output file. Please forego the extension. 
+-V, --module-version => The version of the compiled module. 
+-i, --input => The files to compile. 
+-m, --moth-libs => External Moth library files to include in the compiled program. 
+-c, --c-libs => External C library files to include in the compiled program. 
+-e, --export-for => Languages to @Export functions for. Use the file extension for the language. 
+-g, --compression-level => The type of compression to use for mothlib embedded metadata. Only really matters for huge projects. Options are: "none", "low", "mid", and "high". 
 ```
 
 ### Hello World
@@ -56,9 +60,10 @@ with core; // we are using the core namespace in this file, so we declare our us
 
 // the main function is the entrypoint of an executable program
 // it must return a value of type i32
-func main() #i32 {
-    WriteLine("Hello World!"); // we use the core namespace here
-    return 0; // we end the program by returning from the main function with an exit code of zero
+fn main() #i32 {
+    WriteLine("Hello World!"); // we use the core namespace here to call the WriteLine(#u8*) function
+    // we end the program by returning from the main function with an exit code of zero
+    ret 0 // note that unlike other lines, return lines do not have semicolons
 }
 ```
 To learn how to run this code, [continue reading](https://github.com/StellarWitch7/moth-lang/wiki/Hello-World). 

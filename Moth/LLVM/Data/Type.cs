@@ -1,45 +1,48 @@
-﻿using Moth.AST.Node;
+﻿using System.Linq.Expressions;
+using Moth.AST.Node;
 using Moth.LLVM.Data;
-using System.Linq.Expressions;
 
 namespace Moth.LLVM.Data;
 
 public enum TypeKind
 {
-    Struct,
+    Decl,
     Function,
     Pointer,
     Reference,
     Array
 }
 
-public class Type : CompilerData
+public class Type : ICompilerData
 {
-    public readonly LLVMTypeRef LLVMType;
-    public readonly TypeKind Kind;
+    public bool IsExternal { get; init; }
+    public virtual LLVMTypeRef LLVMType { get; }
+    public virtual TypeKind Kind { get; }
 
-    public Type(LLVMTypeRef llvmType, TypeKind kind)
+    protected LLVMCompiler _compiler { get; }
+
+    public Type(LLVMCompiler compiler, LLVMTypeRef llvmType, TypeKind kind)
     {
+        _compiler = compiler;
         LLVMType = llvmType;
         Kind = kind;
     }
-    
+
     public virtual uint Bits
     {
-        get
-        {
-            throw new NotImplementedException();
-        }
+        get { throw new NotImplementedException(); }
     }
-    
+
     public bool CanConvertTo(Type other)
     {
-        if (Equals(other)) return true;
+        if (Equals(other))
+            return true;
         return GetImplicitConversions().Contains(other);
     }
-    
-    public virtual ImplicitConversionTable GetImplicitConversions() => new ImplicitConversionTable();
-    
+
+    public virtual ImplicitConversionTable GetImplicitConversions() =>
+        new ImplicitConversionTable(_compiler);
+
     public override string ToString() => throw new NotImplementedException();
 
     public override bool Equals(object? obj) => throw new NotImplementedException();

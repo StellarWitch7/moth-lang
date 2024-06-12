@@ -6,8 +6,15 @@ public class FuncType : PtrType
     public Type[] ParameterTypes { get; }
     public bool IsVariadic { get; }
 
-    public FuncType(Type retType, Type[] paramTypes, bool isVariadic)
-        : base(new Type(LLVMTypeRef.CreateFunction(retType.LLVMType, paramTypes.AsLLVMTypes(), isVariadic), TypeKind.Function))
+    public FuncType(LLVMCompiler compiler, Type retType, Type[] paramTypes, bool isVariadic)
+        : base(
+            compiler,
+            new Type(
+                compiler,
+                LLVMTypeRef.CreateFunction(retType.LLVMType, paramTypes.AsLLVMTypes(), isVariadic),
+                TypeKind.Function
+            )
+        )
     {
         ReturnType = retType;
         ParameterTypes = paramTypes;
@@ -53,8 +60,8 @@ public class FuncType : PtrType
 
     public override string ToString()
     {
-        var builder = new StringBuilder("(");
-        
+        var builder = new StringBuilder("#(");
+
         foreach (var type in ParameterTypes)
         {
             builder.Append($"{type}, ");
@@ -65,30 +72,42 @@ public class FuncType : PtrType
             builder.Remove(builder.Length - 2, 2);
         }
 
-        builder.Append(')');
+        builder.Append($") {ReturnType}");
         return builder.ToString();
     }
 
     public override int GetHashCode() => ReturnType.GetHashCode() * ParameterTypes.GetHashes();
 
-    public virtual Value Call(LLVMCompiler compiler, LLVMValueRef func, Value[] args)
-        => Value.Create(ReturnType, compiler.Builder.BuildCall2(BaseType.LLVMType, func, args.AsLLVMValues()));
+    public virtual Value Call(LLVMValueRef func, Value[] args) =>
+        Value.Create(
+            _compiler,
+            ReturnType,
+            _compiler.Builder.BuildCall2(BaseType.LLVMType, func, args.AsLLVMValues())
+        );
 }
 
 public sealed class MethodType : FuncType
 {
-    public Struct OwnerStruct { get; }
+    public TypeDecl OwnerTypeDecl { get; }
     public bool IsStatic { get; }
-    
-    public MethodType(Type retType, Type[] paramTypes, Struct ownerStruct, bool isStatic = false)
-        : base(retType, paramTypes, false)
+
+    public MethodType(
+        LLVMCompiler compiler,
+        Type retType,
+        Type[] paramTypes,
+        TypeDecl ownerTypeDecl,
+        bool isStatic = false
+    )
+        : base(compiler, retType, paramTypes, false)
     {
-        OwnerStruct = ownerStruct;
+        OwnerTypeDecl = ownerTypeDecl;
         IsStatic = isStatic;
-        
-        if (ownerStruct == null)
+
+        if (ownerTypeDecl == null)
         {
-            throw new Exception($"Could not create new method because methods must have a non-null parent struct!");
+            throw new Exception(
+                $"Could not create new method because methods must have a non-null parent struct!"
+            );
         }
     }
 
@@ -104,7 +123,7 @@ public sealed class MethodType : FuncType
             return false;
         }
 
-        if (!OwnerStruct.Equals(methodType.OwnerStruct))
+        if (!OwnerTypeDecl.Equals(methodType.OwnerTypeDecl))
         {
             return false;
         }
@@ -115,6 +134,6 @@ public sealed class MethodType : FuncType
 
 public sealed class LocalFuncType : FuncType
 {
-    public LocalFuncType(Type retType, Type[] paramTypes)
-        : base(retType, paramTypes, false) { }
+    public LocalFuncType(LLVMCompiler compiler, Type retType, Type[] paramTypes)
+        : base(compiler, retType, paramTypes, false) { }
 }

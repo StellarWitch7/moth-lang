@@ -1,6 +1,6 @@
 ﻿namespace Moth.LLVM.Data;
 
-public class Parameter : CompilerData
+public class Parameter
 {
     public uint ParamIndex { get; set; }
     public string Name { get; set; }

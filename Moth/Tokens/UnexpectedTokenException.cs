@@ -13,7 +13,8 @@ public sealed class UnexpectedTokenException : Exception
     {
         get
         {
-            string err = $"Unexpected token '{Token.Text}' at position {Token.Begin} | {Line}:{Column}.";
+            string err =
+                $"Unexpected token '{Token.Text}' at position {Token.Begin} | {Line}:{Column}.";
             if (Expected is not null)
             {
                 err = $"{err}\nExpected token of type {Expected}, got {Token.Type}.";

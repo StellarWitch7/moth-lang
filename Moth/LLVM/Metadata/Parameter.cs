@@ -2,7 +2,7 @@ namespace Moth.LLVM.Metadata;
 
 public struct Parameter
 {
-    public ulong name_table_index;
-    public ulong name_table_length;
-    public ulong param_index;
+    public uint name_table_index;
+    public uint name_table_length;
+    public uint param_index;
 }

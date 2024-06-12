@@ -18,10 +18,7 @@ public class ParseContext
 
     public Token? Current
     {
-        get
-        {
-            return Position >= _tokens.Count ? null : _tokens[Position];
-        }
+        get { return Position >= _tokens.Count ? null : _tokens[Position]; }
     }
 
     public Token? MoveNext()

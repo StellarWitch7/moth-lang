@@ -2,14 +2,14 @@ namespace Moth.LLVM.Metadata;
 
 public struct Header
 {
-    public ulong type_table_offset;
-    public ulong field_table_offset;
-    public ulong function_table_offset;
-    public ulong global_variable_table_offset;
-    public ulong functype_table_offset;
-    public ulong param_table_offset;
-    public ulong paramtype_table_offset;
-    public ulong typeref_table_offset;
-    public ulong name_table_offset;
-    public ulong size;
+    public uint type_table_offset;
+    public uint field_table_offset;
+    public uint function_table_offset;
+    public uint global_variable_table_offset;
+    public uint functype_table_offset;
+    public uint param_table_offset;
+    public uint paramtype_table_offset;
+    public uint typeref_table_offset;
+    public uint name_table_offset;
+    public uint size;
 }

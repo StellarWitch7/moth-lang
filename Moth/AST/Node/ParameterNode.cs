@@ -10,4 +10,9 @@ public class ParameterNode : ASTNode
         Name = name;
         TypeRef = typeRef;
     }
+
+    public override string GetSource()
+    {
+        return $"{Name} {TypeRef.GetSource()}";
+    }
 }

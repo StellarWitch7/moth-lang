@@ -6,10 +6,10 @@ public class GitSource
 {
     [TomlProperty("src")]
     public string Source { get; set; }
-    
+
     [TomlProperty("branch")]
     public string Branch { get; set; }
-    
+
     [TomlProperty("commit")]
     public string Commit { get; set; }
 

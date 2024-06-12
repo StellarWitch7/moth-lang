@@ -1,5 +1,3 @@
 ﻿namespace Moth.AST.Node;
 
-public class StatementNode : ASTNode
-{
-}
+public class StatementNode : ASTNode { }

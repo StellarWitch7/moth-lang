@@ -25,9 +25,8 @@ public readonly struct Token
         }
     }
 
-    public override string ToString() => Text.IsEmpty
-        ? $"Token<{Type}>"
-        : $"Token<{Type}>(\"{Text}\")";
+    public override string ToString() =>
+        Text.IsEmpty ? $"Token<{Type}>" : $"Token<{Type}>(\"{Text}\")";
 }
 
 public enum TokenType
@@ -59,7 +58,7 @@ public enum TokenType
     GreaterThanOrEqual,
     Equal,
     NotEqual,
-    Struct,
+    Type,
     If,
     Local,
     Else,
@@ -86,7 +85,6 @@ public enum TokenType
     DoubleQuote,
     Foreign,
     Function,
-    Pi,
     Range,
     Variadic,
     Static,
@@ -102,5 +100,11 @@ public enum TokenType
     ModAssign,
     ExpAssign,
     Ampersand,
-    ScientificNotation
+    ScientificNotation,
+    Trait,
+    Implement,
+    Union,
+    Global,
+    Extend,
+    Enum
 }

@@ -2,13 +2,16 @@
 
 namespace Moth.LLVM.Data;
 
-public class Namespace : CompilerData, IContainer
+public class Namespace : IContainer
 {
+    public bool IsExternal { get; init; }
     public IContainer? Parent { get; }
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();
-    public Dictionary<string, OverloadList> Functions { get; } = new Dictionary<string, OverloadList>();
-    public Dictionary<string, Struct> Structs { get; } = new Dictionary<string, Struct>();
+    public Dictionary<string, OverloadList> Functions { get; } =
+        new Dictionary<string, OverloadList>();
+    public Dictionary<string, TypeDecl> Types { get; } = new Dictionary<string, TypeDecl>();
+    public Dictionary<string, TraitDecl> Traits { get; } = new Dictionary<string, TraitDecl>();
     public Dictionary<string, IGlobal> GlobalVariables { get; } = new Dictionary<string, IGlobal>();
     public Dictionary<string, Template> Templates { get; } = new Dictionary<string, Template>();
 
@@ -17,13 +20,10 @@ public class Namespace : CompilerData, IContainer
         Parent = parent;
         Name = name;
     }
-    
+
     public Namespace? ParentNamespace
     {
-        get
-        {
-            return Parent is Namespace nmspace ? nmspace : null;
-        }
+        get { return Parent is Namespace nmspace ? nmspace : null; }
     }
 
     public string FullName
@@ -65,7 +65,7 @@ public class Namespace : CompilerData, IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -77,8 +77,10 @@ public class Namespace : CompilerData, IContainer
 
     public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
     {
-        if (Functions.TryGetValue(name, out OverloadList overloads)
-            && overloads.TryGet(paramTypes, out Function func))
+        if (
+            Functions.TryGetValue(name, out OverloadList overloads)
+            && overloads.TryGet(paramTypes, out Function func)
+        )
         {
             return func;
         }
@@ -100,7 +102,7 @@ public class Namespace : CompilerData, IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -110,40 +112,74 @@ public class Namespace : CompilerData, IContainer
         }
     }
 
-    public Struct GetStruct(string name)
+    public TypeDecl GetType(string name)
     {
-        if (Structs.TryGetValue(name, out Struct @struct))
+        if (Types.TryGetValue(name, out TypeDecl type))
         {
-            return @struct;
+            return type;
         }
         else
         {
             return ParentNamespace != null
-                ? ParentNamespace.GetStruct(name)
+                ? ParentNamespace.GetType(name)
                 : throw new Exception($"Type \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
-    
-    public bool TryGetStruct(string name, out Struct @struct)
+
+    public bool TryGetType(string name, out TypeDecl structDecl)
     {
         try
         {
-            @struct = GetStruct(name);
+            structDecl = GetType(name);
 
-            if (@struct == null)
+            if (structDecl == null)
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
         {
-            @struct = null;
+            structDecl = null;
             return false;
         }
     }
-    
+
+    public TraitDecl GetTrait(string name)
+    {
+        if (Traits.TryGetValue(name, out TraitDecl trait))
+        {
+            return trait;
+        }
+        else
+        {
+            return ParentNamespace != null
+                ? ParentNamespace.GetTrait(name)
+                : throw new Exception($"Trait \"{name}\" was not found in namespace \"{Name}\"");
+        }
+    }
+
+    public bool TryGetTrait(string name, out TraitDecl traitDecl)
+    {
+        try
+        {
+            traitDecl = GetTrait(name);
+
+            if (traitDecl == null)
+            {
+                throw new Exception();
+            }
+
+            return true;
+        }
+        catch
+        {
+            traitDecl = null;
+            return false;
+        }
+    }
+
     public Template GetTemplate(string name)
     {
         if (Templates.TryGetValue(name, out Template template))
@@ -157,7 +193,7 @@ public class Namespace : CompilerData, IContainer
                 : throw new Exception($"Template \"{name}\" was not found in namespace \"{Name}\"");
         }
     }
-    
+
     public bool TryGetTemplate(string name, out Template template)
     {
         try
@@ -168,7 +204,7 @@ public class Namespace : CompilerData, IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch
@@ -177,7 +213,7 @@ public class Namespace : CompilerData, IContainer
             return false;
         }
     }
-    
+
     public IGlobal GetGlobal(string name)
     {
         if (GlobalVariables.TryGetValue(name, out IGlobal global))
@@ -188,10 +224,12 @@ public class Namespace : CompilerData, IContainer
         {
             return ParentNamespace != null
                 ? ParentNamespace.GetGlobal(name)
-                : throw new Exception($"Global variable \"{name}\" was not found in namespace \"{Name}\"");
+                : throw new Exception(
+                    $"Global variable \"{name}\" was not found in namespace \"{Name}\""
+                );
         }
     }
-    
+
     public bool TryGetGlobal(string name, out IGlobal globalVar)
     {
         try
@@ -202,7 +240,7 @@ public class Namespace : CompilerData, IContainer
             {
                 throw new Exception();
             }
-            
+
             return true;
         }
         catch

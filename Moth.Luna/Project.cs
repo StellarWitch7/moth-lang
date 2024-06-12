@@ -7,10 +7,10 @@ public class Project
 {
     [TomlProperty("name")]
     public string Name { get; set; }
-    
+
     [TomlProperty("version")]
     public string Version { get; set; }
-    
+
     [TomlProperty("type")]
     public string Type { get; set; }
 
@@ -19,23 +19,26 @@ public class Project
 
     [TomlProperty("out")]
     public string Out { get; set; } = "build";
-    
-    [TomlProperty("platforms")]
-    public string[] Platforms { get; set; }
-    
+
+    [TomlProperty("include")]
+    public string Include { get; set; } = "include";
+
+    [TomlProperty("target-platforms")]
+    public string[] PlatformTargets { get; set; }
+
     [TomlProperty("c-libs")]
     public string[] CLibraryFiles { get; set; }
-    
+
+    [TomlProperty("target-languages")]
+    public string[] LanguageTargets { get; set; }
+
     [TomlProperty("dependencies")]
     public Dependencies Dependencies { get; set; }
 
     [TomlNonSerialized]
     public string OutputName
     {
-        get
-        {
-            return Type == "lib" ? $"{Name}-{Version}-{Program.CurrentOS}" : Name;
-        }
+        get { return Type == "lib" ? $"{Name}-{Version}-{Program.CurrentOS}" : Name; }
     }
 
     [TomlNonSerialized]
@@ -54,9 +57,6 @@ public class Project
     [TomlNonSerialized]
     public string FullOutputPath
     {
-        get
-        {
-            return $"{Environment.CurrentDirectory}/{Out}/{FullOutputName}";
-        }
+        get => Path.Combine(Out, "bin", FullOutputName);
     }
 }

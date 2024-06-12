@@ -8,5 +8,5 @@ public class Build
     public string Command { get; set; } = "luna";
 
     [TomlProperty("args")]
-    public string Args { get; set; } = "build";
+    public string Args { get; set; } = "build -d";
 }

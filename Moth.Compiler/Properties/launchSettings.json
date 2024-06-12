@@ -2,17 +2,17 @@
   "profiles": {
     "mothc core": {
       "commandName": "Project",
-      "commandLineArgs": "-v --no-advanced-ir-opt -t lib -o mothcore -i /home/aurora/MothProjects/moth-core/main/System.moth /home/aurora/MothProjects/moth-core/main/Foreigns.moth /home/aurora/MothProjects/moth-core/main/io/IO.moth /home/aurora/MothProjects/moth-core/main/io/File.moth /home/aurora/MothProjects/moth-core/main/threading/Thread.moth",
-      "workingDirectory": "/home/aurora/MothProjects/moth-core/build",
-      "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net7.0/mothc.exe",
+      "commandLineArgs": "-v --no-advanced-ir-opt -t lib -e c -o mothcore-1.0.0-linux -V 1.0.0 -i /home/aur/MothProjects/moth-core/main/System.moth /home/aur/MothProjects/moth-core/main/Foreigns.moth /home/aur/MothProjects/moth-core/main/io/IO.moth /home/aur/MothProjects/moth-core/main/io/File.moth /home/aur/MothProjects/moth-core/main/math/Complex.moth /home/aur/MothProjects/moth-core/main/threading/Thread.moth",
+      "workingDirectory": "/home/aur/MothProjects/moth-core/build",
+      "executablePath": "/home/aur/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net8.0/mothc.exe",
       "externalTerminal": true,
       "leaveRunningOnClose": true
     },
     "mothc test": {
       "commandName": "Project",
-      "commandLineArgs": "-v --no-advanced-ir-opt -t exe -o test --moth-libs /home/aurora/MothProjects/moth-core/build/mothcore-1.0-linux.mothlib.bc -i /home/aurora/RiderProjects/moth-lang/test/main/main.moth",
-      "workingDirectory": "/home/aurora/MothProjects/moth-core/build",
-      "executablePath": "/home/aurora/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net7.0/mothc.exe",
+      "commandLineArgs": "-v --no-advanced-ir-opt -t exe -e c -o test -V 1.0.0 -m /home/aur/MothProjects/moth-core/build/mothcore-1.0.0-linux.mothlib.bc -i /home/aur/RiderProjects/moth-lang/test/main/main.moth",
+      "workingDirectory": "/home/aur/RiderProjects/moth-lang/test/build",
+      "executablePath": "/home/aur/RiderProjects/moth-lang/Moth.Compiler/bin/Debug/net8.0/mothc.exe",
       "externalTerminal": true,
       "leaveRunningOnClose": true
     }

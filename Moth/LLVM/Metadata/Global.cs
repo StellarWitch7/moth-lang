@@ -6,8 +6,8 @@ public struct Global
 {
     public PrivacyType privacy;
     public bool is_constant;
-    public ulong name_table_index;
-    public ulong name_table_length;
-    public ulong typeref_table_index;
-    public ulong typeref_table_length;
+    public uint name_table_index;
+    public uint name_table_length;
+    public uint typeref_table_index;
+    public uint typeref_table_length;
 }

@@ -1,9 +1,9 @@
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
-namespace Moth.LLVM;
+namespace Moth.LLVM.Data;
 
-public interface IGlobal
+public interface IGlobal : ICompilerData
 {
     public Namespace Parent { get; }
     public Dictionary<string, IAttribute> Attributes { get; }
@@ -27,9 +27,6 @@ public interface IGlobal
 
     public string FullName
     {
-        get
-        {
-            return $"{Parent.FullName}.{Name}";
-        }
+        get { return $"{Parent.FullName}.{Name}"; }
     }
 }

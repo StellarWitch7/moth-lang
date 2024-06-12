@@ -1,15 +1,48 @@
 namespace test;
 
-with core;
-with core::threading;
-
-func main() #i32 {
-    local thread #Thread = #Thread.init(func(arg #void*) #void* {
-        WriteLine("Hello threaded world!");
-        return #i32*(&#i32(0));
-    }, null);
-    
-    thread.Start();
-    Exit();
-    return 0;
+fn main() #i32 {
+    //ret #Privacy.Pub.Asi32()
+    ret 0
 }
+
+type SomeStruct {
+    pub inner #u8;
+}
+
+@Export
+fn DoSomething(val #u8, val2 #SomeStruct, func #(#u32)* #void) #u8 {
+    ret val + val2.inner
+}
+
+enum Privacy {
+    Priv,
+    Pub,
+} extend {
+    pub fn Asi32() #i32 {
+        ret #u8(self)
+    }
+}
+
+// type Thing {
+//     pub Value #i32;
+// }
+
+// impl #Disposable for #Thing {
+//     fn Dispose() {
+//         ret
+//     }
+// }
+
+// impl #Animal for #Thing {
+//     fn Eat() {
+//         ret
+//     }
+// }
+
+// trait Disposable {
+//     fn Dispose();
+// }
+
+// trait Animal {
+//     fn Eat();
+// }
