@@ -2,8 +2,8 @@
 
 public class InferredLocalDefNode : LocalDefNode
 {
-    public ExpressionNode Value { get; set; }
+    public IExpressionNode Value { get; set; }
 
-    public InferredLocalDefNode(string name, ExpressionNode val)
+    public InferredLocalDefNode(string name, IExpressionNode val)
         : base(name, null) => Value = val;
 }

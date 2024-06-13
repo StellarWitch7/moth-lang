@@ -1,13 +1,20 @@
 ﻿namespace Moth.AST.Node;
 
-public class IndexAccessNode : ExpressionNode
+public class IndexAccessNode : IExpressionNode
 {
-    public ExpressionNode ToBeIndexed { get; set; }
-    public IReadOnlyList<ExpressionNode> Params { get; set; }
+    public IExpressionNode ToBeIndexed { get; set; }
+    public IReadOnlyList<IExpressionNode> Arguments { get; set; }
 
-    public IndexAccessNode(ExpressionNode toBeIndexed, IReadOnlyList<ExpressionNode> @params)
+    public IndexAccessNode(IExpressionNode toBeIndexed, IReadOnlyList<IExpressionNode> arguments)
     {
         ToBeIndexed = toBeIndexed;
-        Params = @params;
+        Arguments = arguments;
+    }
+
+    public string GetSource()
+    {
+        return $"{ToBeIndexed.GetSource()}[{String.Join(", ", Arguments.ToArray().ExecuteOverAll(e => {
+            return e.GetSource();
+        }))}]";
     }
 }

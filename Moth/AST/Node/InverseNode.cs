@@ -1,8 +1,12 @@
 ﻿namespace Moth.AST.Node;
 
-public class InverseNode : ExpressionNode
+public class InverseNode : SingleExprNode
 {
-    public ExpressionNode Value { get; set; }
+    public InverseNode(IExpressionNode expr)
+        : base(expr) { }
 
-    public InverseNode(ExpressionNode value) => Value = value;
+    public override string GetSource()
+    {
+        return $"!{Expression}";
+    }
 }

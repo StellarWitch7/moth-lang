@@ -1,10 +1,11 @@
 namespace Moth.AST.Node;
 
-public class TraitNode : DefinitionNode
+public class TraitNode : IDefinitionNode
 {
     public string Name { get; set; }
     public PrivacyType Privacy { get; set; }
     public ScopeNode Scope { get; set; }
+    public List<AttributeNode> Attributes { get; set; }
 
     public TraitNode(
         string name,
@@ -12,10 +13,15 @@ public class TraitNode : DefinitionNode
         ScopeNode scope,
         List<AttributeNode> attributes
     )
-        : base(attributes)
     {
         Name = name;
         Privacy = privacy;
         Scope = scope;
+        Attributes = attributes;
+    }
+
+    public string GetSource()
+    {
+        throw new NotImplementedException();
     }
 }

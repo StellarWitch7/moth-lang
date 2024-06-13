@@ -1,6 +1,6 @@
 namespace Moth.AST.Node;
 
-public class EnumFlagNode : ASTNode
+public class EnumFlagNode : IASTNode
 {
     public string Name { get; set; }
     public ulong Value { get; set; }
@@ -11,5 +11,5 @@ public class EnumFlagNode : ASTNode
         Value = value;
     }
 
-    public override string GetSource() => $"{Name} = {Value}";
+    public string GetSource() => $"{Name} = {Value}";
 }

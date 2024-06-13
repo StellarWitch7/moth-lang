@@ -18,7 +18,7 @@ public class ConstSizeArrayTypeRefNode : ArrayTypeRefNode
         Size = size;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
         return $"#[{ElementType.GetSource()}; {Size}]";
     }

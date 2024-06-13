@@ -1,8 +1,7 @@
 namespace test;
 
 fn main() #i32 {
-    //ret #Privacy.Pub.Asi32()
-    ret 0
+    ret #Privacy.Pub.Asi32()
 }
 
 type SomeStruct {

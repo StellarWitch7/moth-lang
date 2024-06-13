@@ -74,7 +74,7 @@ public class Program
                                     if (options.Verbose)
                                     {
                                         logger.WriteSeparator();
-                                        //TODO: logger.WriteTree(scriptAST);
+                                        logger.PrintTree(scriptAST);
                                         logger.WriteSeparator();
                                     }
                                 }
@@ -152,14 +152,9 @@ public class Program
                                 else
                                 {
                                     logger.Log("(unsafe) Generating assembly metadata...");
-                                    var fs = File.Create(
-                                        Path.Combine(
-                                            Environment.CurrentDirectory,
-                                            $"{options.OutputFile}.meta"
-                                        )
-                                    );
-                                    fs.Write(compiler.GenerateMetadata(options.OutputFile));
-                                    fs.Close();
+
+                                    using (var fs = File.Create($"{options.OutputFile}.meta"))
+                                        fs.Write(compiler.GenerateMetadata(options.OutputFile));
                                 }
                             }
                             catch (Exception e)
@@ -183,6 +178,7 @@ public class Program
                                 logger.WriteSeparator();
                             }
 
+                            compiler.Module.PrintToFile($"{options.OutputFile}.ll");
                             logger.Log("Verifying IR validity...");
                             compiler.Module.Verify(
                                 LLVMVerifierFailureAction.LLVMPrintMessageAction

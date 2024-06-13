@@ -1,13 +1,18 @@
 ﻿namespace Moth.AST.Node;
 
-public class WhileNode : StatementNode
+public class WhileNode : IStatementNode
 {
-    public ExpressionNode Condition { get; set; }
+    public IExpressionNode Condition { get; set; }
     public ScopeNode Then { get; set; }
 
-    public WhileNode(ExpressionNode condition, ScopeNode then)
+    public WhileNode(IExpressionNode condition, ScopeNode then)
     {
         Condition = condition;
         Then = then;
+    }
+
+    public string GetSource()
+    {
+        return $"{Reserved.While} {Condition.GetSource()} {Then.GetSource()}\n";
     }
 }

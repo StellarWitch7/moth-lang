@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Moth.AST.Node;
 
-public class LocalFuncDefNode : ExpressionNode
+public class LocalFuncDefNode : IExpressionNode
 {
     public TypeRefNode ReturnTypeRef { get; set; }
     public List<ParameterNode> Params { get; set; }
@@ -21,5 +21,10 @@ public class LocalFuncDefNode : ExpressionNode
         ReturnTypeRef = returnTypeRef;
         Params = @params;
         ExecutionBlock = executionBlock;
+    }
+
+    public string GetSource()
+    {
+        throw new NotImplementedException();
     }
 }

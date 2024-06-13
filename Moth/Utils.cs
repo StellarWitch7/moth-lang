@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM;
 using Moth.LLVM.Data;
@@ -85,6 +86,7 @@ public static class Utils
     {
         return opType switch
         {
+            OperationType.Assignment => "=",
             OperationType.Addition => "+",
             OperationType.Subtraction => "-",
             OperationType.Multiplication => "*",
@@ -96,6 +98,9 @@ public static class Utils
             OperationType.LesserThanOrEqual => "<=",
             OperationType.GreaterThanOrEqual => ">=",
             OperationType.Equal => "==",
+            OperationType.NotEqual => "!=",
+            OperationType.And => Reserved.And,
+            OperationType.Or => Reserved.Or,
             //OperationType.Range => "..",
 
             _ => throw new NotImplementedException($"Unsupported operation type: \"{opType}\"")
@@ -299,7 +304,7 @@ public static class ArrayExtensions
     }
 
     public static Value[] CompileToValues(
-        this ExpressionNode[] expressionNodes,
+        this IExpressionNode[] expressionNodes,
         LLVMCompiler compiler,
         Scope scope
     )

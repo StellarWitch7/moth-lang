@@ -1,8 +1,8 @@
-﻿namespace Moth.LLVM;
+﻿namespace Moth;
 
 public static class Reserved
 {
-    // keywords and symbols
+    // keywords
     public const string Namespace = "namespace";
     public const string Var = "var";
     public const string Then = "then";
@@ -28,7 +28,6 @@ public static class Reserved
     public const string Constant = "const";
     public const string Public = "pub";
     public const string Extend = "extend";
-    public const string Variadic = "...";
 
     // function names
     public const string Main = "main";

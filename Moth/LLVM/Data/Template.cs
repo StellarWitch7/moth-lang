@@ -1,4 +1,5 @@
-﻿using Moth.AST.Node;
+﻿using Moth.AST;
+using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
@@ -53,7 +54,7 @@ public class Template : ICompilerData
         }
     }
 
-    public StructDecl Build(IReadOnlyList<ExpressionNode> args)
+    public StructDecl Build(IReadOnlyList<IExpressionNode> args)
     {
         string sig = ArgsToSig(args);
 
@@ -117,7 +118,7 @@ public class Template : ICompilerData
         return @struct;
     }
 
-    public static string ArgsToSig(IReadOnlyList<ExpressionNode> args)
+    public static string ArgsToSig(IReadOnlyList<IExpressionNode> args)
     {
         var builder = new StringBuilder();
 

@@ -1,8 +1,12 @@
 ﻿namespace Moth.AST.Node;
 
-public class SubExprNode : ExpressionNode
+public class SubExprNode : SingleExprNode
 {
-    public ExpressionNode Expression { get; set; }
+    public SubExprNode(IExpressionNode expression)
+        : base(expression) { }
 
-    public SubExprNode(ExpressionNode expression) => Expression = expression;
+    public override string GetSource()
+    {
+        return $"({Expression.GetSource()})";
+    }
 }

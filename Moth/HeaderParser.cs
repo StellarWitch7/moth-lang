@@ -109,7 +109,7 @@ public unsafe class HeaderParser : IDisposable
                 _structFields = new List<FieldDefNode>();
                 Visit(c, StructLevel);
                 var structFields = _structFields;
-                var scopeStatements = new List<StatementNode>();
+                var scopeStatements = new List<IStatementNode>();
                 scopeStatements.AddRange(structFields);
                 var @struct = new TypeNode(
                     structName,
@@ -319,7 +319,7 @@ public unsafe class HeaderParser : IDisposable
                 case CXTypeKind.CXType_Complex:
                     result = new TemplateTypeRefNode(
                         "Complex",
-                        new List<ExpressionNode>() { TranslateTypeRef(t.ElementType) },
+                        new List<IExpressionNode>() { TranslateTypeRef(t.ElementType) },
                         pointerDepth,
                         false
                     );
@@ -357,7 +357,7 @@ public unsafe class HeaderParser : IDisposable
                                 _structFields = new List<FieldDefNode>();
                                 Visit(t.Declaration, StructLevel);
                                 var structFields = _structFields;
-                                var scopeStatements = new List<StatementNode>();
+                                var scopeStatements = new List<IStatementNode>();
                                 scopeStatements.AddRange(structFields);
                                 _typesDict.TryAdd(
                                     name,

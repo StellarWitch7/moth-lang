@@ -2,15 +2,22 @@
 
 namespace Moth;
 
-public class Logger
+public class Logger : MultiWriter
 {
-    private static string LogDirectory { get; } = Path.Join(Environment.CurrentDirectory, "logs");
-    private static string LogFile { get; } = Path.Join(LogDirectory, "latest.log");
-    private static string BackupLogFile { get; } = Path.Join(LogDirectory, "backup.log");
+    private static string LogDirectory { get; } =
+        Path.Combine(Environment.CurrentDirectory, "logs");
+    private static string LogFile { get; } = Path.Combine(LogDirectory, "latest.log");
+    private static string BackupLogFile { get; } = Path.Combine(LogDirectory, "backup.log");
     private static bool BeganLogging { get; set; } = false;
+    private static FileStream Stream { get; } = File.Open(LogFile, FileMode.Append);
+    private static StreamWriter Writer { get; } = new StreamWriter(Stream);
+
     public string Name { get; set; }
 
+    private IAnsiConsole FormattedWriter { get; }
+
     public Logger(string name)
+        : base(new TextWriter[] { Writer, Console.Out })
     {
         Name = name;
         Directory.CreateDirectory(LogDirectory);
@@ -26,6 +33,13 @@ public class Logger
         }
 
         BeganLogging = true;
+        FormattedWriter = AnsiConsole.Create(
+            new AnsiConsoleSettings()
+            {
+                Ansi = AnsiSupport.Detect,
+                Out = new AnsiConsoleOutput(this)
+            }
+        );
     }
 
     public Logger MakeSubLogger(string subname)
@@ -71,6 +85,12 @@ public class Logger
         Info($"Exit with code {code}");
     }
 
+    public void PrintTree<T>(T rootNode)
+        where T : ITreeNode
+    {
+        rootNode.PrintTree(this);
+    }
+
     public void WriteEmptyLine() => WriteUnsignedLine("\n", Style.Plain);
 
     public void WriteSeparator() =>
@@ -89,25 +109,13 @@ public class Logger
 
     public void WriteUnsigned(string message, Style style)
     {
-        WriteToLog(message);
-        Spectre.Console.AnsiConsole.Write(new Text(message, style));
+        FormattedWriter.Write(new Text(message, style));
     }
 
     public void WriteUnsigned(string message)
     {
         WriteUnsigned(message, Style.Plain);
     }
-
-    public void WriteToLog(string message)
-    {
-        FileStream fs = File.Open(LogFile, FileMode.Append);
-        var writer = new StreamWriter(fs) { AutoFlush = true };
-
-        writer.Write(message);
-        writer.Close();
-    }
-
-    public void WriteToLog(char ch) => WriteToLog(ch.ToString());
 
     public void WriteUnsigned(char ch) => WriteUnsigned(ch.ToString(), Style.Plain);
 }

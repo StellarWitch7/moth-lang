@@ -2,7 +2,7 @@
 
 namespace Moth.AST.Node;
 
-public class FuncDefNode : DefinitionNode
+public class FuncDefNode : IDefinitionNode
 {
     public string Name { get; set; }
     public List<ParameterNode> Params { get; set; }
@@ -12,6 +12,7 @@ public class FuncDefNode : DefinitionNode
     public bool IsVariadic { get; set; }
     public bool IsStatic { get; set; }
     public bool IsForeign { get; set; }
+    public List<AttributeNode> Attributes { get; set; }
 
     public FuncDefNode(
         string name,
@@ -24,7 +25,6 @@ public class FuncDefNode : DefinitionNode
         bool isForeign,
         List<AttributeNode> attributes
     )
-        : base(attributes)
     {
         Name = name;
         Privacy = privacyType;
@@ -34,11 +34,21 @@ public class FuncDefNode : DefinitionNode
         IsVariadic = isVariadic;
         IsStatic = isStatic;
         IsForeign = isForeign;
+        Attributes = attributes;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
-        var builder = new StringBuilder();
+        var builder = new StringBuilder("\n");
+        string @params = String.Join(
+            ", ",
+            Params
+                .ToArray()
+                .ExecuteOverAll(p =>
+                {
+                    return p.GetSource();
+                })
+        );
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
@@ -49,33 +59,16 @@ public class FuncDefNode : DefinitionNode
         if (IsStatic)
             builder.Append($"{Reserved.Static} ");
 
-        builder.Append(
-            $"{Reserved.Function} {Name}{GetSourceForParams()} {ReturnTypeRef.GetSource()}"
-        );
+        if (IsVariadic)
+            @params = $"{@params}, ...";
+
+        builder.Append($"{Reserved.Function} {Name}({@params}) {ReturnTypeRef.GetSource()}");
 
         if (ExecutionBlock != default)
-            builder.Append($" {ExecutionBlock.GetSource()}");
+            builder.Append($" {ExecutionBlock.GetSource()}\n");
         else
             builder.Append(";");
 
-        return builder.ToString();
-    }
-
-    private string GetSourceForParams()
-    {
-        var builder = new StringBuilder("(");
-
-        foreach (ParameterNode param in Params)
-        {
-            builder.Append($"{param.GetSource()}, ");
-        }
-
-        if (IsVariadic)
-            builder.Append($"{Reserved.Variadic}");
-        else if (builder.Length > 1)
-            builder.Remove(builder.Length - 2, 2);
-
-        builder.Append(")");
         return builder.ToString();
     }
 }

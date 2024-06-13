@@ -1,15 +1,20 @@
 ﻿namespace Moth.AST.Node;
 
-public class InlineIfNode : ExpressionNode
+public class InlineIfNode : IExpressionNode
 {
-    public ExpressionNode Condition { get; set; }
-    public ExpressionNode Then { get; set; }
-    public ExpressionNode Else { get; set; }
+    public IExpressionNode Condition { get; set; }
+    public IExpressionNode Then { get; set; }
+    public IExpressionNode Else { get; set; }
 
-    public InlineIfNode(ExpressionNode condition, ExpressionNode then, ExpressionNode @else)
+    public InlineIfNode(IExpressionNode condition, IExpressionNode then, IExpressionNode @else)
     {
         Condition = condition;
         Then = then;
         Else = @else;
+    }
+
+    public string GetSource()
+    {
+        throw new NotImplementedException();
     }
 }

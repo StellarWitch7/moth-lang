@@ -2,12 +2,13 @@
 
 namespace Moth.AST.Node;
 
-public class TypeNode : DefinitionNode
+public class TypeNode : IDefinitionNode
 {
     public string Name { get; set; }
     public PrivacyType Privacy { get; set; }
     public ScopeNode? Scope { get; set; }
     public bool IsUnion { get; set; }
+    public List<AttributeNode> Attributes { get; set; }
 
     public TypeNode(
         string name,
@@ -16,17 +17,17 @@ public class TypeNode : DefinitionNode
         bool isUnion,
         List<AttributeNode> attributes
     )
-        : base(attributes)
     {
         Name = name;
         Privacy = privacy;
         Scope = scope;
         IsUnion = isUnion;
+        Attributes = attributes;
     }
 
-    public override string GetSource()
+    public virtual string GetSource()
     {
-        var builder = new StringBuilder();
+        var builder = new StringBuilder("\n");
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
@@ -37,7 +38,7 @@ public class TypeNode : DefinitionNode
         builder.Append($"{Reserved.Type} {Name}");
 
         if (Scope != default)
-            builder.Append($" {Scope.GetSource()}");
+            builder.Append($" {Scope.GetSource()}\n");
         else
             builder.Append(";");
 

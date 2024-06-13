@@ -13,4 +13,15 @@ public class TypeTemplateNode : TypeNode
         List<AttributeNode> attributes
     )
         : base(name, privacy, scope, isUnion, attributes) => Params = @params;
+
+    public override string GetSource()
+    {
+        string key = $"{Reserved.Type} {Name}";
+        string s = base.GetSource();
+
+        return s.Insert(
+            s.IndexOf(key) + key.Length,
+            $"<{String.Join(", ", Params.ToArray().ExecuteOverAll(p => p.Name))}>"
+        );
+    }
 }

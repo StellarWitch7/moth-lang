@@ -2,17 +2,17 @@
 
 public class TemplateTypeRefNode : TypeRefNode
 {
-    public List<ExpressionNode> Arguments { get; set; }
+    public List<IExpressionNode> Arguments { get; set; }
 
     public TemplateTypeRefNode(
         string name,
-        List<ExpressionNode> args,
+        List<IExpressionNode> args,
         uint pointerDepth,
         bool isRef
     )
         : base(name, pointerDepth, isRef) => Arguments = args;
 
-    public override string GetSource()
+    public string GetSource()
     {
         return $"{base.GetSource()}{GetSourceForTemplateArgs()}";
     }

@@ -1,10 +1,11 @@
 ﻿namespace Moth.AST.Node;
 
-public class FieldDefNode : DefinitionNode
+public class FieldDefNode : IDefinitionNode
 {
     public string Name { get; set; }
     public PrivacyType Privacy { get; set; }
     public TypeRefNode TypeRef { get; set; }
+    public List<AttributeNode> Attributes { get; set; }
 
     public FieldDefNode(
         string name,
@@ -12,14 +13,14 @@ public class FieldDefNode : DefinitionNode
         TypeRefNode typeRef,
         List<AttributeNode> attributes
     )
-        : base(attributes)
     {
         Name = name;
         Privacy = privacy;
         TypeRef = typeRef;
+        Attributes = attributes;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
         var builder = new StringBuilder();
 

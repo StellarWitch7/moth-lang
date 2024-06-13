@@ -105,7 +105,7 @@ public static class ASTGenerator
                     implements.Add(new ImplementNode(type, trait, scope));
                     break;
                 default:
-                    StatementNode result = ProcessDefinition(context, attributes);
+                    IStatementNode result = ProcessDefinition(context, attributes);
                     attributes = new List<AttributeNode>();
 
                     if (result is TypeNode typeNode)
@@ -343,7 +343,7 @@ public static class ASTGenerator
 
     public static ScopeNode ProcessScope(ParseContext context, bool isClassRoot = false)
     {
-        var statements = new List<StatementNode>();
+        var statements = new List<IStatementNode>();
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -367,7 +367,7 @@ public static class ASTGenerator
                         attributes.Add(ProcessAttribute(context));
                         break;
                     default:
-                        StatementNode newDef = ProcessDefinition(context, attributes);
+                        IStatementNode newDef = ProcessDefinition(context, attributes);
                         attributes = new List<AttributeNode>();
                         statements.Add(newDef);
                         break;
@@ -429,7 +429,7 @@ public static class ASTGenerator
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    private static ExpressionNode ProcessIncrementDecrement(ParseContext context)
+    private static IExpressionNode ProcessIncrementDecrement(ParseContext context)
     {
         var type = (TokenType)(context.Current?.Type);
 
@@ -442,9 +442,9 @@ public static class ASTGenerator
             : new DecrementVarNode(value);
     }
 
-    public static StatementNode ProcessWhile(ParseContext context)
+    public static IStatementNode ProcessWhile(ParseContext context)
     {
-        ExpressionNode condition = ProcessExpression(context);
+        IExpressionNode condition = ProcessExpression(context);
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -473,7 +473,7 @@ public static class ASTGenerator
                 }
                 else
                 {
-                    return new AttributeNode(name, new List<ExpressionNode>());
+                    return new AttributeNode(name, new List<IExpressionNode>());
                 }
             }
             else
@@ -489,7 +489,7 @@ public static class ASTGenerator
         throw new NotImplementedException();
     }
 
-    public static StatementNode ProcessDefinition(
+    public static IStatementNode ProcessDefinition(
         ParseContext context,
         List<AttributeNode>? attributes
     )
@@ -782,7 +782,7 @@ public static class ASTGenerator
 
     public static IfNode ProcessIf(ParseContext context)
     {
-        ExpressionNode condition = ProcessExpression(context);
+        IExpressionNode condition = ProcessExpression(context);
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -802,7 +802,7 @@ public static class ASTGenerator
             {
                 context.MoveNext();
                 return new ScopeNode(
-                    new List<StatementNode>
+                    new List<IStatementNode>
                     {
                         ProcessIf(context) //TODO: this does not work in compilation
                     }
@@ -819,9 +819,9 @@ public static class ASTGenerator
         }
     }
 
-    public static List<ExpressionNode> ProcessArgs(ParseContext context, TokenType terminator)
+    public static List<IExpressionNode> ProcessArgs(ParseContext context, TokenType terminator)
     {
-        var args = new List<ExpressionNode>();
+        var args = new List<IExpressionNode>();
 
         while (context.Current != null)
         {
@@ -899,7 +899,7 @@ public static class ASTGenerator
             if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
-                var genericParams = new List<ExpressionNode>();
+                var genericParams = new List<IExpressionNode>();
                 uint pointerDepth = 0;
                 bool isRef = false;
 
@@ -1069,9 +1069,9 @@ public static class ASTGenerator
         }
     }
 
-    public static ExpressionNode ProcessExpression(ParseContext context, bool nullAllowed = false)
+    public static IExpressionNode ProcessExpression(ParseContext context, bool nullAllowed = false)
     {
-        Stack<ExpressionNode> stack = new Stack<ExpressionNode>();
+        Stack<IExpressionNode> stack = new Stack<IExpressionNode>();
 
         while (context.Current != null)
         {
@@ -1271,7 +1271,7 @@ public static class ASTGenerator
                     break;
                 case TokenType.If:
                     context.MoveNext();
-                    ExpressionNode condition = ProcessExpression(context);
+                    IExpressionNode condition = ProcessExpression(context);
 
                     if (context.Current?.Type != TokenType.Then)
                     {
@@ -1279,7 +1279,7 @@ public static class ASTGenerator
                     }
 
                     context.MoveNext();
-                    ExpressionNode then = ProcessExpression(context);
+                    IExpressionNode then = ProcessExpression(context);
 
                     if (context.Current?.Type != TokenType.Else)
                     {
@@ -1287,7 +1287,7 @@ public static class ASTGenerator
                     }
 
                     context.MoveNext();
-                    ExpressionNode @else = ProcessExpression(context);
+                    IExpressionNode @else = ProcessExpression(context);
 
                     stack.Push(new InlineIfNode(condition, then, @else));
                     break;
@@ -1452,7 +1452,7 @@ public static class ASTGenerator
                     if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
                         throw new UnexpectedTokenException(context.Current.Value);
 
-                    stack.Push(new ThisNode());
+                    stack.Push(new SelfNode());
                     context.MoveNext();
                     break;
                 default:
@@ -1516,7 +1516,7 @@ public static class ASTGenerator
         TypeRefNode elementType
     )
     {
-        var elements = new List<ExpressionNode>();
+        var elements = new List<IExpressionNode>();
 
         if (context.Current?.Type != TokenType.OpeningSquareBrackets)
         {

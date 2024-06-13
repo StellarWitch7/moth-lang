@@ -3,7 +3,7 @@ using Moth.LLVM;
 
 namespace Moth.AST;
 
-public class ScriptAST : ASTNode
+public class ScriptAST : IASTNode, ITreeNode
 {
     public NamespaceNode Namespace { get; }
     public List<NamespaceNode> Imports { get; }
@@ -35,51 +35,41 @@ public class ScriptAST : ASTNode
         ImplementNodes = implementNodes;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
-        var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n\n");
+        var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n");
 
         foreach (NamespaceNode import in Imports)
         {
-            builder.Append($"{Reserved.With} {import.GetSource()};\n");
+            builder.Append($"\n{Reserved.With} {import.GetSource()};");
         }
 
         if (Imports.Count > 0)
-            builder.Append('\n');
+            builder.Append("\n");
 
-        foreach (GlobalVarNode global in GlobalVariables)
-        {
-            builder.Append($"{global.GetSource()}\n");
-        }
-
-        if (GlobalVariables.Count > 0)
-            builder.Append('\n');
-
-        foreach (FuncDefNode func in GlobalFunctions)
-        {
-            builder.Append($"{func.GetSource()}\n\n");
-        }
-
-        foreach (TypeNode type in TypeNodes)
-        {
-            builder.Append($"{type.GetSource()}\n\n");
-        }
-
-        foreach (EnumNode @enum in EnumNodes)
-        {
-            builder.Append($"{@enum.GetSource()}\n\n");
-        }
-
-        foreach (TraitNode trait in TraitNodes)
-        {
-            builder.Append($"{trait.GetSource()}\n\n");
-        }
-
-        foreach (ImplementNode implement in ImplementNodes)
-        {
-            builder.Append($"{implement.GetSource()}\n\n");
-        }
-
+        f(builder, GlobalVariables);
+        f(builder, GlobalFunctions);
+        f(builder, TypeNodes);
+        f(builder, EnumNodes);
+        f(builder, TraitNodes);
+        f(builder, ImplementNodes);
         return builder.ToString();
+    }
+
+    public void f<T>(StringBuilder builder, List<T> list)
+        where T : IASTNode
+    {
+        foreach (T v in list)
+        {
+            builder.Append($"{v.GetSource()}");
+        }
+
+        if (list.Count > 0)
+            builder.Append("\n");
+    }
+
+    public void PrintTree(TextWriter writer)
+    {
+        writer.Write(GetSource());
     }
 }

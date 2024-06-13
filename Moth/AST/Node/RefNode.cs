@@ -1,13 +1,21 @@
 ﻿namespace Moth.AST.Node;
 
-public class RefNode : ExpressionNode
+public class RefNode : IExpressionNode
 {
     public string Name { get; set; }
-    public ExpressionNode? Parent { set; get; }
+    public IExpressionNode? Parent { set; get; }
 
-    public RefNode(string name, ExpressionNode parent)
+    public RefNode(string name, IExpressionNode? parent)
     {
         Name = name;
         Parent = parent;
+    }
+
+    public virtual string GetSource()
+    {
+        if (Parent == null)
+            return Name;
+
+        return $"{Parent.GetSource()}.{Name}";
     }
 }

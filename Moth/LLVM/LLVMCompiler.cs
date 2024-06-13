@@ -535,7 +535,7 @@ public class LLVMCompiler : IDisposable
         Template template,
         TypeNode typeNode,
         StructDecl structDecl,
-        IReadOnlyList<ExpressionNode> args
+        IReadOnlyList<IExpressionNode> args
     )
     {
         var oldBuilder = Builder;
@@ -1033,13 +1033,13 @@ public class LLVMCompiler : IDisposable
     {
         Builder.PositionAtEnd(scope.LLVMBlock);
 
-        foreach (StatementNode statement in scopeNode.Statements)
+        foreach (IStatementNode statement in scopeNode.Statements)
         {
             if (statement is ReturnNode @return)
             {
-                if (@return.ReturnValue != null)
+                if (@return.Expression != null)
                 {
-                    Value expr = CompileExpression(scope, @return.ReturnValue);
+                    Value expr = CompileExpression(scope, @return.Expression);
                     expr = expr.ImplicitConvertTo(CurrentFunction.Type.ReturnType);
                     Builder.BuildRet(expr.LLVMValue);
                 }
@@ -1166,7 +1166,7 @@ public class LLVMCompiler : IDisposable
                     scope.LLVMBlock = @continue;
                 }
             }
-            else if (statement is ExpressionNode exprNode)
+            else if (statement is IExpressionNode exprNode)
             {
                 CompileExpression(scope, exprNode);
             }
@@ -1234,7 +1234,7 @@ public class LLVMCompiler : IDisposable
         return type;
     }
 
-    public Value CompileExpression(Scope scope, ExpressionNode expr)
+    public Value CompileExpression(Scope scope, IExpressionNode expr)
     {
         if (expr is BinaryOperationNode binaryOp)
         {
@@ -1338,7 +1338,7 @@ public class LLVMCompiler : IDisposable
         {
             return CompileLiteral(literalNode);
         }
-        else if (expr is ThisNode @this)
+        else if (expr is SelfNode @this)
         {
             if (CurrentFunction.OwnerType == null)
             {
@@ -1379,7 +1379,7 @@ public class LLVMCompiler : IDisposable
             {
                 Data.Type resultType = ptrType.BaseType;
 
-                if (indexAccess.Params.Count != 1)
+                if (indexAccess.Arguments.Count != 1)
                 {
                     throw new Exception(
                         "Standard pointer indexer must be given one parameter as index."
@@ -1394,7 +1394,7 @@ public class LLVMCompiler : IDisposable
                         toBeIndexed.LLVMValue,
                         new LLVMValueRef[]
                         {
-                            CompileExpression(scope, indexAccess.Params[0])
+                            CompileExpression(scope, indexAccess.Arguments[0])
                                 .ImplicitConvertTo(UInt64)
                                 .LLVMValue
                         }
@@ -1405,7 +1405,11 @@ public class LLVMCompiler : IDisposable
             {
                 return CompileFuncCall(
                     scope,
-                    new FuncCallNode(Reserved.Indexer, indexAccess.Params, indexAccess.ToBeIndexed),
+                    new FuncCallNode(
+                        Reserved.Indexer,
+                        indexAccess.Arguments,
+                        indexAccess.ToBeIndexed
+                    ),
                     CurrentFunction.OwnerType
                 );
             }
@@ -1418,7 +1422,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is InverseNode inverse)
         {
-            var value = CompileExpression(scope, inverse.Value).ImplicitConvertTo(Bool);
+            var value = CompileExpression(scope, inverse.Expression).ImplicitConvertTo(Bool);
 
             return Value.Create(
                 this,
@@ -1432,7 +1436,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is IncrementVarNode incrementVar)
         {
-            var value = CompileExpression(scope, incrementVar.Value);
+            var value = CompileExpression(scope, incrementVar.Expression);
 
             if (value is not Pointer ptr)
             {
@@ -1456,7 +1460,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is DecrementVarNode decrementVar)
         {
-            var value = CompileExpression(scope, decrementVar.Value);
+            var value = CompileExpression(scope, decrementVar.Expression);
 
             if (value is not Pointer ptr)
             {
@@ -1480,7 +1484,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is RefOfNode addrofNode)
         {
-            Value value = CompileExpression(scope, addrofNode.Value);
+            Value value = CompileExpression(scope, addrofNode.Expression);
             return value.GetRef();
         }
         else if (expr is DeRefNode loadNode)
@@ -1593,7 +1597,7 @@ public class LLVMCompiler : IDisposable
                                 scope,
                                 new FuncCallNode(
                                     Utils.ExpandOpName(Utils.OpTypeToString(OperationType.Equal)),
-                                    new ExpressionNode[] { binaryOp.Right },
+                                    new IExpressionNode[] { binaryOp.Right },
                                     binaryOp.Left
                                 ),
                                 CurrentFunction.OwnerType
@@ -1608,7 +1612,7 @@ public class LLVMCompiler : IDisposable
                     scope,
                     new FuncCallNode(
                         Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
-                        new ExpressionNode[] { binaryOp.Right },
+                        new IExpressionNode[] { binaryOp.Right },
                         binaryOp.Left
                     ),
                     CurrentFunction.OwnerType
@@ -1970,7 +1974,7 @@ public class LLVMCompiler : IDisposable
         var argTypes = new List<Data.Type>();
         var args = new List<Value>();
 
-        foreach (ExpressionNode arg in funcCall.Arguments)
+        foreach (IExpressionNode arg in funcCall.Arguments)
         {
             Value val = CompileExpression(scope, arg);
 
@@ -2217,7 +2221,7 @@ public class LLVMCompiler : IDisposable
         }
     }
 
-    public static IReadOnlyList<object> CleanAttributeArgs(ExpressionNode[] args)
+    public static IReadOnlyList<object> CleanAttributeArgs(IExpressionNode[] args)
     {
         var result = new List<object>();
 

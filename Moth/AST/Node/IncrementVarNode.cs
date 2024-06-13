@@ -1,8 +1,12 @@
 ﻿namespace Moth.AST.Node;
 
-public class IncrementVarNode : ExpressionNode
+public class IncrementVarNode : SingleExprNode
 {
-    public ExpressionNode Value { get; set; }
+    public IncrementVarNode(IExpressionNode expr)
+        : base(expr) { }
 
-    public IncrementVarNode(ExpressionNode value) => Value = value;
+    public override string GetSource()
+    {
+        return $"++{Expression.GetSource()}";
+    }
 }
