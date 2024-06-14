@@ -13,6 +13,11 @@ public class AttributeNode : IASTNode
 
     public string GetSource()
     {
-        throw new NotImplementedException();
+        string s = $"@{Name}";
+
+        if (Arguments.Count > 0)
+            s = $"{s}({String.Join(", ", Arguments.ToArray().ExecuteOverAll(a => a.GetSource()))})";
+
+        return s;
     }
 }

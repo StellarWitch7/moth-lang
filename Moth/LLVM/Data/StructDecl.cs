@@ -8,9 +8,9 @@ public class StructDecl : TypeDecl
     public virtual Dictionary<string, Field> Fields { get; } = new Dictionary<string, Field>();
     public Dictionary<TraitDecl, VTableInst> VTables { get; } =
         new Dictionary<TraitDecl, VTableInst>();
-    public ScopeNode? Scope { get; }
 
     protected ImplicitConversionTable _internalImplicits;
+    private FieldDefNode[] _fields;
     private uint _bitlength;
 
     public StructDecl(
@@ -31,7 +31,7 @@ public class StructDecl : TypeDecl
         PrivacyType privacy,
         bool isUnion,
         Dictionary<string, IAttribute> attributes,
-        ScopeNode scope
+        FieldDefNode[] fields
     )
         : this(
             compiler,
@@ -43,7 +43,7 @@ public class StructDecl : TypeDecl
             (decl) => (decl as StructDecl).FillLLVMType()
         )
     {
-        Scope = scope;
+        _fields = fields;
     }
 
     public StructDecl(
@@ -94,7 +94,7 @@ public class StructDecl : TypeDecl
         var fieldTypes = new List<Type>();
         uint index = 0;
 
-        foreach (FieldDefNode field in Scope.Statements.OfType<FieldDefNode>())
+        foreach (FieldDefNode field in _fields)
         {
             Type fieldType = _compiler.ResolveType(field.TypeRef);
             Fields.Add(

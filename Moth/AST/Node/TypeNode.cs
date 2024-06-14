@@ -2,32 +2,68 @@
 
 namespace Moth.AST.Node;
 
-public class TypeNode : IDefinitionNode
+public class TypeNode : DefinitionNode
 {
-    public string Name { get; set; }
-    public PrivacyType Privacy { get; set; }
-    public ScopeNode? Scope { get; set; }
     public bool IsUnion { get; set; }
-    public List<AttributeNode> Attributes { get; set; }
+
+    private ScopeNode? _scope;
 
     public TypeNode(
         string name,
         PrivacyType privacy,
         ScopeNode? scope,
         bool isUnion,
-        List<AttributeNode> attributes
+        List<AttributeNode>? attributes
     )
+        : base(name, privacy, attributes)
     {
-        Name = name;
-        Privacy = privacy;
-        Scope = scope;
         IsUnion = isUnion;
-        Attributes = attributes;
+        _scope = scope;
     }
 
-    public virtual string GetSource()
+    public bool IsOpaque
+    {
+        get => _scope == null;
+    }
+
+    public FieldDefNode[] Fields
+    {
+        get
+        {
+            return IsOpaque
+                ? new FieldDefNode[0]
+                : _scope.Statements.OfType<FieldDefNode>().ToArray();
+        }
+    }
+
+    public FuncDefNode[] Functions
+    {
+        get
+        {
+            return IsOpaque
+                ? new FuncDefNode[0]
+                : _scope.Statements.OfType<FuncDefNode>().ToArray();
+        }
+    }
+
+    public DefinitionNode[] OrganizedMembers
+    {
+        get
+        {
+            var result = new List<DefinitionNode>();
+
+            result.AddRange(Fields);
+            result.AddRange(Functions);
+
+            return result.ToArray();
+        }
+    }
+
+    public override string GetSource()
     {
         var builder = new StringBuilder("\n");
+
+        builder.Append(GetAttributeSource());
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
@@ -37,10 +73,12 @@ public class TypeNode : IDefinitionNode
 
         builder.Append($"{Reserved.Type} {Name}");
 
-        if (Scope != default)
-            builder.Append($" {Scope.GetSource()}\n");
-        else
+        if (IsOpaque)
             builder.Append(";");
+        else
+        {
+            builder.Append($" {_scope.GetSource()}");
+        }
 
         return builder.ToString();
     }

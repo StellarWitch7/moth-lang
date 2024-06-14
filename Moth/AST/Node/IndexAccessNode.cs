@@ -3,9 +3,9 @@
 public class IndexAccessNode : IExpressionNode
 {
     public IExpressionNode ToBeIndexed { get; set; }
-    public IReadOnlyList<IExpressionNode> Arguments { get; set; }
+    public List<IExpressionNode> Arguments { get; set; }
 
-    public IndexAccessNode(IExpressionNode toBeIndexed, IReadOnlyList<IExpressionNode> arguments)
+    public IndexAccessNode(IExpressionNode toBeIndexed, List<IExpressionNode> arguments)
     {
         ToBeIndexed = toBeIndexed;
         Arguments = arguments;

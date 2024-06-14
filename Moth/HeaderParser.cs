@@ -13,11 +13,11 @@ public unsafe class HeaderParser : IDisposable
     private string _path { get; }
     private Index _index { get; } = Index.Create(false, false);
     private CXTranslationUnit _unit { get; }
-    private Dictionary<string, NamespaceNode> _importsDict { get; } =
-        new Dictionary<string, NamespaceNode>();
+    private Dictionary<string, ImportNode> _importsDict { get; } =
+        new Dictionary<string, ImportNode>();
     private Dictionary<string, TypeNode> _typesDict { get; } = new Dictionary<string, TypeNode>();
     private Dictionary<string, EnumNode> _enumsDict { get; } = new Dictionary<string, EnumNode>();
-    private List<NamespaceNode> _imports
+    private List<ImportNode> _imports
     {
         get => _importsDict.Values.ToList();
     }
@@ -119,7 +119,7 @@ public unsafe class HeaderParser : IDisposable
                     new List<AttributeNode>()
                 );
                 _typesDict.TryAdd(structName, @struct);
-                if (_typesDict[structName].Scope == null)
+                if (_typesDict[structName].IsOpaque)
                     _typesDict[structName] = @struct;
                 break;
             case CXCursorKind.CXCursor_EnumDecl:
@@ -437,7 +437,7 @@ public unsafe class HeaderParser : IDisposable
     private void WithNamespace(NamespaceNode nmspace)
     {
         string key = nmspace.GetSource();
-        _importsDict.TryAdd(key, nmspace);
+        _importsDict.TryAdd(key, new ImportNode(nmspace));
     }
 
     private string ExtractAnonDeclName(CXType t)

@@ -9,7 +9,6 @@ public class ScopeNode : IStatementNode
     public string GetSource()
     {
         var builder = new StringBuilder("{");
-        IStatementNode last = null;
 
         foreach (IStatementNode statement in Statements)
         {
@@ -18,17 +17,20 @@ public class ScopeNode : IStatementNode
             if (builder.Length <= 1 && statement is IfNode or WhileNode)
                 s = s.Remove(0, 1);
 
-            if (statement is FuncDefNode && (last is FuncDefNode || builder.Length <= 1))
-                s = s.Remove(0, 1);
-
             s = s.Replace("\n", "\n    ");
 
-            if (statement is ReturnNode or ScopeNode or IDefinitionNode or IfNode or WhileNode)
+            if (
+                statement
+                is CommentNode
+                    or ReturnNode
+                    or ScopeNode
+                    or DefinitionNode
+                    or IfNode
+                    or WhileNode
+            )
                 builder.Append(s);
             else
                 builder.Append($"{s};");
-
-            last = statement;
         }
 
         return $"{builder.ToString().TrimEnd()}\n}}";

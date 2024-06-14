@@ -7,6 +7,6 @@ public class InverseNode : SingleExprNode
 
     public override string GetSource()
     {
-        return $"!{Expression}";
+        return $"!{Expression.GetSource()}";
     }
 }

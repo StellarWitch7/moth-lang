@@ -106,5 +106,6 @@ public enum TokenType
     Union,
     Global,
     Extend,
-    Enum
+    Enum,
+    Comment
 }

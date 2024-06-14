@@ -248,11 +248,9 @@ public class LLVMCompiler : IDisposable
                     {
                         TypeDecl typeDecl = GetType(structNode.Name);
 
-                        if (structNode.Scope != null)
+                        if (!structNode.IsOpaque)
                         {
-                            foreach (
-                                FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>()
-                            )
+                            foreach (FuncDefNode funcDefNode in structNode.Functions)
                             {
                                 DefineFunction(funcDefNode, typeDecl);
                             }
@@ -312,11 +310,9 @@ public class LLVMCompiler : IDisposable
                     {
                         TypeDecl typeDecl = GetType(structNode.Name);
 
-                        if (structNode.Scope != null)
+                        if (!structNode.IsOpaque)
                         {
-                            foreach (
-                                FuncDefNode funcDefNode in structNode.Scope.Statements.OfType<FuncDefNode>()
-                            )
+                            foreach (FuncDefNode funcDefNode in structNode.Functions)
                             {
                                 CompileFunction(funcDefNode, typeDecl);
                             }
@@ -377,13 +373,13 @@ public class LLVMCompiler : IDisposable
         return value;
     }
 
-    public Namespace[] ResolveImports(NamespaceNode[] imports)
+    public Namespace[] ResolveImports(ImportNode[] imports)
     {
         List<Namespace> result = new List<Namespace>();
 
         foreach (var import in imports)
         {
-            result.Add(ResolveNamespace(import));
+            result.Add(ResolveNamespace(import.Namespace));
         }
 
         return result.ToArray();
@@ -499,7 +495,8 @@ public class LLVMCompiler : IDisposable
                 typeTemplateNode.Name,
                 typeTemplateNode.Privacy,
                 typeTemplateNode.IsUnion,
-                typeTemplateNode.Scope,
+                typeTemplateNode.Fields,
+                typeTemplateNode.Functions,
                 _imports,
                 typeTemplateNode.Attributes,
                 PrepareTemplateParameters(typeTemplateNode.Params)
@@ -563,17 +560,12 @@ public class LLVMCompiler : IDisposable
         _anonTypes = newAnonTypes;
         CurrentFunction = null;
 
-        if (template.Contents == null)
-        {
-            throw new Exception($"Template \"{template.Name}\"has no contents.");
-        }
-
-        foreach (FuncDefNode funcDefNode in typeNode.Scope.Statements.OfType<FuncDefNode>())
+        foreach (FuncDefNode funcDefNode in typeNode.Functions)
         {
             DefineFunction(funcDefNode, structDecl);
         }
 
-        foreach (FuncDefNode funcDefNode in typeNode.Scope.Statements.OfType<FuncDefNode>())
+        foreach (FuncDefNode funcDefNode in typeNode.Functions)
         {
             CompileFunction(funcDefNode, structDecl);
         }
@@ -607,7 +599,7 @@ public class LLVMCompiler : IDisposable
             return;
         }
 
-        if (typeNode.Scope == null)
+        if (typeNode.IsOpaque)
         {
             newStructDecl = new OpaqueStructDecl(
                 this,
@@ -627,7 +619,7 @@ public class LLVMCompiler : IDisposable
                 typeNode.Privacy,
                 typeNode.IsUnion,
                 attributes,
-                typeNode.Scope
+                typeNode.Fields
             );
         }
 
@@ -1035,7 +1027,8 @@ public class LLVMCompiler : IDisposable
 
         foreach (IStatementNode statement in scopeNode.Statements)
         {
-            if (statement is ReturnNode @return)
+            if (statement is CommentNode) { }
+            else if (statement is ReturnNode @return)
             {
                 if (@return.Expression != null)
                 {
@@ -1597,7 +1590,7 @@ public class LLVMCompiler : IDisposable
                                 scope,
                                 new FuncCallNode(
                                     Utils.ExpandOpName(Utils.OpTypeToString(OperationType.Equal)),
-                                    new IExpressionNode[] { binaryOp.Right },
+                                    new List<IExpressionNode>() { binaryOp.Right },
                                     binaryOp.Left
                                 ),
                                 CurrentFunction.OwnerType
@@ -1612,7 +1605,7 @@ public class LLVMCompiler : IDisposable
                     scope,
                     new FuncCallNode(
                         Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
-                        new IExpressionNode[] { binaryOp.Right },
+                        new List<IExpressionNode>() { binaryOp.Right },
                         binaryOp.Left
                     ),
                     CurrentFunction.OwnerType
@@ -2319,7 +2312,7 @@ public class LLVMCompiler : IDisposable
         return func;
     }
 
-    private void OpenFile(NamespaceNode @namespace, NamespaceNode[] imports)
+    private void OpenFile(NamespaceNode @namespace, ImportNode[] imports)
     {
         CurrentNamespace = ResolveNamespace(@namespace);
         _imports = ResolveImports(imports);

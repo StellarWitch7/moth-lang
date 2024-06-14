@@ -10,7 +10,8 @@ public class Template : ICompilerData
     public string Name { get; }
     public PrivacyType Privacy { get; }
     public bool IsUnion { get; }
-    public ScopeNode Contents { get; }
+    public FieldDefNode[] Fields { get; }
+    public FuncDefNode[] Functions { get; }
     public Namespace[] Imports { get; }
     public Dictionary<string, IAttribute> Attributes { get; } =
         new Dictionary<string, IAttribute>();
@@ -26,7 +27,8 @@ public class Template : ICompilerData
         string name,
         PrivacyType privacy,
         bool isUnion,
-        ScopeNode contents,
+        FieldDefNode[] fields,
+        FuncDefNode[] functions,
         Namespace[] imports,
         List<AttributeNode> attributes,
         TemplateParameter[] @params
@@ -38,7 +40,8 @@ public class Template : ICompilerData
         Name = name;
         Privacy = privacy;
         IsUnion = isUnion;
-        Contents = contents;
+        Fields = fields;
+        Functions = functions;
         Imports = imports;
         Params = @params;
 
@@ -51,6 +54,19 @@ public class Template : ICompilerData
                     LLVMCompiler.CleanAttributeArgs(attribute.Arguments.ToArray())
                 )
             );
+        }
+    }
+
+    public DefinitionNode[] Members
+    {
+        get
+        {
+            var result = new List<DefinitionNode>();
+
+            result.AddRange(Fields);
+            result.AddRange(Functions);
+
+            return result.ToArray();
         }
     }
 
@@ -100,7 +116,7 @@ public class Template : ICompilerData
         var structNode = new TypeNode(
             $"{Name}{Template.ArgsToSig(args)}",
             Privacy,
-            Contents,
+            new ScopeNode(new List<IStatementNode>(Members)),
             IsUnion,
             _attributeList
         );
@@ -111,7 +127,7 @@ public class Template : ICompilerData
             Privacy,
             IsUnion,
             Attributes,
-            Contents
+            Fields
         );
         _builtTypes.Add(sig, @struct);
         _compiler.BuildTemplate(this, structNode, @struct, args);

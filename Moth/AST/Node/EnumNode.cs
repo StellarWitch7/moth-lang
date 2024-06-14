@@ -2,13 +2,10 @@ using Moth.LLVM;
 
 namespace Moth.AST.Node;
 
-public class EnumNode : IDefinitionNode
+public class EnumNode : DefinitionNode
 {
-    public string Name { get; set; }
-    public PrivacyType Privacy { get; set; }
     public List<EnumFlagNode> EnumFlags { get; set; }
-    public ScopeNode? Scope { get; set; }
-    public List<AttributeNode> Attributes { get; set; }
+    public ScopeNode? Scope { get; set; } //TODO: don't use this
 
     public EnumNode(
         string name,
@@ -17,17 +14,17 @@ public class EnumNode : IDefinitionNode
         ScopeNode? scope,
         List<AttributeNode>? attributes
     )
+        : base(name, privacy, attributes)
     {
-        Name = name;
-        Privacy = privacy;
         EnumFlags = enumFlags;
         Scope = scope;
-        Attributes = attributes;
     }
 
-    public string GetSource()
+    public override string GetSource()
     {
         var builder = new StringBuilder();
+
+        builder.Append(GetAttributeSource());
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());

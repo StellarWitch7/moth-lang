@@ -2,14 +2,11 @@ using Moth.LLVM;
 
 namespace Moth.AST.Node;
 
-public class GlobalVarNode : IDefinitionNode
+public class GlobalVarNode : DefinitionNode
 {
-    public string Name { get; set; }
     public TypeRefNode TypeRef { get; set; }
-    public PrivacyType Privacy { get; set; }
     public bool IsConstant { get; set; }
     public bool IsForeign { get; set; }
-    public List<AttributeNode> Attributes { get; set; }
 
     public GlobalVarNode(
         string name,
@@ -17,20 +14,20 @@ public class GlobalVarNode : IDefinitionNode
         PrivacyType privacy,
         bool isConstant,
         bool isForeign,
-        List<AttributeNode> attributes
+        List<AttributeNode>? attributes
     )
+        : base(name, privacy, attributes)
     {
-        Name = name;
         TypeRef = typeRef;
-        Privacy = privacy;
         IsConstant = isConstant;
         IsForeign = isForeign;
-        Attributes = attributes;
     }
 
-    public string GetSource()
+    public override string GetSource()
     {
         var builder = new StringBuilder("\n");
+
+        builder.Append(GetAttributeSource());
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());

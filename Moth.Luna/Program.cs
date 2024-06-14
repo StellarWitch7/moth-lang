@@ -303,6 +303,7 @@ internal class Program
 
         var mothc = Moth.Compiler.Program.Main(args.ToString().Split(' '));
         Environment.CurrentDirectory = oldDir;
+        Logger.MakeSubLogger("mothc").ExitCode(mothc);
 
         if (mothc != 0)
             throw new Exception($"mothc finished with exit code {mothc}");

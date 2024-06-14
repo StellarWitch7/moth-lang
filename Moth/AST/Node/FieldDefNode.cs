@@ -1,28 +1,25 @@
 ﻿namespace Moth.AST.Node;
 
-public class FieldDefNode : IDefinitionNode
+public class FieldDefNode : DefinitionNode
 {
-    public string Name { get; set; }
-    public PrivacyType Privacy { get; set; }
     public TypeRefNode TypeRef { get; set; }
-    public List<AttributeNode> Attributes { get; set; }
 
     public FieldDefNode(
         string name,
         PrivacyType privacy,
         TypeRefNode typeRef,
-        List<AttributeNode> attributes
+        List<AttributeNode>? attributes
     )
+        : base(name, privacy, attributes)
     {
-        Name = name;
-        Privacy = privacy;
         TypeRef = typeRef;
-        Attributes = attributes;
     }
 
-    public string GetSource()
+    public override string GetSource()
     {
         var builder = new StringBuilder();
+
+        builder.Append(GetAttributeSource());
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());

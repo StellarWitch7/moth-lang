@@ -23,16 +23,24 @@ public static class Tokenizer
                 //Skip comments
                 case '/' when stream.Next is '/':
                 {
+                    var builder = new StringBuilder();
+                    stream.Position++;
+
                     while (stream.MoveNext(out ch))
                     {
-                        if (ch != '\n')
-                        {
-                            continue;
-                        }
+                        if (ch == '\n')
+                            break;
 
-                        break;
+                        builder.Append(ch);
                     }
 
+                    tokens.Add(
+                        new Token()
+                        {
+                            Type = TokenType.Comment,
+                            Text = builder.ToString().AsMemory(),
+                        }
+                    );
                     break;
                 }
 

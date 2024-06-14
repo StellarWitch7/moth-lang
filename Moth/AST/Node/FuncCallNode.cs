@@ -3,10 +3,10 @@
 public class FuncCallNode : IExpressionNode
 {
     public string Name { get; set; }
-    public IReadOnlyList<IExpressionNode> Arguments { get; set; }
+    public List<IExpressionNode> Arguments { get; set; }
     public IExpressionNode? ToCallOn { get; set; }
 
-    public FuncCallNode(string name, IReadOnlyList<IExpressionNode> args, IExpressionNode? callOn)
+    public FuncCallNode(string name, List<IExpressionNode> args, IExpressionNode? callOn)
     {
         Name = name;
         Arguments = args;

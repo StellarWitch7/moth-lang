@@ -13,13 +13,7 @@ public static class ASTGenerator
     public static ScriptAST ProcessScript(ParseContext context)
     {
         NamespaceNode @namespace;
-        var imports = new List<NamespaceNode>();
-        var types = new List<TypeNode>();
-        var enums = new List<EnumNode>();
-        var funcs = new List<FuncDefNode>();
-        var globals = new List<GlobalVarNode>();
-        var traits = new List<TraitNode>();
-        var implements = new List<ImplementNode>();
+        var contents = new List<IStatementNode>();
 
         if (context.Current?.Type == TokenType.Namespace)
         {
@@ -40,22 +34,30 @@ public static class ASTGenerator
 
         while (context.Current != null)
         {
+            if (context.Current?.Type == TokenType.Import)
+            {
+                context.MoveNext();
+                contents.Add(new ImportNode(ProcessNamespace(context)));
+
+                if (context.Current?.Type != TokenType.Semicolon)
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+
+                context.MoveNext();
+            }
+            else
+                break;
+        }
+
+        while (context.Current != null)
+        {
             switch (context.Current?.Type)
             {
+                case TokenType.Comment:
+                    contents.Add(new CommentNode(context.Current.Value.Text.ToString()));
+                    context.MoveNext();
+                    break;
                 case TokenType.AttributeMarker:
                     attributes.Add(ProcessAttribute(context));
-                    break;
-                case TokenType.Import:
-                    context.MoveNext();
-                    imports.Add(ProcessNamespace(context));
-
-                    if (context.Current?.Type != TokenType.Semicolon)
-                        throw new UnexpectedTokenException(
-                            context.Current.Value,
-                            TokenType.Semicolon
-                        );
-
-                    context.MoveNext();
                     break;
                 case TokenType.Implement:
                     context.MoveNext();
@@ -102,42 +104,17 @@ public static class ASTGenerator
                             throw new Exception($"{error} cannot be unimplemented.");
                     }
 
-                    implements.Add(new ImplementNode(type, trait, scope));
+                    contents.Add(new ImplementNode(type, trait, scope));
                     break;
                 default:
-                    IStatementNode result = ProcessDefinition(context, attributes);
+                    var result = ProcessDefinition(context, attributes);
                     attributes = new List<AttributeNode>();
-
-                    if (result is TypeNode typeNode)
-                    {
-                        types.Add(typeNode);
-                    }
-                    else if (result is EnumNode enumNode)
-                    {
-                        enums.Add(enumNode);
-                    }
-                    else if (result is TraitNode traitNode)
-                    {
-                        traits.Add(traitNode);
-                    }
-                    else if (result is FuncDefNode funcDefNode)
-                    {
-                        funcs.Add(funcDefNode);
-                    }
-                    else if (result is GlobalVarNode globalVarNode)
-                    {
-                        globals.Add(globalVarNode);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-
+                    contents.Add(result);
                     break;
             }
         }
 
-        return new ScriptAST(@namespace, imports, types, enums, traits, funcs, globals, implements);
+        return new ScriptAST(@namespace, contents);
     }
 
     public static NamespaceNode ProcessNamespace(ParseContext context)
@@ -363,6 +340,10 @@ public static class ASTGenerator
                     case TokenType.ClosingCurlyBraces:
                         context.MoveNext();
                         return new ScopeNode(statements);
+                    case TokenType.Comment:
+                        statements.Add(new CommentNode(context.Current.Value.Text.ToString()));
+                        context.MoveNext();
+                        break;
                     case TokenType.AttributeMarker:
                         attributes.Add(ProcessAttribute(context));
                         break;
@@ -380,6 +361,10 @@ public static class ASTGenerator
             {
                 switch (context.Current?.Type)
                 {
+                    case TokenType.Comment:
+                        statements.Add(new CommentNode(context.Current.Value.Text.ToString()));
+                        context.MoveNext();
+                        break;
                     case TokenType.Return:
                         context.MoveNext();
                         statements.Add(new ReturnNode(ProcessExpression(context, true)));
@@ -489,7 +474,7 @@ public static class ASTGenerator
         throw new NotImplementedException();
     }
 
-    public static IStatementNode ProcessDefinition(
+    public static DefinitionNode ProcessDefinition(
         ParseContext context,
         List<AttributeNode>? attributes
     )

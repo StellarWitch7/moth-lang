@@ -3,9 +3,9 @@ namespace Moth.AST.Node;
 public class CastNode : IExpressionNode
 {
     public TypeRefNode NewType { get; set; }
-    public IExpressionNode Value { get; set; }
+    public SubExprNode Value { get; set; }
 
-    public CastNode(TypeRefNode newType, IExpressionNode value)
+    public CastNode(TypeRefNode newType, SubExprNode value)
     {
         NewType = newType;
         Value = value;
@@ -13,6 +13,6 @@ public class CastNode : IExpressionNode
 
     public string GetSource()
     {
-        return $"{NewType.GetSource()}({Value.GetSource()})";
+        return $"{NewType.GetSource()}{Value.GetSource()}";
     }
 }

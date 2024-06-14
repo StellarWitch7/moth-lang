@@ -2,44 +2,37 @@
 
 namespace Moth;
 
-public class Logger : MultiWriter
+public class Logger : TextWriter
 {
-    private static string LogDirectory { get; } =
-        Path.Combine(Environment.CurrentDirectory, "logs");
-    private static string LogFile { get; } = Path.Combine(LogDirectory, "latest.log");
-    private static string BackupLogFile { get; } = Path.Combine(LogDirectory, "backup.log");
-    private static bool BeganLogging { get; set; } = false;
-    private static FileStream Stream { get; } = File.Open(LogFile, FileMode.Append);
-    private static StreamWriter Writer { get; } = new StreamWriter(Stream);
+    private static string LogDirectory { get; }
+    private static string LogFile { get; }
+    private static string BackupLogFile { get; }
+    private static FileStream Stream { get; }
+    private static StreamWriter Writer { get; }
 
     public string Name { get; set; }
+    public override Encoding Encoding { get; }
 
-    private IAnsiConsole FormattedWriter { get; }
-
-    public Logger(string name)
-        : base(new TextWriter[] { Writer, Console.Out })
+    static Logger()
     {
-        Name = name;
+        LogDirectory = Path.Combine(Environment.CurrentDirectory, "logs");
+        LogFile = Path.Combine(LogDirectory, "latest.log");
+        BackupLogFile = Path.Combine(LogDirectory, "backup.log");
+
         Directory.CreateDirectory(LogDirectory);
 
-        if (!BeganLogging && File.Exists(LogFile))
-        {
-            if (File.Exists(BackupLogFile))
-            {
-                File.Delete(BackupLogFile);
-            }
+        if (File.Exists(LogFile))
+            File.Move(LogFile, BackupLogFile, true);
 
-            File.Move(LogFile, BackupLogFile);
-        }
+        Stream = File.Create(LogFile);
+        Writer = new StreamWriter(Stream) { AutoFlush = true };
+    }
 
-        BeganLogging = true;
-        FormattedWriter = AnsiConsole.Create(
-            new AnsiConsoleSettings()
-            {
-                Ansi = AnsiSupport.Detect,
-                Out = new AnsiConsoleOutput(this)
-            }
-        );
+    public Logger(string name)
+        : base()
+    {
+        Name = name;
+        Encoding = Writer.Encoding;
     }
 
     public Logger MakeSubLogger(string subname)
@@ -109,7 +102,8 @@ public class Logger : MultiWriter
 
     public void WriteUnsigned(string message, Style style)
     {
-        FormattedWriter.Write(new Text(message, style));
+        AnsiConsole.Write(new Text(message, style));
+        Write(message);
     }
 
     public void WriteUnsigned(string message)
@@ -118,4 +112,10 @@ public class Logger : MultiWriter
     }
 
     public void WriteUnsigned(char ch) => WriteUnsigned(ch.ToString(), Style.Plain);
+
+    public override void Flush() => Writer.Flush();
+
+    public override void Write(char value) => WriteUnsigned(value);
+
+    public override void Write(string? value) => Writer.Write(value ?? String.Empty);
 }

@@ -1,7 +1,10 @@
 namespace test;
 
+with core::io;
+
 fn main() #i32 {
-    ret #Privacy.Pub.Asi32()
+    //ret #Privacy.Pub.Asi32()
+    ret 0
 }
 
 type SomeStruct {
@@ -12,36 +15,36 @@ type SomeStruct {
 fn DoSomething(val #u8, val2 #SomeStruct, func #(#u32)* #void) #u8 {
     ret val + val2.inner
 }
-
-enum Privacy {
-    Priv,
-    Pub,
-} extend {
-    pub fn Asi32() #i32 {
-        ret #u8(self)
-    }
-}
-
+//
+// enum Privacy {
+//     Priv,
+//     Pub,
+// } extend {
+//     pub fn Asi32() #i32 {
+//         ret #u8(self)
+//     }
+// }
+//
 // type Thing {
 //     pub Value #i32;
 // }
-
+//
 // impl #Disposable for #Thing {
 //     fn Dispose() {
 //         ret
 //     }
 // }
-
+//
 // impl #Animal for #Thing {
 //     fn Eat() {
 //         ret
 //     }
 // }
-
+//
 // trait Disposable {
 //     fn Dispose();
 // }
-
+//
 // trait Animal {
 //     fn Eat();
 // }
