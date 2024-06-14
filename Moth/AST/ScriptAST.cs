@@ -73,7 +73,9 @@ public class ScriptAST : IASTNode, ITreeNode
 
     public string GetSource()
     {
-        var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n\n");
+        var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n");
+
+        if (Imports.Length > 0) builder.Append("\n");
 
         foreach (var statement in Contents)
         {
