@@ -52,8 +52,14 @@ public static class ASTGenerator
         {
             switch (context.Current?.Type)
             {
+                case TokenType.BlockComment:
                 case TokenType.Comment:
-                    contents.Add(new CommentNode(context.Current.Value.Text.ToString()));
+                    contents.Add(
+                        new CommentNode(
+                            context.Current.Value.Text.ToString(),
+                            context.Current?.Type == TokenType.BlockComment
+                        )
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.AttributeMarker:
@@ -340,8 +346,14 @@ public static class ASTGenerator
                     case TokenType.ClosingCurlyBraces:
                         context.MoveNext();
                         return new ScopeNode(statements);
+                    case TokenType.BlockComment:
                     case TokenType.Comment:
-                        statements.Add(new CommentNode(context.Current.Value.Text.ToString()));
+                        statements.Add(
+                            new CommentNode(
+                                context.Current.Value.Text.ToString(),
+                                context.Current?.Type == TokenType.BlockComment
+                            )
+                        );
                         context.MoveNext();
                         break;
                     case TokenType.AttributeMarker:
@@ -361,8 +373,14 @@ public static class ASTGenerator
             {
                 switch (context.Current?.Type)
                 {
+                    case TokenType.BlockComment:
                     case TokenType.Comment:
-                        statements.Add(new CommentNode(context.Current.Value.Text.ToString()));
+                        statements.Add(
+                            new CommentNode(
+                                context.Current.Value.Text.ToString(),
+                                context.Current?.Type == TokenType.BlockComment
+                            )
+                        );
                         context.MoveNext();
                         break;
                     case TokenType.Return:
@@ -1237,7 +1255,7 @@ public static class ASTGenerator
                     {
                         string name = context.Current.Value.Text.ToString();
 
-                        if (context.MoveNext()?.Type == TokenType.InferAssign)
+                        if (context.MoveNext()?.Type == TokenType.Assign)
                         {
                             context.MoveNext();
                             stack.Push(new InferredLocalDefNode(name, ProcessExpression(context)));

@@ -15,15 +15,19 @@ public abstract class DefinitionNode : IStatementNode
         Attributes = attributes ?? new List<AttributeNode>();
     }
 
-    public abstract string GetSource();
-
-    public string GetAttributeSource()
+    public string GetSource()
     {
-        if (Attributes.Count > 0)
-            return $"{String.Join("\n", Attributes.ToArray().ExecuteOverAll(a => a.GetSource()))}\n";
-
-        return String.Empty;
+        var builder = new StringBuilder(
+            Attributes.Count > 0
+                ? $"{String.Join("\n", Attributes.ToArray().ExecuteOverAll(a => a.GetSource()))}\n"
+                : String.Empty
+        );
+        GetSource(builder);
+        builder.Append("\n");
+        return builder.ToString();
     }
+
+    public abstract void GetSource(StringBuilder builder);
 }
 
 public enum PrivacyType

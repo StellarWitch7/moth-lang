@@ -6,4 +6,9 @@ public class InferredLocalDefNode : LocalDefNode
 
     public InferredLocalDefNode(string name, IExpressionNode val)
         : base(name, null) => Value = val;
+
+    public override string GetSource()
+    {
+        return $"\n{Reserved.Var} {Name} = {Value.GetSource()}";
+    }
 }

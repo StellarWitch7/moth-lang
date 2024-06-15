@@ -74,13 +74,19 @@ public class ScriptAST : IASTNode, ITreeNode
     public string GetSource()
     {
         var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n");
-
-        if (Imports.Length > 0) builder.Append("\n");
+        IStatementNode last = null;
 
         foreach (var statement in Contents)
         {
-            builder.Append($"{statement.GetSource()}\n");
+            if (statement is not ImportNode && last is ImportNode)
+                builder.Append("\n");
+
+            builder.Append($"\n{statement.GetSource()}");
+            last = statement;
         }
+
+        if (builder[builder.Length - 1] != '\n')
+            builder.Append("\n");
 
         return builder.ToString();
     }

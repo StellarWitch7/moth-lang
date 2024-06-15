@@ -3,48 +3,51 @@ namespace test;
 with core::io;
 
 fn main() #i32 {
-    //ret #Privacy.Pub.Asi32()
+    // ret #u8(#Privacy.Priv)
     ret 0
 }
 
+// this is a normal comment. everything until the newline is not-code
 type SomeStruct {
     pub inner #u8;
 }
 
+/> !DOCS
+this is a block comment
+it can be multiline
+if it begins with "!DOCS\n" (tolerance of one preceding space) the compiler will utilize it for documentation generation
+ </
 @Export
 fn DoSomething(val #u8, val2 #SomeStruct, func #(#u32)* #void) #u8 {
+    var v3 = 3;
+    v3 = 6;
+    
+    // a testing comment
+    var v = 1;
+    var v2 = 2;
     ret val + val2.inner
 }
-//
+
 // enum Privacy {
 //     Priv,
 //     Pub,
-// } extend {
-//     pub fn Asi32() #i32 {
-//         ret #u8(self)
-//     }
 // }
-//
 // type Thing {
 //     pub Value #i32;
 // }
-//
 // impl #Disposable for #Thing {
 //     fn Dispose() {
 //         ret
 //     }
 // }
-//
 // impl #Animal for #Thing {
 //     fn Eat() {
 //         ret
 //     }
 // }
-//
 // trait Disposable {
 //     fn Dispose();
 // }
-//
 // trait Animal {
 //     fn Eat();
 // }

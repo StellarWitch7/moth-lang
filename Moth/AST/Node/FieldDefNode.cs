@@ -15,16 +15,11 @@ public class FieldDefNode : DefinitionNode
         TypeRef = typeRef;
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
-        var builder = new StringBuilder();
-
-        builder.Append(GetAttributeSource());
-
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
 
         builder.Append($"{Name} {TypeRef.GetSource()};");
-        return builder.ToString();
     }
 }

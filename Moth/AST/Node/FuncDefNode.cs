@@ -32,9 +32,8 @@ public class FuncDefNode : DefinitionNode
         IsForeign = isForeign;
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
-        var builder = new StringBuilder("\n");
         string @params = String.Join(
             ", ",
             Params
@@ -44,8 +43,6 @@ public class FuncDefNode : DefinitionNode
                     return p.GetSource();
                 })
         );
-
-        builder.Append(GetAttributeSource());
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
@@ -65,7 +62,5 @@ public class FuncDefNode : DefinitionNode
             builder.Append($" {ExecutionBlock.GetSource()}");
         else
             builder.Append(";");
-
-        return builder.ToString();
     }
 }

@@ -59,12 +59,8 @@ public class TypeNode : DefinitionNode
         }
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
-        var builder = new StringBuilder("\n");
-
-        builder.Append(GetAttributeSource());
-
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
 
@@ -73,13 +69,9 @@ public class TypeNode : DefinitionNode
 
         builder.Append($"{Reserved.Type} {Name}");
 
-        if (IsOpaque)
-            builder.Append(";");
-        else
-        {
+        if (!IsOpaque)
             builder.Append($" {_scope.GetSource()}");
-        }
-
-        return builder.ToString();
+        else
+            builder.Append(";");
     }
 }

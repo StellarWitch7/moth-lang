@@ -15,7 +15,7 @@ public class TraitNode : DefinitionNode
         Scope = scope;
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
         throw new NotImplementedException();
     }

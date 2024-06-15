@@ -23,12 +23,8 @@ public class GlobalVarNode : DefinitionNode
         IsForeign = isForeign;
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
-        var builder = new StringBuilder("\n");
-
-        builder.Append(GetAttributeSource());
-
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
 
@@ -38,8 +34,6 @@ public class GlobalVarNode : DefinitionNode
         if (IsConstant)
             builder.Append($"{Reserved.Constant} ");
 
-        builder.Append($"{Reserved.Global} {Name} ");
-        builder.Append($"{TypeRef.GetSource()};");
-        return builder.ToString();
+        builder.Append($"{Reserved.Global} {Name} {TypeRef.GetSource()};");
     }
 }

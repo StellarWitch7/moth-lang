@@ -9,13 +9,21 @@ public class ScopeNode : IStatementNode
     public string GetSource()
     {
         var builder = new StringBuilder("{");
+        IStatementNode last = null;
 
         foreach (IStatementNode statement in Statements)
         {
             string s = $"\n{statement.GetSource()}";
 
-            if (builder.Length <= 1 && statement is IfNode or WhileNode)
+            if (
+                (last is null && statement is IfNode or WhileNode or LocalDefNode)
+                || (last is not null && statement is FieldDefNode)
+                || (last is LocalDefNode or CommentNode && statement is LocalDefNode)
+            )
                 s = s.Remove(0, 1);
+
+            if (last is not null or CommentNode && statement is CommentNode)
+                s = s.Insert(0, "\n");
 
             s = s.Replace("\n", "\n    ");
 
@@ -31,6 +39,8 @@ public class ScopeNode : IStatementNode
                 builder.Append(s);
             else
                 builder.Append($"{s};");
+
+            last = statement;
         }
 
         return $"{builder.ToString().TrimEnd()}\n}}";

@@ -11,8 +11,8 @@ public class LocalDefNode : IExpressionNode
         TypeRef = typeRef;
     }
 
-    public string GetSource()
+    public virtual string GetSource()
     {
-        return $"{Reserved.Var} {Name} {TypeRef.GetSource()}";
+        return $"\n{Reserved.Var} {Name} {TypeRef.GetSource()}";
     }
 }
