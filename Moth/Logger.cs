@@ -2,30 +2,37 @@
 
 namespace Moth;
 
-public class Logger
+public class Logger : TextWriter
 {
-    private static string LogDirectory { get; } = Path.Join(Environment.CurrentDirectory, "logs");
-    private static string LogFile { get; } = Path.Join(LogDirectory, "latest.log");
-    private static string BackupLogFile { get; } = Path.Join(LogDirectory, "backup.log");
-    private static bool BeganLogging { get; set; } = false;
-    public string Name { get; set; }
+    private static string LogDirectory { get; }
+    private static string LogFile { get; }
+    private static string BackupLogFile { get; }
+    private static FileStream Stream { get; }
+    private static StreamWriter Writer { get; }
 
-    public Logger(string name)
+    public string Name { get; set; }
+    public override Encoding Encoding { get; }
+
+    static Logger()
     {
-        Name = name;
+        LogDirectory = Path.Combine(Environment.CurrentDirectory, "logs");
+        LogFile = Path.Combine(LogDirectory, "latest.log");
+        BackupLogFile = Path.Combine(LogDirectory, "backup.log");
+
         Directory.CreateDirectory(LogDirectory);
 
-        if (!BeganLogging && File.Exists(LogFile))
-        {
-            if (File.Exists(BackupLogFile))
-            {
-                File.Delete(BackupLogFile);
-            }
+        if (File.Exists(LogFile))
+            File.Move(LogFile, BackupLogFile, true);
 
-            File.Move(LogFile, BackupLogFile);
-        }
+        Stream = File.Create(LogFile);
+        Writer = new StreamWriter(Stream) { AutoFlush = true };
+    }
 
-        BeganLogging = true;
+    public Logger(string name)
+        : base()
+    {
+        Name = name;
+        Encoding = Writer.Encoding;
     }
 
     public Logger MakeSubLogger(string subname)
@@ -71,6 +78,12 @@ public class Logger
         Info($"Exit with code {code}");
     }
 
+    public void PrintTree<T>(T rootNode)
+        where T : ITreeNode
+    {
+        rootNode.PrintTree(this);
+    }
+
     public void WriteEmptyLine() => WriteUnsignedLine("\n", Style.Plain);
 
     public void WriteSeparator() =>
@@ -89,8 +102,8 @@ public class Logger
 
     public void WriteUnsigned(string message, Style style)
     {
-        WriteToLog(message);
-        Spectre.Console.AnsiConsole.Write(new Text(message, style));
+        AnsiConsole.Write(new Text(message, style));
+        Write(message);
     }
 
     public void WriteUnsigned(string message)
@@ -98,16 +111,11 @@ public class Logger
         WriteUnsigned(message, Style.Plain);
     }
 
-    public void WriteToLog(string message)
-    {
-        FileStream fs = File.Open(LogFile, FileMode.Append);
-        var writer = new StreamWriter(fs) { AutoFlush = true };
-
-        writer.Write(message);
-        writer.Close();
-    }
-
-    public void WriteToLog(char ch) => WriteToLog(ch.ToString());
-
     public void WriteUnsigned(char ch) => WriteUnsigned(ch.ToString(), Style.Plain);
+
+    public override void Flush() => Writer.Flush();
+
+    public override void Write(char value) => WriteUnsigned(value);
+
+    public override void Write(string? value) => Writer.Write(value ?? String.Empty);
 }

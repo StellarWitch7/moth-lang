@@ -13,13 +13,7 @@ public static class ASTGenerator
     public static ScriptAST ProcessScript(ParseContext context)
     {
         NamespaceNode @namespace;
-        var imports = new List<NamespaceNode>();
-        var types = new List<TypeNode>();
-        var enums = new List<EnumNode>();
-        var funcs = new List<FuncDefNode>();
-        var globals = new List<GlobalVarNode>();
-        var traits = new List<TraitNode>();
-        var implements = new List<ImplementNode>();
+        var contents = new List<IStatementNode>();
 
         if (context.Current?.Type == TokenType.Namespace)
         {
@@ -40,22 +34,36 @@ public static class ASTGenerator
 
         while (context.Current != null)
         {
+            if (context.Current?.Type == TokenType.Import)
+            {
+                context.MoveNext();
+                contents.Add(new ImportNode(ProcessNamespace(context)));
+
+                if (context.Current?.Type != TokenType.Semicolon)
+                    throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
+
+                context.MoveNext();
+            }
+            else
+                break;
+        }
+
+        while (context.Current != null)
+        {
             switch (context.Current?.Type)
             {
+                case TokenType.BlockComment:
+                case TokenType.Comment:
+                    contents.Add(
+                        new CommentNode(
+                            context.Current.Value.Text.ToString(),
+                            context.Current?.Type == TokenType.BlockComment
+                        )
+                    );
+                    context.MoveNext();
+                    break;
                 case TokenType.AttributeMarker:
                     attributes.Add(ProcessAttribute(context));
-                    break;
-                case TokenType.Import:
-                    context.MoveNext();
-                    imports.Add(ProcessNamespace(context));
-
-                    if (context.Current?.Type != TokenType.Semicolon)
-                        throw new UnexpectedTokenException(
-                            context.Current.Value,
-                            TokenType.Semicolon
-                        );
-
-                    context.MoveNext();
                     break;
                 case TokenType.Implement:
                     context.MoveNext();
@@ -102,42 +110,17 @@ public static class ASTGenerator
                             throw new Exception($"{error} cannot be unimplemented.");
                     }
 
-                    implements.Add(new ImplementNode(type, trait, scope));
+                    contents.Add(new ImplementNode(type, trait, scope));
                     break;
                 default:
-                    StatementNode result = ProcessDefinition(context, attributes);
+                    var result = ProcessDefinition(context, attributes);
                     attributes = new List<AttributeNode>();
-
-                    if (result is TypeNode typeNode)
-                    {
-                        types.Add(typeNode);
-                    }
-                    else if (result is EnumNode enumNode)
-                    {
-                        enums.Add(enumNode);
-                    }
-                    else if (result is TraitNode traitNode)
-                    {
-                        traits.Add(traitNode);
-                    }
-                    else if (result is FuncDefNode funcDefNode)
-                    {
-                        funcs.Add(funcDefNode);
-                    }
-                    else if (result is GlobalVarNode globalVarNode)
-                    {
-                        globals.Add(globalVarNode);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
-                    }
-
+                    contents.Add(result);
                     break;
             }
         }
 
-        return new ScriptAST(@namespace, imports, types, enums, traits, funcs, globals, implements);
+        return new ScriptAST(@namespace, contents);
     }
 
     public static NamespaceNode ProcessNamespace(ParseContext context)
@@ -343,7 +326,7 @@ public static class ASTGenerator
 
     public static ScopeNode ProcessScope(ParseContext context, bool isClassRoot = false)
     {
-        var statements = new List<StatementNode>();
+        var statements = new List<IStatementNode>();
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -363,11 +346,21 @@ public static class ASTGenerator
                     case TokenType.ClosingCurlyBraces:
                         context.MoveNext();
                         return new ScopeNode(statements);
+                    case TokenType.BlockComment:
+                    case TokenType.Comment:
+                        statements.Add(
+                            new CommentNode(
+                                context.Current.Value.Text.ToString(),
+                                context.Current?.Type == TokenType.BlockComment
+                            )
+                        );
+                        context.MoveNext();
+                        break;
                     case TokenType.AttributeMarker:
                         attributes.Add(ProcessAttribute(context));
                         break;
                     default:
-                        StatementNode newDef = ProcessDefinition(context, attributes);
+                        IStatementNode newDef = ProcessDefinition(context, attributes);
                         attributes = new List<AttributeNode>();
                         statements.Add(newDef);
                         break;
@@ -380,6 +373,16 @@ public static class ASTGenerator
             {
                 switch (context.Current?.Type)
                 {
+                    case TokenType.BlockComment:
+                    case TokenType.Comment:
+                        statements.Add(
+                            new CommentNode(
+                                context.Current.Value.Text.ToString(),
+                                context.Current?.Type == TokenType.BlockComment
+                            )
+                        );
+                        context.MoveNext();
+                        break;
                     case TokenType.Return:
                         context.MoveNext();
                         statements.Add(new ReturnNode(ProcessExpression(context, true)));
@@ -429,7 +432,7 @@ public static class ASTGenerator
         throw new UnexpectedTokenException(context.Current.Value);
     }
 
-    private static ExpressionNode ProcessIncrementDecrement(ParseContext context)
+    private static IExpressionNode ProcessIncrementDecrement(ParseContext context)
     {
         var type = (TokenType)(context.Current?.Type);
 
@@ -442,9 +445,9 @@ public static class ASTGenerator
             : new DecrementVarNode(value);
     }
 
-    public static StatementNode ProcessWhile(ParseContext context)
+    public static IStatementNode ProcessWhile(ParseContext context)
     {
-        ExpressionNode condition = ProcessExpression(context);
+        IExpressionNode condition = ProcessExpression(context);
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -473,7 +476,7 @@ public static class ASTGenerator
                 }
                 else
                 {
-                    return new AttributeNode(name, new List<ExpressionNode>());
+                    return new AttributeNode(name, new List<IExpressionNode>());
                 }
             }
             else
@@ -489,7 +492,7 @@ public static class ASTGenerator
         throw new NotImplementedException();
     }
 
-    public static StatementNode ProcessDefinition(
+    public static DefinitionNode ProcessDefinition(
         ParseContext context,
         List<AttributeNode>? attributes
     )
@@ -782,7 +785,7 @@ public static class ASTGenerator
 
     public static IfNode ProcessIf(ParseContext context)
     {
-        ExpressionNode condition = ProcessExpression(context);
+        IExpressionNode condition = ProcessExpression(context);
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -802,7 +805,7 @@ public static class ASTGenerator
             {
                 context.MoveNext();
                 return new ScopeNode(
-                    new List<StatementNode>
+                    new List<IStatementNode>
                     {
                         ProcessIf(context) //TODO: this does not work in compilation
                     }
@@ -819,9 +822,9 @@ public static class ASTGenerator
         }
     }
 
-    public static List<ExpressionNode> ProcessArgs(ParseContext context, TokenType terminator)
+    public static List<IExpressionNode> ProcessArgs(ParseContext context, TokenType terminator)
     {
-        var args = new List<ExpressionNode>();
+        var args = new List<IExpressionNode>();
 
         while (context.Current != null)
         {
@@ -899,7 +902,7 @@ public static class ASTGenerator
             if (context.MoveNext()?.Type == TokenType.Name)
             {
                 string retTypeName = context.Current.Value.Text.ToString();
-                var genericParams = new List<ExpressionNode>();
+                var genericParams = new List<IExpressionNode>();
                 uint pointerDepth = 0;
                 bool isRef = false;
 
@@ -1069,9 +1072,9 @@ public static class ASTGenerator
         }
     }
 
-    public static ExpressionNode ProcessExpression(ParseContext context, bool nullAllowed = false)
+    public static IExpressionNode ProcessExpression(ParseContext context, bool nullAllowed = false)
     {
-        Stack<ExpressionNode> stack = new Stack<ExpressionNode>();
+        Stack<IExpressionNode> stack = new Stack<IExpressionNode>();
 
         while (context.Current != null)
         {
@@ -1252,7 +1255,7 @@ public static class ASTGenerator
                     {
                         string name = context.Current.Value.Text.ToString();
 
-                        if (context.MoveNext()?.Type == TokenType.InferAssign)
+                        if (context.MoveNext()?.Type == TokenType.Assign)
                         {
                             context.MoveNext();
                             stack.Push(new InferredLocalDefNode(name, ProcessExpression(context)));
@@ -1271,7 +1274,7 @@ public static class ASTGenerator
                     break;
                 case TokenType.If:
                     context.MoveNext();
-                    ExpressionNode condition = ProcessExpression(context);
+                    IExpressionNode condition = ProcessExpression(context);
 
                     if (context.Current?.Type != TokenType.Then)
                     {
@@ -1279,7 +1282,7 @@ public static class ASTGenerator
                     }
 
                     context.MoveNext();
-                    ExpressionNode then = ProcessExpression(context);
+                    IExpressionNode then = ProcessExpression(context);
 
                     if (context.Current?.Type != TokenType.Else)
                     {
@@ -1287,7 +1290,7 @@ public static class ASTGenerator
                     }
 
                     context.MoveNext();
-                    ExpressionNode @else = ProcessExpression(context);
+                    IExpressionNode @else = ProcessExpression(context);
 
                     stack.Push(new InlineIfNode(condition, then, @else));
                     break;
@@ -1452,7 +1455,7 @@ public static class ASTGenerator
                     if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
                         throw new UnexpectedTokenException(context.Current.Value);
 
-                    stack.Push(new ThisNode());
+                    stack.Push(new SelfNode());
                     context.MoveNext();
                     break;
                 default:
@@ -1516,7 +1519,7 @@ public static class ASTGenerator
         TypeRefNode elementType
     )
     {
-        var elements = new List<ExpressionNode>();
+        var elements = new List<IExpressionNode>();
 
         if (context.Current?.Type != TokenType.OpeningSquareBrackets)
         {

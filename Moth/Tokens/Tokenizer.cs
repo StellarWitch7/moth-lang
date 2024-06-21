@@ -20,19 +20,51 @@ public static class Tokenizer
                 or ' ':
                     break;
 
-                //Skip comments
+                // Capture comments
                 case '/' when stream.Next is '/':
                 {
+                    var builder = new StringBuilder();
+                    stream.Position++;
+
                     while (stream.MoveNext(out ch))
                     {
-                        if (ch != '\n')
-                        {
-                            continue;
-                        }
+                        if (ch == '\n')
+                            break;
 
-                        break;
+                        builder.Append(ch);
                     }
 
+                    tokens.Add(
+                        new Token()
+                        {
+                            Type = TokenType.Comment,
+                            Text = builder.ToString().AsMemory(),
+                        }
+                    );
+                    break;
+                }
+
+                case '/' when stream.Next is '>':
+                {
+                    var builder = new StringBuilder();
+                    stream.Position++;
+
+                    while (stream.MoveNext(out ch))
+                    {
+                        if (ch == '<' && stream.Next == '/')
+                            break;
+
+                        builder.Append(ch);
+                    }
+
+                    tokens.Add(
+                        new Token()
+                        {
+                            Type = TokenType.BlockComment,
+                            Text = builder.ToString().AsMemory()
+                        }
+                    );
+                    stream.Position++;
                     break;
                 }
 
@@ -271,7 +303,6 @@ public static class Tokenizer
                             '^' when next is '=' => TokenType.ExpAssign,
                             '+' when next is '+' => TokenType.Increment,
                             '-' when next is '-' => TokenType.Decrement,
-                            '?' when next is '=' => TokenType.InferAssign,
                             ':' when next is ':' => TokenType.NamespaceSeparator,
                             '&' => TokenType.Ampersand,
                             ':' => TokenType.Colon,
@@ -312,8 +343,7 @@ public static class Tokenizer
                         Text = type switch
                         {
                             TokenType.Variadic => stream.Peek(3),
-                            TokenType.InferAssign
-                            or TokenType.NamespaceSeparator
+                            TokenType.NamespaceSeparator
                             or TokenType.AddAssign
                             or TokenType.SubAssign
                             or TokenType.MulAssign

@@ -1,32 +1,25 @@
-﻿using System.CodeDom.Compiler;
+﻿using System.CodeDom;
+using System.Text.RegularExpressions;
 
 namespace Moth.AST.Node;
 
-public class LiteralNode : ExpressionNode
+public class LiteralNode : IExpressionNode
 {
     public object? Value { get; set; }
 
     public LiteralNode(object? value) => Value = value;
 
-    public override void WriteDebugString(IndentedTextWriter writer, bool indent = false)
-    {
-        writer.Write(nameof(LiteralNode));
-        writer.Write(" { ");
-        writer.Write(nameof(Value));
-        writer.Write(" = ");
-        writer.Write('(');
-
-        if (Value != null)
-        {
-            writer.Write(Value.GetType().Name);
-        }
-        else
-        {
-            writer.Write("null");
-        }
-
-        writer.Write(") ");
-        writer.Write(Value is char ch ? (ulong)ch : Value);
-        writer.Write(" }");
-    }
+    public string GetSource() =>
+        Value is string str
+            ? $"\"{str}\""
+            : Value is char ch
+                ? $"'{ch switch
+                {
+                    '\n' => @"\n",
+                    '\0' => @"\0",
+                    _ => throw new NotImplementedException()
+                }}'"
+                : Value != null
+                    ? Value.ToString()
+                    : Reserved.Null;
 }

@@ -4,10 +4,8 @@ namespace Moth.AST.Node;
 
 public class EnumNode : DefinitionNode
 {
-    public string Name { get; set; }
-    public PrivacyType Privacy { get; set; }
     public List<EnumFlagNode> EnumFlags { get; set; }
-    public ScopeNode? Scope { get; set; }
+    public ScopeNode? Scope { get; set; } //TODO: don't use, should be private
 
     public EnumNode(
         string name,
@@ -16,18 +14,14 @@ public class EnumNode : DefinitionNode
         ScopeNode? scope,
         List<AttributeNode>? attributes
     )
-        : base(attributes)
+        : base(name, privacy, attributes)
     {
-        Name = name;
-        Privacy = privacy;
         EnumFlags = enumFlags;
         Scope = scope;
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
-        var builder = new StringBuilder();
-
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
 
@@ -43,6 +37,6 @@ public class EnumNode : DefinitionNode
         if (Scope != null)
             builder.Append($" {Reserved.Extend} {Scope.GetSource()}");
 
-        return builder.ToString();
+        builder.Append("\n");
     }
 }

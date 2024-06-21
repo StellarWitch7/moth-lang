@@ -1,4 +1,5 @@
-﻿using Moth.AST.Node;
+﻿using Moth.AST;
+using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
@@ -9,7 +10,8 @@ public class Template : ICompilerData
     public string Name { get; }
     public PrivacyType Privacy { get; }
     public bool IsUnion { get; }
-    public ScopeNode Contents { get; }
+    public FieldDefNode[] Fields { get; }
+    public FuncDefNode[] Functions { get; }
     public Namespace[] Imports { get; }
     public Dictionary<string, IAttribute> Attributes { get; } =
         new Dictionary<string, IAttribute>();
@@ -25,7 +27,8 @@ public class Template : ICompilerData
         string name,
         PrivacyType privacy,
         bool isUnion,
-        ScopeNode contents,
+        FieldDefNode[] fields,
+        FuncDefNode[] functions,
         Namespace[] imports,
         List<AttributeNode> attributes,
         TemplateParameter[] @params
@@ -37,7 +40,8 @@ public class Template : ICompilerData
         Name = name;
         Privacy = privacy;
         IsUnion = isUnion;
-        Contents = contents;
+        Fields = fields;
+        Functions = functions;
         Imports = imports;
         Params = @params;
 
@@ -53,7 +57,20 @@ public class Template : ICompilerData
         }
     }
 
-    public StructDecl Build(IReadOnlyList<ExpressionNode> args)
+    public DefinitionNode[] Members
+    {
+        get
+        {
+            var result = new List<DefinitionNode>();
+
+            result.AddRange(Fields);
+            result.AddRange(Functions);
+
+            return result.ToArray();
+        }
+    }
+
+    public StructDecl Build(IReadOnlyList<IExpressionNode> args)
     {
         string sig = ArgsToSig(args);
 
@@ -99,7 +116,7 @@ public class Template : ICompilerData
         var structNode = new TypeNode(
             $"{Name}{Template.ArgsToSig(args)}",
             Privacy,
-            Contents,
+            new ScopeNode(new List<IStatementNode>(Members)),
             IsUnion,
             _attributeList
         );
@@ -110,14 +127,14 @@ public class Template : ICompilerData
             Privacy,
             IsUnion,
             Attributes,
-            Contents
+            Fields
         );
         _builtTypes.Add(sig, @struct);
         _compiler.BuildTemplate(this, structNode, @struct, args);
         return @struct;
     }
 
-    public static string ArgsToSig(IReadOnlyList<ExpressionNode> args)
+    public static string ArgsToSig(IReadOnlyList<IExpressionNode> args)
     {
         var builder = new StringBuilder();
 

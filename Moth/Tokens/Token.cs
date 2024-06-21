@@ -88,7 +88,6 @@ public enum TokenType
     Range,
     Variadic,
     Static,
-    InferAssign,
     AttributeMarker,
     LiteralChar,
     Then,
@@ -106,5 +105,7 @@ public enum TokenType
     Union,
     Global,
     Extend,
-    Enum
+    Enum,
+    Comment,
+    BlockComment
 }

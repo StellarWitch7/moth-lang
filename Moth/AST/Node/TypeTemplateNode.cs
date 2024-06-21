@@ -13,4 +13,14 @@ public class TypeTemplateNode : TypeNode
         List<AttributeNode> attributes
     )
         : base(name, privacy, scope, isUnion, attributes) => Params = @params;
+
+    public override void GetSource(StringBuilder builder)
+    {
+        string key = $"{Reserved.Type} {Name}";
+        base.GetSource(builder);
+        builder.Insert(
+            builder.ToString().IndexOf(key) + key.Length,
+            $"<{String.Join(", ", Params.ToArray().ExecuteOverAll(p => p.Name))}>"
+        );
+    }
 }

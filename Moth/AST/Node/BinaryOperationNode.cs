@@ -1,15 +1,20 @@
 ﻿namespace Moth.AST.Node;
 
-public class BinaryOperationNode : ExpressionNode
+public class BinaryOperationNode : IExpressionNode
 {
     public OperationType Type { get; set; }
-    public ExpressionNode Left { get; set; }
-    public ExpressionNode Right { get; set; } = null;
+    public IExpressionNode Left { get; set; }
+    public IExpressionNode Right { get; set; } = null;
 
-    public BinaryOperationNode(ExpressionNode left, OperationType type)
+    public BinaryOperationNode(IExpressionNode left, OperationType type)
     {
         Left = left;
         Type = type;
+    }
+
+    public string GetSource()
+    {
+        return $"{Left.GetSource()} {Utils.OpTypeToString(Type)} {Right.GetSource()}";
     }
 }
 

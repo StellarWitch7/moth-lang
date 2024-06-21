@@ -1,22 +1,48 @@
 ﻿namespace Moth.AST.Node;
 
-public class ScopeNode : StatementNode
+public class ScopeNode : IStatementNode
 {
-    public List<StatementNode> Statements { get; set; }
+    public List<IStatementNode> Statements { get; set; }
 
-    public ScopeNode(List<StatementNode> statements) => Statements = statements;
+    public ScopeNode(List<IStatementNode> statements) => Statements = statements;
 
-    public override string GetSource()
+    public string GetSource()
     {
         var builder = new StringBuilder("{");
+        IStatementNode last = null;
 
-        foreach (StatementNode statement in Statements)
+        foreach (IStatementNode statement in Statements)
         {
             string s = $"\n{statement.GetSource()}";
-            builder.Append(s.Replace("\n", "\n    "));
+
+            if (
+                (last is null && statement is IfNode or WhileNode or LocalDefNode)
+                || (last is not null && statement is FieldDefNode)
+                || (last is LocalDefNode or CommentNode && statement is LocalDefNode)
+            )
+                s = s.Remove(0, 1);
+
+            if (last is not null or CommentNode && statement is CommentNode)
+                s = s.Insert(0, "\n");
+
+            s = s.Replace("\n", "\n    ");
+
+            if (
+                statement
+                is CommentNode
+                    or ReturnNode
+                    or ScopeNode
+                    or DefinitionNode
+                    or IfNode
+                    or WhileNode
+            )
+                builder.Append(s);
+            else
+                builder.Append($"{s};");
+
+            last = statement;
         }
 
-        builder.Append("\n}");
-        return builder.ToString();
+        return $"{builder.ToString().TrimEnd()}\n}}";
     }
 }

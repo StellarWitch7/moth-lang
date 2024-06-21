@@ -1,6 +1,6 @@
 namespace Moth.AST.Node;
 
-public class NamespaceNode : ExpressionNode
+public class NamespaceNode : IExpressionNode
 {
     public string Name { get; set; }
     public NamespaceNode? Child { get; set; }
@@ -10,7 +10,7 @@ public class NamespaceNode : ExpressionNode
         Name = name;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
         if (Child == default)
             return $"{Name}";

@@ -1,4 +1,5 @@
-﻿using Moth.AST.Node;
+﻿using Moth.AST;
+using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 

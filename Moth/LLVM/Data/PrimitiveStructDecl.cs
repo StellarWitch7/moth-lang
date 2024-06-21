@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+using Moth.AST;
 using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;

@@ -1,6 +1,6 @@
 namespace Moth.AST.Node;
 
-public class ImplementNode : ASTNode
+public class ImplementNode : IStatementNode
 {
     public TypeRefNode Type { get; set; }
     public TypeRefNode Trait { get; set; }
@@ -11,5 +11,10 @@ public class ImplementNode : ASTNode
         Type = type;
         Trait = trait;
         Implementations = implementations;
+    }
+
+    public string GetSource()
+    {
+        throw new NotImplementedException();
     }
 }

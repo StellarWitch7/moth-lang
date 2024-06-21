@@ -40,8 +40,6 @@ public static class Builders
             new ProcessStartInfo(source.Build.Command, source.Build.Args)
             {
                 WorkingDirectory = source.Dir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
             }
         );
 
@@ -50,18 +48,8 @@ public static class Builders
 
         build.WaitForExit();
 
-        lock (ConsoleLock)
-        {
-            Program.Logger.WriteUnsigned(build.StandardOutput.ReadToEnd());
-
-            if (build.ExitCode != 0)
-            {
-                Program.Logger.Error(build.StandardError.ReadToEnd());
-                throw new Exception(
-                    $"{source.Build.Command} finished with exit code {build.ExitCode}"
-                );
-            }
-        }
+        if (build.ExitCode != 0)
+            throw new Exception($"{source.Build.Command} finished with exit code {build.ExitCode}");
 
         return Path.Combine(source.Dir, project.Out, project.FullOutputName);
     }

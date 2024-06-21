@@ -1,9 +1,6 @@
 ﻿namespace Moth.AST;
 
-public abstract partial class ASTNode
+public interface IASTNode
 {
-    public virtual string GetSource()
-    {
-        throw new NotImplementedException();
-    }
+    string GetSource();
 }

@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class ParameterNode : ASTNode
+public class ParameterNode : IASTNode
 {
     public string Name { get; set; }
     public TypeRefNode TypeRef { get; set; }
@@ -11,7 +11,7 @@ public class ParameterNode : ASTNode
         TypeRef = typeRef;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
         return $"{Name} {TypeRef.GetSource()}";
     }

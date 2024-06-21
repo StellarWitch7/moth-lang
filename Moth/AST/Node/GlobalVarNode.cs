@@ -4,9 +4,7 @@ namespace Moth.AST.Node;
 
 public class GlobalVarNode : DefinitionNode
 {
-    public string Name { get; set; }
     public TypeRefNode TypeRef { get; set; }
-    public PrivacyType Privacy { get; set; }
     public bool IsConstant { get; set; }
     public bool IsForeign { get; set; }
 
@@ -16,21 +14,17 @@ public class GlobalVarNode : DefinitionNode
         PrivacyType privacy,
         bool isConstant,
         bool isForeign,
-        List<AttributeNode> attributes
+        List<AttributeNode>? attributes
     )
-        : base(attributes)
+        : base(name, privacy, attributes)
     {
-        Name = name;
         TypeRef = typeRef;
-        Privacy = privacy;
         IsConstant = isConstant;
         IsForeign = isForeign;
     }
 
-    public override string GetSource()
+    public override void GetSource(StringBuilder builder)
     {
-        var builder = new StringBuilder();
-
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
 
@@ -40,8 +34,6 @@ public class GlobalVarNode : DefinitionNode
         if (IsConstant)
             builder.Append($"{Reserved.Constant} ");
 
-        builder.Append($"{Reserved.Global} {Name} ");
-        builder.Append($"{TypeRef.GetSource()};");
-        return builder.ToString();
+        builder.Append($"{Reserved.Global} {Name} {TypeRef.GetSource()};");
     }
 }

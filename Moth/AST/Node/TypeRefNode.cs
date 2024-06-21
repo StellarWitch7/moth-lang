@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class TypeRefNode : ExpressionNode
+public class TypeRefNode : IExpressionNode
 {
     public string Name { get; set; }
     public uint PointerDepth { get; set; }
@@ -14,7 +14,7 @@ public class TypeRefNode : ExpressionNode
         IsRef = isRef;
     }
 
-    public override string GetSource()
+    public virtual string GetSource()
     {
         var builder = new StringBuilder();
 

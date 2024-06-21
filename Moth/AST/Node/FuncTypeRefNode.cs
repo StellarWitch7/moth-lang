@@ -19,22 +19,23 @@ public class FuncTypeRefNode : TypeRefNode
 
     public override string GetSource()
     {
-        return $"#{GetSourceForParamTypes()} {ReturnType.GetSource()}";
-    }
-
-    private string GetSourceForParamTypes()
-    {
-        var builder = new StringBuilder("(");
-
-        foreach (TypeRefNode paramType in ParameterTypes)
-        {
-            builder.Append($"{paramType.GetSource()}, ");
-        }
-
-        if (builder.Length > 1)
-            builder.Remove(builder.Length - 2, 2);
-
+        var builder = new StringBuilder($"#(");
+        builder.Append(
+            String.Join(
+                ", ",
+                ParameterTypes
+                    .ToArray()
+                    .ExecuteOverAll(t =>
+                    {
+                        return t.GetSource();
+                    })
+            )
+        );
         builder.Append(")");
-        return builder.ToString();
+
+        for (uint i = PointerDepth; i > 0; i--)
+            builder.Append("*");
+
+        return $"{builder} {ReturnType.GetSource()}";
     }
 }
