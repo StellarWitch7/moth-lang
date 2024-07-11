@@ -53,7 +53,7 @@ mothc [-v] [-n] [--no-advanced-ir-opt] [--moth-libs <paths>] [--c-libs <paths>] 
 ### Hello World
 The following is a minimal example that prints "Hello World!" to the terminal. 
 ```
-// HelloWorld.moth
+// main.moth
 namespace hello; // all files must belong to a namespace
 
 with core; // we are using the core namespace in this file, so we declare our usage here
