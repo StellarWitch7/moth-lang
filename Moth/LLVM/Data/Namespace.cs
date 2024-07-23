@@ -1,10 +1,12 @@
-﻿using Moth.AST.Node;
+﻿using Moth.AST;
+using Moth.AST.Node;
 
 namespace Moth.LLVM.Data;
 
 public class Namespace : IContainer
 {
     public bool IsExternal { get; init; }
+    public IASTNode? Node { get; init; }
     public IContainer? Parent { get; }
     public string Name { get; }
     public Dictionary<string, Namespace> Namespaces { get; } = new Dictionary<string, Namespace>();

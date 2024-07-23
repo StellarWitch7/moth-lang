@@ -2,6 +2,10 @@ namespace Moth.AST.Node;
 
 public class CommentNode : IStatementNode
 {
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public string Text { get; set; }
     public bool IsBlock { get; set; }
 

@@ -6,12 +6,12 @@ namespace Moth.LLVM.Data;
 public class Template : ICompilerData
 {
     public bool IsExternal { get; init; }
+    public IASTNode? Node { get; init; }
     public Namespace Parent { get; }
     public string Name { get; }
     public PrivacyType Privacy { get; }
     public bool IsUnion { get; }
-    public FieldDefNode[] Fields { get; }
-    public FuncDefNode[] Functions { get; }
+    public ScopeNode Contents { get; }
     public Namespace[] Imports { get; }
     public Dictionary<string, IAttribute> Attributes { get; } =
         new Dictionary<string, IAttribute>();
@@ -27,8 +27,7 @@ public class Template : ICompilerData
         string name,
         PrivacyType privacy,
         bool isUnion,
-        FieldDefNode[] fields,
-        FuncDefNode[] functions,
+        ScopeNode contents,
         Namespace[] imports,
         List<AttributeNode> attributes,
         TemplateParameter[] @params
@@ -40,8 +39,7 @@ public class Template : ICompilerData
         Name = name;
         Privacy = privacy;
         IsUnion = isUnion;
-        Fields = fields;
-        Functions = functions;
+        Contents = contents;
         Imports = imports;
         Params = @params;
 
@@ -68,6 +66,16 @@ public class Template : ICompilerData
 
             return result.ToArray();
         }
+    }
+
+    public FieldDefNode[] Fields
+    {
+        get => Contents.Statements.OfType<FieldDefNode>().ToArray();
+    }
+
+    public FuncDefNode[] Functions
+    {
+        get => Contents.Statements.OfType<FuncDefNode>().ToArray();
     }
 
     public StructDecl Build(IReadOnlyList<IExpressionNode> args)
@@ -116,10 +124,16 @@ public class Template : ICompilerData
         var structNode = new TypeNode(
             $"{Name}{Template.ArgsToSig(args)}",
             Privacy,
-            new ScopeNode(new List<IStatementNode>(Members)),
+            Contents,
             IsUnion,
             _attributeList
-        );
+        )
+        {
+            LineStart = Node.LineStart,
+            ColumnStart = Node.ColumnStart,
+            LineEnd = Node.LineEnd,
+            ColumnEnd = Node.ColumnEnd
+        };
         @struct = new StructDecl(
             _compiler,
             Parent,

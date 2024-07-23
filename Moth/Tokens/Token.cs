@@ -5,6 +5,10 @@ namespace Moth.Tokens;
 public readonly struct Token
 {
     public required TokenType Type { get; init; }
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public ReadOnlyMemory<char> Text { get; init; }
 
     public int Begin

@@ -5,6 +5,10 @@ namespace Moth.AST;
 
 public class ScriptAST : IASTNode, ITreeNode
 {
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public NamespaceNode Namespace { get; }
     public List<IStatementNode> Contents { get; }
 

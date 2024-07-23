@@ -12,6 +12,9 @@ public static class Tokenizer
 
         while (stream.Current is { } ch)
         {
+            var startLine = stream.CurrentLine;
+            var startColumn = stream.CurrentColumn;
+
             switch (ch)
             {
                 case '\n'
@@ -39,6 +42,10 @@ public static class Tokenizer
                         {
                             Type = TokenType.Comment,
                             Text = builder.ToString().AsMemory(),
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = stream.CurrentLine,
+                            ColumnEnd = stream.CurrentColumn
                         }
                     );
                     break;
@@ -61,7 +68,11 @@ public static class Tokenizer
                         new Token()
                         {
                             Type = TokenType.BlockComment,
-                            Text = builder.ToString().AsMemory()
+                            Text = builder.ToString().AsMemory(),
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = stream.CurrentLine,
+                            ColumnEnd = stream.CurrentColumn
                         }
                     );
                     stream.Position++;
@@ -72,7 +83,15 @@ public static class Tokenizer
                 {
                     stream.Position++;
                     tokens.Add(
-                        new Token() { Type = TokenType.ScientificNotation, Text = "e+".AsMemory(), }
+                        new Token()
+                        {
+                            Type = TokenType.ScientificNotation,
+                            Text = "e+".AsMemory(),
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = stream.CurrentLine,
+                            ColumnEnd = stream.CurrentColumn
+                        }
                     );
                     break;
                 }
@@ -99,6 +118,10 @@ public static class Tokenizer
                             {
                                 Type = TokenType.LiteralChar,
                                 Text = $"{ProcessCharacter(ref stream)}".AsMemory(),
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = stream.CurrentLine,
+                                ColumnEnd = stream.CurrentColumn
                             }
                         );
 
@@ -179,7 +202,17 @@ public static class Tokenizer
 
                         stream.Position++;
 
-                        tokens.Add(new Token { Text = name.AsMemory(), Type = TokenType.Name, });
+                        tokens.Add(
+                            new Token
+                            {
+                                Text = name.AsMemory(),
+                                Type = TokenType.Name,
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = stream.CurrentLine,
+                                ColumnEnd = stream.CurrentColumn
+                            }
+                        );
 
                         break;
                     }
@@ -222,6 +255,10 @@ public static class Tokenizer
                                     Reserved.Foreign => TokenType.Foreign,
                                     _ => TokenType.Name,
                                 },
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = stream.CurrentLine,
+                                ColumnEnd = stream.CurrentColumn
                             }
                         );
 
@@ -251,7 +288,15 @@ public static class Tokenizer
 
                     string @string = builder.ToString();
                     tokens.Add(
-                        new Token { Text = @string.AsMemory(), Type = TokenType.LiteralString }
+                        new Token
+                        {
+                            Text = @string.AsMemory(),
+                            Type = TokenType.LiteralString,
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = stream.CurrentLine,
+                            ColumnEnd = stream.CurrentColumn
+                        }
                     );
 
                     break;
@@ -269,6 +314,10 @@ public static class Tokenizer
                         {
                             Text = $"{character}".AsMemory(),
                             Type = character == '?' ? TokenType.TemplateTypeRef : TokenType.TypeRef,
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = stream.CurrentLine,
+                            ColumnEnd = stream.CurrentColumn
                         }
                     );
 
@@ -360,6 +409,10 @@ public static class Tokenizer
                             _ => stream.Peek(1),
                         },
                         Type = (TokenType)type,
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = stream.CurrentLine,
+                        ColumnEnd = stream.CurrentColumn
                     };
 
                     tokens.Add(newToken);
@@ -415,6 +468,10 @@ public static class Tokenizer
                             Type = number.Span.Contains('.')
                                 ? TokenType.LiteralFloat
                                 : TokenType.LiteralInt,
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = stream.CurrentLine,
+                            ColumnEnd = stream.CurrentColumn
                         }
                     );
 

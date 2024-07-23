@@ -134,19 +134,16 @@ public class LLVMCompiler : IDisposable
 
     private Namespace CurrentNamespace
     {
-        get { return _currentNamespace ?? throw new Exception("Current namespace is null."); }
+        get
+        {
+            return _currentNamespace ?? throw new CriticalException("Current namespace is null.");
+        }
         set { _currentNamespace = value; }
     }
 
     private Function CurrentFunction
     {
-        get
-        {
-            return _currentFunction
-                ?? throw new Exception(
-                    "Current function is null. This is a CRITICAL ERROR. Report ASAP."
-                );
-        }
+        get { return _currentFunction ?? throw new CriticalException("Current function is null."); }
         set
         {
             if (value == null)
@@ -158,8 +155,8 @@ public class LLVMCompiler : IDisposable
                 _currentFunction =
                     value.Type is FuncType
                         ? value
-                        : throw new Exception(
-                            "Cannot assign function value as it is not of a valid type. This is a CRITICAL ERROR. Report ASAP."
+                        : throw new CriticalException(
+                            "Cannot assign function value as it is not of a valid type."
                         );
             }
         }
@@ -210,115 +207,133 @@ public class LLVMCompiler : IDisposable
 
         foreach (ScriptAST script in scripts)
         {
-            OpenFile(script.Namespace, script.Imports.ToArray());
-
-            foreach (GlobalVarNode global in script.GlobalVariables)
+            try
             {
-                DefineGlobal(global);
-            }
+                OpenFile(script.Namespace, script.Imports.ToArray());
 
-            foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
-            {
-                DefineFunction(funcDefNode);
-            }
-
-            foreach (TypeNode structNode in script.TypeNodes)
-            {
-                if (structNode is not TypeTemplateNode)
+                foreach (GlobalVarNode global in script.GlobalVariables)
                 {
-                    var attributes = new Dictionary<string, IAttribute>();
+                    DefineGlobal(global);
+                }
 
-                    foreach (AttributeNode attribute in structNode.Attributes)
+                foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
+                {
+                    DefineFunction(funcDefNode);
+                }
+
+                foreach (TypeNode structNode in script.TypeNodes)
+                {
+                    if (structNode is not TypeTemplateNode)
                     {
-                        attributes.Add(
-                            attribute.Name,
-                            MakeAttribute(
-                                attribute.Name,
-                                CleanAttributeArgs(attribute.Arguments.ToArray())
-                            )
-                        );
-                    }
+                        var attributes = new Dictionary<string, IAttribute>();
 
-                    if (
-                        !(
-                            attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS)
-                            && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())
-                        )
-                    )
-                    {
-                        TypeDecl typeDecl = GetType(structNode.Name);
-
-                        if (!structNode.IsOpaque)
+                        foreach (AttributeNode attribute in structNode.Attributes)
                         {
-                            foreach (FuncDefNode funcDefNode in structNode.Functions)
+                            attributes.Add(
+                                attribute.Name,
+                                MakeAttribute(
+                                    attribute.Name,
+                                    CleanAttributeArgs(attribute.Arguments.ToArray())
+                                )
+                            );
+                        }
+
+                        if (
+                            !(
+                                attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS)
+                                && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())
+                            )
+                        )
+                        {
+                            TypeDecl typeDecl = GetType(structNode, structNode.Name);
+
+                            if (!structNode.IsOpaque)
                             {
-                                DefineFunction(funcDefNode, typeDecl);
+                                foreach (FuncDefNode funcDefNode in structNode.Functions)
+                                {
+                                    DefineFunction(funcDefNode, typeDecl);
+                                }
                             }
                         }
                     }
                 }
+
+                foreach (ImplementNode implementNode in script.ImplementNodes)
+                {
+                    var trait = GetTrait(implementNode, implementNode.Trait.Name); //TODO: traits should be treated like types, *mostly*
+
+                    if (ResolveType(implementNode.Type) is not StructDecl type)
+                        throw new CompilerException(
+                            implementNode,
+                            $"Cannot implement non-trait \"{implementNode.Type}\"."
+                        );
+
+                    if (trait.IsExternal && type.IsExternal)
+                        throw new CompilerException(
+                            implementNode,
+                            $"Cannot implement external trait \"{trait.FullName}\" for external type \"{type.FullName}\"."
+                        );
+
+                    ImplementTraitForType(trait, type, implementNode.Implementations);
+                }
             }
-
-            foreach (ImplementNode implementNode in script.ImplementNodes)
+            catch (Exception e)
             {
-                var trait = GetTrait(implementNode.Trait.Name); //TODO: traits should be treated like types, *mostly*
-
-                if (ResolveType(implementNode.Type) is not StructDecl type)
-                    throw new Exception($"Cannot implement non-trait \"{implementNode.Type}\".");
-
-                if (trait.IsExternal && type.IsExternal)
-                    throw new Exception(
-                        $"Cannot implement external trait \"{trait.FullName}\" for external type \"{type.FullName}\"."
-                    );
-
-                ImplementTraitForType(trait, type, implementNode.Implementations);
+                Error(e);
             }
         }
 
         foreach (ScriptAST script in scripts)
         {
-            OpenFile(script.Namespace, script.Imports.ToArray());
-
-            foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
+            try
             {
-                CompileFunction(funcDefNode);
-            }
+                OpenFile(script.Namespace, script.Imports.ToArray());
 
-            foreach (TypeNode structNode in script.TypeNodes)
-            {
-                if (structNode is not TypeTemplateNode)
+                foreach (FuncDefNode funcDefNode in script.GlobalFunctions)
                 {
-                    var attributes = new Dictionary<string, IAttribute>();
+                    CompileFunction(funcDefNode);
+                }
 
-                    foreach (AttributeNode attribute in structNode.Attributes)
+                foreach (TypeNode structNode in script.TypeNodes)
+                {
+                    if (structNode is not TypeTemplateNode)
                     {
-                        attributes.Add(
-                            attribute.Name,
-                            MakeAttribute(
-                                attribute.Name,
-                                CleanAttributeArgs(attribute.Arguments.ToArray())
-                            )
-                        );
-                    }
+                        var attributes = new Dictionary<string, IAttribute>();
 
-                    if (
-                        !(
-                            attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS)
-                            && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())
-                        )
-                    )
-                    {
-                        TypeDecl typeDecl = GetType(structNode.Name);
-
-                        if (!structNode.IsOpaque)
+                        foreach (AttributeNode attribute in structNode.Attributes)
                         {
-                            foreach (FuncDefNode funcDefNode in structNode.Functions)
+                            attributes.Add(
+                                attribute.Name,
+                                MakeAttribute(
+                                    attribute.Name,
+                                    CleanAttributeArgs(attribute.Arguments.ToArray())
+                                )
+                            );
+                        }
+
+                        if (
+                            !(
+                                attributes.TryGetValue(Reserved.TargetOS, out IAttribute targetOS)
+                                && !((TargetOSAttribute)targetOS).Targets.Contains(Utils.GetOS())
+                            )
+                        )
+                        {
+                            TypeDecl typeDecl = GetType(structNode, structNode.Name);
+
+                            if (!structNode.IsOpaque)
                             {
-                                CompileFunction(funcDefNode, typeDecl);
+                                foreach (FuncDefNode funcDefNode in structNode.Functions)
+                                {
+                                    CompileFunction(funcDefNode, typeDecl);
+                                }
                             }
                         }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                Error(e);
             }
         }
 
@@ -392,6 +407,8 @@ public class LLVMCompiler : IDisposable
     public void Warn(string message) => _logger.Warn(message);
 
     public void Error(string message) => _logger.Error(message);
+
+    public void Error(Exception e) => _logger.Error(e.ToString());
 
     public unsafe void LoadLibrary(string path)
     {
@@ -495,8 +512,7 @@ public class LLVMCompiler : IDisposable
                 typeTemplateNode.Name,
                 typeTemplateNode.Privacy,
                 typeTemplateNode.IsUnion,
-                typeTemplateNode.Fields,
-                typeTemplateNode.Functions,
+                typeTemplateNode.Contents,
                 _imports,
                 typeTemplateNode.Attributes,
                 PrepareTemplateParameters(typeTemplateNode.Params)
@@ -863,7 +879,8 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception(
+            throw new CompilerException(
+                funcDefNode,
                 $"Cannot compile function \"{funcDefNode.Name}\" as it is undefined."
             );
         }
@@ -880,12 +897,16 @@ public class LLVMCompiler : IDisposable
         {
             if (func.Type.ReturnType is not StructDecl retType)
             {
-                throw new Exception("Init method must not be for a trait or enum.");
+                throw new CompilerException(
+                    funcDefNode,
+                    "Init method must not be for a trait or enum."
+                );
             }
 
             if (retType != methodType.OwnerTypeDecl)
             {
-                throw new Exception(
+                throw new CompilerException(
+                    funcDefNode,
                     $"Init method does not return the same type as its owner class (\"{methodType.OwnerTypeDecl.Name}\")."
                 );
             }
@@ -894,8 +915,8 @@ public class LLVMCompiler : IDisposable
             func.OpeningScope.Variables.Add(@new.Name, @new);
 
             if (!(@new.Type.BaseType is StructDecl structOfNew))
-                throw new Exception(
-                    $"Critical failure in the init of class \"{methodType.OwnerTypeDecl}\"."
+                throw new CriticalException(
+                    $"Failure in the init of class \"{methodType.OwnerTypeDecl}\"."
                 );
 
             foreach (Field field in structOfNew.Fields.Values)
@@ -946,19 +967,23 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception("Function is not guaranteed to return.");
+            throw new CompilerException(funcDefNode, "Function is not guaranteed to return.");
         }
     }
 
-    public LLVMValueRef HandleForeign(string funcName, FuncType funcType)
+    public LLVMValueRef HandleForeign(IASTNode? node, string funcName, FuncType funcType)
     {
         if (_foreigns.TryGetValue(funcName, out FuncType prevType))
         {
             if (!prevType.Equals(funcType))
             {
-                throw new Exception(
-                    $"Foreign function \"{funcType}\" cannot overload other definition \"{prevType}\"."
-                );
+                string msg =
+                    $"Foreign function \"{funcName}{funcType}\" cannot overload other definition \"{prevType}\".";
+
+                if (node is not null)
+                    throw new CompilerException(node, msg);
+                else
+                    throw new Exception(msg);
             }
 
             return Module.GetNamedFunction(funcName);
@@ -1033,7 +1058,7 @@ public class LLVMCompiler : IDisposable
                 if (@return.Expression != null)
                 {
                     Value expr = CompileExpression(scope, @return.Expression);
-                    expr = expr.ImplicitConvertTo(CurrentFunction.Type.ReturnType);
+                    expr = expr.ImplicitConvertTo(CurrentFunction.Type.ReturnType, @return);
                     Builder.BuildRet(expr.LLVMValue);
                 }
                 else
@@ -1071,7 +1096,7 @@ public class LLVMCompiler : IDisposable
                 Builder.BuildBr(loop);
                 Builder.PositionAtEnd(loop);
                 Value condition = CompileExpression(scope, @while.Condition)
-                    .ImplicitConvertTo(Bool);
+                    .ImplicitConvertTo(Bool, @while);
                 Builder.BuildCondBr(condition.LLVMValue, then, @continue);
                 Builder.PositionAtEnd(then);
 
@@ -1090,7 +1115,8 @@ public class LLVMCompiler : IDisposable
             }
             else if (statement is IfNode @if)
             {
-                Value condition = CompileExpression(scope, @if.Condition).ImplicitConvertTo(Bool);
+                Value condition = CompileExpression(scope, @if.Condition)
+                    .ImplicitConvertTo(Bool, @if);
                 LLVMBasicBlockRef then = CurrentFunction.LLVMValue.AppendBasicBlock("then");
                 LLVMBasicBlockRef @else = CurrentFunction.LLVMValue.AppendBasicBlock("else");
                 LLVMBasicBlockRef @continue = null;
@@ -1172,22 +1198,23 @@ public class LLVMCompiler : IDisposable
         return false;
     }
 
-    public Data.Type ResolveType(TypeRefNode typeRef)
+    public Type ResolveType(TypeRefNode typeRef)
     {
-        Data.Type type;
+        Type type;
 
         if (typeRef is LocalTypeRefNode localTypeRef)
         {
             if (!_anonTypes.TryGetValue(localTypeRef.Name, out type))
             {
-                throw new Exception(
+                throw new CompilerException(
+                    localTypeRef,
                     $"No template loaded with type parameter \"{localTypeRef.Name}\"."
                 );
             }
         }
         else if (typeRef is TemplateTypeRefNode tmplTypeRef)
         {
-            Template template = GetTemplate(tmplTypeRef.Name);
+            Template template = GetTemplate(tmplTypeRef, tmplTypeRef.Name);
             type = template.Build(tmplTypeRef.Arguments);
         }
         else if (typeRef is FuncTypeRefNode fnTypeRef)
@@ -1210,7 +1237,7 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            TypeDecl typeDecl = GetType(typeRef.Name);
+            TypeDecl typeDecl = GetType(typeRef, typeRef.Name);
             type = typeDecl;
         }
 
@@ -1272,7 +1299,10 @@ public class LLVMCompiler : IDisposable
 
             CurrentFunction = func;
             Value ret = !CompileScope(func.OpeningScope, localFuncDef.ExecutionBlock)
-                ? throw new Exception("Local function is not guaranteed to return.")
+                ? throw new CompilerException(
+                    localFuncDef,
+                    "Local function is not guaranteed to return."
+                )
                 : func;
             CurrentFunction = parentFunction;
 
@@ -1281,7 +1311,7 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is InlineIfNode @if)
         {
-            Value condition = CompileExpression(scope, @if.Condition).ImplicitConvertTo(Bool);
+            Value condition = CompileExpression(scope, @if.Condition).ImplicitConvertTo(Bool, @if);
             LLVMBasicBlockRef then = CurrentFunction.LLVMValue.AppendBasicBlock("then");
             LLVMBasicBlockRef @else = CurrentFunction.LLVMValue.AppendBasicBlock("else");
             LLVMBasicBlockRef @continue = CurrentFunction.LLVMValue.AppendBasicBlock("continue");
@@ -1292,7 +1322,7 @@ public class LLVMCompiler : IDisposable
 
             //else
             Builder.PositionAtEnd(@else);
-            Value elseVal = CompileExpression(scope, @if.Else).ImplicitConvertTo(thenVal.Type);
+            Value elseVal = CompileExpression(scope, @if.Else).ImplicitConvertTo(thenVal.Type, @if);
 
             //prior
             Builder.PositionAtEnd(scope.LLVMBlock);
@@ -1315,7 +1345,8 @@ public class LLVMCompiler : IDisposable
 
             return thenVal.Type.Equals(elseVal.Type)
                 ? Value.Create(this, thenVal.Type, result)
-                : throw new Exception(
+                : throw new CompilerException(
+                    @if,
                     "Then and else statements of inline if are not of the same type."
                 );
         }
@@ -1331,11 +1362,14 @@ public class LLVMCompiler : IDisposable
         {
             return CompileLiteral(literalNode);
         }
-        else if (expr is SelfNode @this)
+        else if (expr is SelfNode self)
         {
             if (CurrentFunction.OwnerType == null)
             {
-                throw new Exception("Attempted self-instance reference in a global function.");
+                throw new CompilerException(
+                    self,
+                    "Attempted self-instance reference in a global function."
+                );
             }
 
             if (CurrentFunction.IsStatic)
@@ -1346,7 +1380,10 @@ public class LLVMCompiler : IDisposable
                 }
                 else
                 {
-                    throw new Exception("Attempted self-instance reference in a static method.");
+                    throw new CompilerException(
+                        self,
+                        "Attempted self-instance reference in a static method."
+                    );
                 }
             }
             else
@@ -1374,7 +1411,8 @@ public class LLVMCompiler : IDisposable
 
                 if (indexAccess.Arguments.Count != 1)
                 {
-                    throw new Exception(
+                    throw new CompilerException(
+                        indexAccess,
                         "Standard pointer indexer must be given one parameter as index."
                     );
                 }
@@ -1388,7 +1426,7 @@ public class LLVMCompiler : IDisposable
                         new LLVMValueRef[]
                         {
                             CompileExpression(scope, indexAccess.Arguments[0])
-                                .ImplicitConvertTo(UInt64)
+                                .ImplicitConvertTo(UInt64, indexAccess)
                                 .LLVMValue
                         }
                     )
@@ -1402,20 +1440,28 @@ public class LLVMCompiler : IDisposable
                         Reserved.Indexer,
                         indexAccess.Arguments,
                         indexAccess.ToBeIndexed
-                    ),
+                    )
+                    {
+                        LineStart = indexAccess.LineStart,
+                        ColumnStart = indexAccess.ColumnStart,
+                        LineEnd = indexAccess.LineEnd,
+                        ColumnEnd = indexAccess.ColumnEnd
+                    },
                     CurrentFunction.OwnerType
                 );
             }
             else
             {
-                throw new Exception(
+                throw new CompilerException(
+                    indexAccess,
                     $"Cannot use an index access on value of type \"{toBeIndexed.Type}\"."
                 );
             }
         }
         else if (expr is InverseNode inverse)
         {
-            var value = CompileExpression(scope, inverse.Expression).ImplicitConvertTo(Bool);
+            var value = CompileExpression(scope, inverse.Expression)
+                .ImplicitConvertTo(Bool, inverse);
 
             return Value.Create(
                 this,
@@ -1431,14 +1477,13 @@ public class LLVMCompiler : IDisposable
         {
             var value = CompileExpression(scope, incrementVar.Expression);
 
-            if (value is not Pointer ptr)
+            if (
+                value is not Pointer ptr
+                || ptr.Type is not RefType
+                || ptr.Type.BaseType is PtrType or FuncType
+            ) //TODO: is this correct?
             {
-                throw new Exception(); //TODO
-            }
-
-            if (ptr.Type is not RefType || ptr.Type.BaseType is PtrType or FuncType)
-            {
-                throw new Exception(); //TODO
+                throw new CompilerException(incrementVar, "Cannot increment non-pointer.");
             }
 
             var valToAdd = LLVMValueRef.CreateConstInt(ptr.Type.BaseType.LLVMType, 1); //TODO: float compat?
@@ -1446,7 +1491,10 @@ public class LLVMCompiler : IDisposable
                 Value.Create(
                     this,
                     ptr.Type.BaseType,
-                    Builder.BuildAdd(value.ImplicitConvertTo(ptr.Type.BaseType).LLVMValue, valToAdd)
+                    Builder.BuildAdd(
+                        value.ImplicitConvertTo(ptr.Type.BaseType, incrementVar).LLVMValue,
+                        valToAdd
+                    )
                 )
             );
             return value;
@@ -1455,14 +1503,13 @@ public class LLVMCompiler : IDisposable
         {
             var value = CompileExpression(scope, decrementVar.Expression);
 
-            if (value is not Pointer ptr)
+            if (
+                value is not Pointer ptr
+                || ptr.Type is not RefType
+                || ptr.Type.BaseType is PtrType or FuncType
+            ) //TODO: is this correct?
             {
-                throw new Exception(); //TODO
-            }
-
-            if (ptr.Type is not RefType || ptr.Type.BaseType is PtrType or FuncType)
-            {
-                throw new Exception(); //TODO
+                throw new CompilerException(decrementVar, "Cannot decrement non-pointer.");
             }
 
             var valToAdd = LLVMValueRef.CreateConstInt(ptr.Type.BaseType.LLVMType, 1); //TODO: float compat?
@@ -1470,7 +1517,10 @@ public class LLVMCompiler : IDisposable
                 Value.Create(
                     this,
                     ptr.Type.BaseType,
-                    Builder.BuildSub(value.ImplicitConvertTo(ptr.Type.BaseType).LLVMValue, valToAdd)
+                    Builder.BuildSub(
+                        value.ImplicitConvertTo(ptr.Type.BaseType, decrementVar).LLVMValue,
+                        valToAdd
+                    )
                 )
             );
             return value;
@@ -1501,7 +1551,7 @@ public class LLVMCompiler : IDisposable
         {
             if (expr == null)
             {
-                throw new Exception("Critical! Cannot compile null expression.");
+                throw new CriticalException("Cannot compile null expression.");
             }
 
             throw new NotImplementedException();
@@ -1512,7 +1562,7 @@ public class LLVMCompiler : IDisposable
     {
         if (literalNode.Value is string str)
         {
-            TypeDecl typeDecl = GetType(Reserved.UInt8);
+            TypeDecl typeDecl = GetType(literalNode, Reserved.UInt8);
             LLVMValueRef constStr = Context.GetConstString(str, false);
             LLVMValueRef global = Module.AddGlobal(constStr.TypeOf, "litstr");
             global.Initializer = constStr;
@@ -1567,8 +1617,12 @@ public class LLVMCompiler : IDisposable
                     this,
                     Bool,
                     Builder.BuildAnd(
-                        CompileExpression(scope, binaryOp.Left).ImplicitConvertTo(Bool).LLVMValue,
-                        CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(Bool).LLVMValue
+                        CompileExpression(scope, binaryOp.Left)
+                            .ImplicitConvertTo(Bool, binaryOp)
+                            .LLVMValue,
+                        CompileExpression(scope, binaryOp.Right)
+                            .ImplicitConvertTo(Bool, binaryOp)
+                            .LLVMValue
                     )
                 ),
             OperationType.Or
@@ -1576,8 +1630,12 @@ public class LLVMCompiler : IDisposable
                     this,
                     Bool,
                     Builder.BuildOr(
-                        CompileExpression(scope, binaryOp.Left).ImplicitConvertTo(Bool).LLVMValue,
-                        CompileExpression(scope, binaryOp.Right).ImplicitConvertTo(Bool).LLVMValue
+                        CompileExpression(scope, binaryOp.Left)
+                            .ImplicitConvertTo(Bool, binaryOp)
+                            .LLVMValue,
+                        CompileExpression(scope, binaryOp.Right)
+                            .ImplicitConvertTo(Bool, binaryOp)
+                            .LLVMValue
                     )
                 ),
             OperationType.NotEqual
@@ -1592,10 +1650,16 @@ public class LLVMCompiler : IDisposable
                                     Utils.ExpandOpName(Utils.OpTypeToString(OperationType.Equal)),
                                     new List<IExpressionNode>() { binaryOp.Right },
                                     binaryOp.Left
-                                ),
+                                )
+                                {
+                                    LineStart = binaryOp.LineStart,
+                                    ColumnStart = binaryOp.ColumnStart,
+                                    LineEnd = binaryOp.LineEnd,
+                                    ColumnEnd = binaryOp.ColumnEnd
+                                },
                                 CurrentFunction.OwnerType
                             )
-                            .ImplicitConvertTo(Bool)
+                            .ImplicitConvertTo(Bool, binaryOp)
                             .LLVMValue,
                         LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)
                     )
@@ -1607,14 +1671,20 @@ public class LLVMCompiler : IDisposable
                         Utils.ExpandOpName(Utils.OpTypeToString(binaryOp.Type)),
                         new List<IExpressionNode>() { binaryOp.Right },
                         binaryOp.Left
-                    ),
+                    )
+                    {
+                        LineStart = binaryOp.LineStart,
+                        ColumnStart = binaryOp.ColumnStart,
+                        LineEnd = binaryOp.LineEnd,
+                        ColumnEnd = binaryOp.ColumnEnd
+                    },
                     CurrentFunction.OwnerType
                 )
         };
 
         if (binaryOp.Type == OperationType.Equal)
         {
-            result = result.ImplicitConvertTo(Bool);
+            result = result.ImplicitConvertTo(Bool, binaryOp);
         }
 
         return result;
@@ -1634,7 +1704,7 @@ public class LLVMCompiler : IDisposable
 
         if (value.Type.CanConvertTo(destType))
         {
-            builtVal = value.ImplicitConvertTo(destType).LLVMValue;
+            builtVal = value.ImplicitConvertTo(destType, cast).LLVMValue;
         }
         else
         {
@@ -1855,11 +1925,14 @@ public class LLVMCompiler : IDisposable
 
         if (left is not Pointer ptrAssigned)
         {
-            throw new Exception($"Cannot assign to non-pointer: #{left.Type}({left.LLVMValue})");
+            throw new CompilerException(
+                binaryOp,
+                $"Cannot assign to non-pointer: #{left.Type}({left.LLVMValue})"
+            );
         }
 
         Value right = CompileExpression(scope, binaryOp.Right)
-            .ImplicitConvertTo(ptrAssigned.Type.BaseType);
+            .ImplicitConvertTo(ptrAssigned.Type.BaseType, binaryOp);
         return ptrAssigned.Store(right);
     }
 
@@ -1884,7 +1957,7 @@ public class LLVMCompiler : IDisposable
 
         if (value != null)
         {
-            Builder.BuildStore(value.ImplicitConvertTo(type).LLVMValue, llvmVariable);
+            Builder.BuildStore(value.ImplicitConvertTo(type, localDef).LLVMValue, llvmVariable);
         }
 
         return ret;
@@ -1934,7 +2007,8 @@ public class LLVMCompiler : IDisposable
                 }
                 else
                 {
-                    throw new Exception(
+                    throw new CompilerException(
+                        @ref,
                         $"Cannot do field access on value of type \"{parent.Type}\"."
                     );
                 }
@@ -1955,7 +2029,7 @@ public class LLVMCompiler : IDisposable
             }
             else
             {
-                throw new Exception($"Variable \"{@ref.Name}\" does not exist.");
+                throw new CompilerException(@ref, $"Variable \"{@ref.Name}\" does not exist.");
             }
         }
     }
@@ -1997,14 +2071,16 @@ public class LLVMCompiler : IDisposable
                     }
                     else
                     {
-                        throw new Exception(
+                        throw new CompilerException(
+                            funcCall,
                             $"Static method \"{funcCall.Name}\" does not exist on struct \"{@struct}\"."
                         );
                     }
                 }
                 else
                 {
-                    throw new Exception(
+                    throw new CompilerException(
+                        funcCall,
                         $"Cannot call static method \"{funcCall.Name}\" on non-struct \"{type}\"."
                     );
                 }
@@ -2060,7 +2136,10 @@ public class LLVMCompiler : IDisposable
                 }
                 else
                 {
-                    throw new Exception("What"); //TODO
+                    throw new CompilerException(
+                        funcCall,
+                        "Function call requires either one of: #type, #type*, or #trait*."
+                    );
                 }
 
                 var newArgs = new List<Value> { toCallOn };
@@ -2092,14 +2171,14 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            func = GetFunction(funcCall.Name, argTypes);
+            func = GetFunction(funcCall, funcCall.Name, argTypes);
         }
 
         int index = 0;
 
         foreach (var paramType in func.ParameterTypes)
         {
-            args[index] = args[index].ImplicitConvertTo(paramType);
+            args[index] = args[index].ImplicitConvertTo(paramType, funcCall);
             index++;
         }
 
@@ -2107,7 +2186,10 @@ public class LLVMCompiler : IDisposable
         {
             if (toCallOn == null || toCallOn is not TraitPointer aspPtr)
             {
-                throw new Exception("How did you get that method from that source"); //TODO
+                throw new CompilerException(
+                    funcCall,
+                    "How did you get that method from that source"
+                ); //TODO
             }
 
             return aspPtr.CallMethod(this, aspMethod, args.ToArray());
@@ -2116,7 +2198,7 @@ public class LLVMCompiler : IDisposable
         return func.Call(args.ToArray());
     }
 
-    public Namespace GetNamespace(string name)
+    public Namespace GetNamespace(IASTNode node, string name)
     {
         if (CurrentNamespace.Name == name)
         {
@@ -2132,11 +2214,11 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception($"Could not find namespace \"{name}\".");
+            throw new CompilerException(node, $"Could not find namespace \"{name}\".");
         }
     }
 
-    public TypeDecl GetType(string name)
+    public TypeDecl GetType(IASTNode node, string name)
     {
         if (CurrentNamespace.TryGetType(name, out TypeDecl type))
         {
@@ -2148,11 +2230,11 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception($"Could not find type \"{name}\".");
+            throw new CompilerException(node, $"Could not find type \"{name}\".");
         }
     }
 
-    public TraitDecl GetTrait(string name)
+    public TraitDecl GetTrait(IASTNode node, string name)
     {
         if (CurrentNamespace.TryGetTrait(name, out TraitDecl trait))
         {
@@ -2164,11 +2246,11 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception($"Could not find trait \"{name}\".");
+            throw new CompilerException(node, $"Could not find trait \"{name}\".");
         }
     }
 
-    public Template GetTemplate(string name)
+    public Template GetTemplate(IASTNode node, string name)
     {
         if (CurrentNamespace.TryGetTemplate(name, out Template template))
         {
@@ -2180,11 +2262,11 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception($"Could not find template \"{name}\".");
+            throw new CompilerException(node, $"Could not find template \"{name}\".");
         }
     }
 
-    public Function GetFunction(string name, IReadOnlyList<Data.Type> paramTypes)
+    public Function GetFunction(IASTNode node, string name, IReadOnlyList<Type> paramTypes)
     {
         if (
             CurrentFunction != null
@@ -2210,7 +2292,7 @@ public class LLVMCompiler : IDisposable
         }
         else
         {
-            throw new Exception($"Could not find function \"{name}\".");
+            throw new CompilerException(node, $"Could not find function \"{name}\".");
         }
     }
 
@@ -2226,7 +2308,10 @@ public class LLVMCompiler : IDisposable
             }
             else
             {
-                throw new Exception("Cannot pass non-literal parameters to an attribute.");
+                throw new CompilerException(
+                    expr,
+                    "Cannot pass non-literal parameters to an attribute."
+                );
             }
         }
 

@@ -9,13 +9,13 @@ namespace Moth.LLVM;
 public unsafe class MetadataSerializer : IDisposable
 {
     private MemoryStream _stream = new MemoryStream();
-    private List<Metadata.Type> _types = new List<Metadata.Type>();
-    private List<Metadata.Field> _fields = new List<Metadata.Field>();
-    private List<Metadata.Function> _functions = new List<Metadata.Function>();
-    private List<Metadata.Global> _globals = new List<Metadata.Global>();
-    private List<Metadata.FuncType> _funcTypes = new List<Metadata.FuncType>();
-    private List<Metadata.Parameter> _params = new List<Metadata.Parameter>();
-    private List<Metadata.ParamType> _paramTypes = new List<Metadata.ParamType>();
+    private List<Metadata.MetaType> _types = new List<Metadata.MetaType>();
+    private List<Metadata.MetaField> _fields = new List<Metadata.MetaField>();
+    private List<Metadata.MetaFunction> _functions = new List<Metadata.MetaFunction>();
+    private List<Metadata.MetaGlobal> _globals = new List<Metadata.MetaGlobal>();
+    private List<Metadata.MetaFuncType> _funcTypes = new List<Metadata.MetaFuncType>();
+    private List<Metadata.MetaParameter> _params = new List<Metadata.MetaParameter>();
+    private List<Metadata.MetaParamType> _paramTypes = new List<Metadata.MetaParamType>();
     private List<byte> _typeRefs = new List<byte>();
     private List<string> _names = new List<string>();
     private Dictionary<Type, uint> _typeIndexes = new Dictionary<Type, uint>();
@@ -45,11 +45,11 @@ public unsafe class MetadataSerializer : IDisposable
     {
         var version = Meta.Version;
         var moduleVersion = _compiler.ModuleVersion;
-        var header = new Metadata.Header();
+        var header = new Metadata.MetaHeader();
         _compiler.Types.ForEach(AddType);
         _compiler.Functions.ForEach(AddFunction);
         _compiler.Globals.ForEach(AddGlobal);
-        _stream.Seek(sizeof(Version) * 2 + sizeof(Metadata.Header), SeekOrigin.Current);
+        _stream.Seek(sizeof(Version) * 2 + sizeof(Metadata.MetaHeader), SeekOrigin.Current);
 
         OutListWithPos(&header.type_table_offset, _types);
         OutListWithPos(&header.field_table_offset, _fields);
@@ -79,7 +79,7 @@ public unsafe class MetadataSerializer : IDisposable
 
     public void AddType(TypeDecl typeDecl)
     {
-        var newType = new Metadata.Type();
+        var newType = new Metadata.MetaType();
         newType.privacy = typeDecl.Privacy;
         newType.is_foreign = typeDecl is OpaqueStructDecl;
         newType.is_union = typeDecl.IsUnion;
@@ -101,7 +101,7 @@ public unsafe class MetadataSerializer : IDisposable
 
     public uint AddFuncType(FuncType fnType)
     {
-        var newFuncType = new Metadata.FuncType();
+        var newFuncType = new Metadata.MetaFuncType();
         (uint retTyperefIndex, uint retTyperefLength) = AddTypeRef(fnType.ReturnType);
 
         newFuncType.is_variadic = fnType.IsVariadic;
@@ -112,7 +112,7 @@ public unsafe class MetadataSerializer : IDisposable
 
         foreach (var paramType in fnType.ParameterTypes)
         {
-            var newParamType = new Metadata.ParamType();
+            var newParamType = new Metadata.MetaParamType();
             (uint typerefIndex, uint typerefLength) = AddTypeRef(paramType);
             newParamType.typeref_table_index = typerefIndex;
             newParamType.typeref_table_length = typerefLength;
@@ -128,7 +128,7 @@ public unsafe class MetadataSerializer : IDisposable
 
     public void AddField(Field field)
     {
-        var newField = new Metadata.Field();
+        var newField = new Metadata.MetaField();
         (uint typerefIndex, uint typerefLength) = AddTypeRef(field.Type);
 
         newField.privacy = field.Privacy;
@@ -144,7 +144,7 @@ public unsafe class MetadataSerializer : IDisposable
 
     public void AddFunction(DefinedFunction func)
     {
-        var newFunc = new Metadata.Function();
+        var newFunc = new Metadata.MetaFunction();
         (uint typerefIndex, uint typerefLength) = AddTypeRef(func.Type);
 
         newFunc.is_method = !func.IsStatic;
@@ -162,7 +162,7 @@ public unsafe class MetadataSerializer : IDisposable
 
     public void AddGlobal(IGlobal global)
     {
-        var newGlobal = new Metadata.Global();
+        var newGlobal = new Metadata.MetaGlobal();
         (uint typerefIndex, uint typerefLength) = AddTypeRef(global.Type.BaseType);
 
         newGlobal.privacy = global.Privacy;
@@ -179,7 +179,7 @@ public unsafe class MetadataSerializer : IDisposable
 
     public void AddParam(Parameter param)
     {
-        var newParam = new Metadata.Parameter();
+        var newParam = new Metadata.MetaParameter();
         newParam.name_table_index = _nameTablePosition;
         newParam.name_table_length = (uint)param.Name.Length;
         newParam.param_index = param.ParamIndex;
@@ -189,9 +189,9 @@ public unsafe class MetadataSerializer : IDisposable
         _paramTablePosition++;
     }
 
-    public void AddParamType(Metadata.ParamType paramType)
+    public void AddParamType(Metadata.MetaParamType metaParamType)
     {
-        _paramTypes.Add(paramType);
+        _paramTypes.Add(metaParamType);
         _paramTypeTablePosition++;
     }
 

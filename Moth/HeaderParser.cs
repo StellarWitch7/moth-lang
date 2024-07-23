@@ -68,9 +68,27 @@ public unsafe class HeaderParser : IDisposable
         CXCursor c = _unit.Cursor;
         Visit(c, TopLevel);
 
-        var baseNamespace = new NamespaceNode(_topNamespace);
-        var interopNamespace = new NamespaceNode("interop");
-        var libNamespace = new NamespaceNode(Path.GetFileNameWithoutExtension(_path));
+        var baseNamespace = new NamespaceNode(_topNamespace)
+        {
+            LineStart = 0,
+            ColumnStart = 0,
+            LineEnd = 0,
+            ColumnEnd = 0
+        };
+        var interopNamespace = new NamespaceNode("interop")
+        {
+            LineStart = 0,
+            ColumnStart = 0,
+            LineEnd = 0,
+            ColumnEnd = 0
+        };
+        var libNamespace = new NamespaceNode(Path.GetFileNameWithoutExtension(_path))
+        {
+            LineStart = 0,
+            ColumnStart = 0,
+            LineEnd = 0,
+            ColumnEnd = 0
+        };
         baseNamespace.Child = interopNamespace;
         interopNamespace.Child = libNamespace;
         _readyToDispose = true;
@@ -83,7 +101,13 @@ public unsafe class HeaderParser : IDisposable
             _funcs,
             _globals,
             new List<ImplementNode>()
-        );
+        )
+        {
+            LineStart = 0,
+            ColumnStart = 0,
+            LineEnd = 0,
+            ColumnEnd = 0
+        };
     }
 
     private unsafe CXChildVisitResult Visit(CXCursor c, CXCursorVisitor v)
@@ -114,10 +138,24 @@ public unsafe class HeaderParser : IDisposable
                 var @struct = new TypeNode(
                     structName,
                     PrivacyType.Pub,
-                    scopeStatements.Count == 0 ? null : new ScopeNode(scopeStatements),
+                    scopeStatements.Count == 0
+                        ? null
+                        : new ScopeNode(scopeStatements)
+                        {
+                            LineStart = 0,
+                            ColumnStart = 0,
+                            LineEnd = 0,
+                            ColumnEnd = 0
+                        },
                     isUnion,
                     new List<AttributeNode>()
-                );
+                )
+                {
+                    LineStart = 0,
+                    ColumnStart = 0,
+                    LineEnd = 0,
+                    ColumnEnd = 0
+                };
                 _typesDict.TryAdd(structName, @struct);
                 if (_typesDict[structName].IsOpaque)
                     _typesDict[structName] = @struct;
@@ -138,6 +176,12 @@ public unsafe class HeaderParser : IDisposable
                         null,
                         new List<AttributeNode>()
                     )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    }
                 );
                 break;
             case CXCursorKind.CXCursor_VarDecl:
@@ -152,6 +196,12 @@ public unsafe class HeaderParser : IDisposable
                         true,
                         new List<AttributeNode>()
                     )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    }
                 );
                 break;
             case CXCursorKind.CXCursor_FunctionDecl:
@@ -172,6 +222,12 @@ public unsafe class HeaderParser : IDisposable
                         true,
                         new List<AttributeNode>()
                     )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    }
                 );
                 break;
             default:
@@ -200,6 +256,12 @@ public unsafe class HeaderParser : IDisposable
                         fieldType,
                         new List<AttributeNode>()
                     )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    }
                 );
                 break;
             default:
@@ -226,7 +288,15 @@ public unsafe class HeaderParser : IDisposable
                         $"Cannot convert C enum declaration to Moth enum declaration, "
                             + $"enum value (\"{flagValue}\") for \"{flagName}\" is greater than 64 bits."
                     );
-                _enumFlags.Add(new EnumFlagNode(flagName, flagValue));
+                _enumFlags.Add(
+                    new EnumFlagNode(flagName, flagValue)
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    }
+                );
                 break;
             default:
                 break;
@@ -253,7 +323,15 @@ public unsafe class HeaderParser : IDisposable
                 if (parameterName == String.Empty)
                     parameterName = "_";
 
-                _funcParameters.Add(new ParameterNode(parameterName, parameterType));
+                _funcParameters.Add(
+                    new ParameterNode(parameterName, parameterType)
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    }
+                );
                 break;
             default:
                 break;
@@ -291,7 +369,13 @@ public unsafe class HeaderParser : IDisposable
                         paramTypes,
                         pointerDepth,
                         false
-                    );
+                    )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
                     break;
                 case CXTypeKind.CXType_FunctionNoProto:
                     result = new FuncTypeRefNode(
@@ -299,7 +383,13 @@ public unsafe class HeaderParser : IDisposable
                         new List<TypeRefNode>(),
                         pointerDepth,
                         false
-                    );
+                    )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
                     break;
                 case CXTypeKind.CXType_ConstantArray:
                     result = new ConstSizeArrayTypeRefNode(
@@ -307,7 +397,13 @@ public unsafe class HeaderParser : IDisposable
                         pointerDepth,
                         false,
                         t.ArraySize
-                    );
+                    )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
                     break;
                 case CXTypeKind.CXType_DependentSizedArray:
                 case CXTypeKind.CXType_IncompleteArray:
@@ -322,9 +418,27 @@ public unsafe class HeaderParser : IDisposable
                         new List<IExpressionNode>() { TranslateTypeRef(t.ElementType) },
                         pointerDepth,
                         false
-                    );
-                    var coreMath = new NamespaceNode("core");
-                    coreMath.Child = new NamespaceNode("math");
+                    )
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
+                    var coreMath = new NamespaceNode("core")
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
+                    coreMath.Child = new NamespaceNode("math")
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
                     WithNamespace(coreMath);
                     break;
                 default:
@@ -364,10 +478,22 @@ public unsafe class HeaderParser : IDisposable
                                     new TypeNode(
                                         name,
                                         PrivacyType.Pub,
-                                        new ScopeNode(scopeStatements),
+                                        new ScopeNode(scopeStatements)
+                                        {
+                                            LineStart = 0,
+                                            ColumnStart = 0,
+                                            LineEnd = 0,
+                                            ColumnEnd = 0
+                                        },
                                         isUnion,
                                         new List<AttributeNode>()
                                     )
+                                    {
+                                        LineStart = 0,
+                                        ColumnStart = 0,
+                                        LineEnd = 0,
+                                        ColumnEnd = 0
+                                    }
                                 );
                             }
                             else if (isEnum)
@@ -384,6 +510,12 @@ public unsafe class HeaderParser : IDisposable
                                         null,
                                         new List<AttributeNode>()
                                     )
+                                    {
+                                        LineStart = 0,
+                                        ColumnStart = 0,
+                                        LineEnd = 0,
+                                        ColumnEnd = 0
+                                    }
                                 );
                             }
                             else
@@ -423,7 +555,13 @@ public unsafe class HeaderParser : IDisposable
                         };
                     }
 
-                    result = new TypeRefNode(name, pointerDepth, false);
+                    result = new TypeRefNode(name, pointerDepth, false)
+                    {
+                        LineStart = 0,
+                        ColumnStart = 0,
+                        LineEnd = 0,
+                        ColumnEnd = 0
+                    };
                     break;
             }
         }
@@ -437,7 +575,16 @@ public unsafe class HeaderParser : IDisposable
     private void WithNamespace(NamespaceNode nmspace)
     {
         string key = nmspace.GetSource();
-        _importsDict.TryAdd(key, new ImportNode(nmspace));
+        _importsDict.TryAdd(
+            key,
+            new ImportNode(nmspace)
+            {
+                LineStart = 0,
+                ColumnStart = 0,
+                LineEnd = 0,
+                ColumnEnd = 0
+            }
+        );
     }
 
     private string ExtractAnonDeclName(CXType t)

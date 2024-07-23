@@ -8,11 +8,11 @@ public class TypeTemplateNode : TypeNode
         string name,
         PrivacyType privacy,
         List<TemplateParameterNode> @params,
-        ScopeNode scope,
+        ScopeNode contents,
         bool isUnion,
         List<AttributeNode> attributes
     )
-        : base(name, privacy, scope, isUnion, attributes) => Params = @params;
+        : base(name, privacy, contents, isUnion, attributes) => Params = @params;
 
     public override void GetSource(StringBuilder builder)
     {

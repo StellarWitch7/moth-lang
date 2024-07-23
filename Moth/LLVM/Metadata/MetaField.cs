@@ -3,7 +3,7 @@ using Moth.AST.Node;
 
 namespace Moth.LLVM.Metadata;
 
-public struct Field
+public struct MetaField
 {
     public PrivacyType privacy;
     public uint name_table_index;

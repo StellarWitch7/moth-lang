@@ -36,8 +36,17 @@ public static class ASTGenerator
         {
             if (context.Current?.Type == TokenType.Import)
             {
+                (int startLine, int startColumn) = context.SourcePosition(false);
                 context.MoveNext();
-                contents.Add(new ImportNode(ProcessNamespace(context)));
+                contents.Add(
+                    new ImportNode(ProcessNamespace(context))
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    }
+                );
 
                 if (context.Current?.Type != TokenType.Semicolon)
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.Semicolon);
@@ -50,6 +59,8 @@ public static class ASTGenerator
 
         while (context.Current != null)
         {
+            (int startLine, int startColumn) = context.SourcePosition(false);
+
             switch (context.Current?.Type)
             {
                 case TokenType.BlockComment:
@@ -59,6 +70,12 @@ public static class ASTGenerator
                             context.Current.Value.Text.ToString(),
                             context.Current?.Type == TokenType.BlockComment
                         )
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
                     );
                     context.MoveNext();
                     break;
@@ -110,7 +127,15 @@ public static class ASTGenerator
                             throw new Exception($"{error} cannot be unimplemented.");
                     }
 
-                    contents.Add(new ImplementNode(type, trait, scope));
+                    contents.Add(
+                        new ImplementNode(type, trait, scope)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     break;
                 default:
                     var result = ProcessDefinition(context, attributes);
@@ -120,7 +145,13 @@ public static class ASTGenerator
             }
         }
 
-        return new ScriptAST(@namespace, contents);
+        return new ScriptAST(@namespace, contents)
+        {
+            LineStart = 0,
+            ColumnStart = 0,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
     }
 
     public static NamespaceNode ProcessNamespace(ParseContext context)
@@ -130,13 +161,22 @@ public static class ASTGenerator
 
         if (context.Current?.Type == TokenType.Root)
         {
-            nmspace = new NamespaceFromRootNode();
-            lastNmspace = nmspace;
+            (int startLine, int startColumn) = context.SourcePosition(false);
             context.MoveNext();
+            nmspace = new NamespaceFromRootNode()
+            {
+                LineStart = startLine,
+                ColumnStart = startColumn,
+                LineEnd = context.SourcePosition(true).Item1,
+                ColumnEnd = context.SourcePosition(true).Item2
+            };
+            lastNmspace = nmspace;
         }
 
         while (context.Current != null)
         {
+            (int startLine, int startColumn) = context.SourcePosition(false);
+
             switch (context.Current?.Type)
             {
                 case TokenType.NamespaceSeparator:
@@ -145,14 +185,24 @@ public static class ASTGenerator
                 case TokenType.Name:
                     if (nmspace == null)
                     {
-                        nmspace = new NamespaceNode(context.Current.Value.Text.ToString());
+                        nmspace = new NamespaceNode(context.Current.Value.Text.ToString())
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        };
                         lastNmspace = nmspace;
                     }
                     else
                     {
-                        lastNmspace.Child = new NamespaceNode(
-                            context.Current.Value.Text.ToString()
-                        );
+                        lastNmspace.Child = new NamespaceNode(context.Current.Value.Text.ToString())
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        };
                         lastNmspace = lastNmspace.Child;
                     }
 
@@ -169,7 +219,9 @@ public static class ASTGenerator
     public static TraitNode ProcessTraitDef(
         ParseContext context,
         PrivacyType privacy,
-        List<AttributeNode> attributes
+        List<AttributeNode> attributes,
+        int startLine,
+        int startColumn
     )
     {
         if (context.MoveNext()?.Type == TokenType.Name)
@@ -227,7 +279,13 @@ public static class ASTGenerator
                         throw new Exception($"{error} must be unimplemented.");
                 }
 
-                return new TraitNode(name, privacy, scope, attributes);
+                return new TraitNode(name, privacy, scope, attributes)
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
             }
         }
         else
@@ -240,7 +298,9 @@ public static class ASTGenerator
         ParseContext context,
         PrivacyType privacy,
         bool isUnion,
-        List<AttributeNode> attributes
+        List<AttributeNode> attributes,
+        int startLine,
+        int startColumn
     )
     {
         if (context.MoveNext()?.Type == TokenType.Name)
@@ -274,6 +334,12 @@ public static class ASTGenerator
                                         isUnion,
                                         attributes
                                     )
+                                    {
+                                        LineStart = startLine,
+                                        ColumnStart = startColumn,
+                                        LineEnd = context.SourcePosition(true).Item1,
+                                        ColumnEnd = context.SourcePosition(true).Item2
+                                    }
                                 : throw new UnexpectedTokenException(
                                     context.Current.Value,
                                     TokenType.OpeningCurlyBraces
@@ -287,17 +353,23 @@ public static class ASTGenerator
             else if (context.Current?.Type == TokenType.Semicolon)
             {
                 context.MoveNext();
-                return new TypeNode(name, privacy, null, isUnion, attributes);
+                return new TypeNode(name, privacy, null, isUnion, attributes)
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
             }
             else
             {
-                return new TypeNode(
-                    name,
-                    privacy,
-                    ProcessScope(context, true),
-                    isUnion,
-                    attributes
-                );
+                return new TypeNode(name, privacy, ProcessScope(context, true), isUnion, attributes)
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
             }
         }
         else
@@ -308,6 +380,8 @@ public static class ASTGenerator
 
     private static TemplateParameterNode ProcessTemplateParam(ParseContext context)
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
+
         if (context.Current?.Type != TokenType.Name)
         {
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
@@ -317,11 +391,23 @@ public static class ASTGenerator
 
         if (context.MoveNext()?.Type != TokenType.TypeRef)
         {
-            return new TemplateParameterNode(name);
+            return new TemplateParameterNode(name)
+            {
+                LineStart = startLine,
+                ColumnStart = startColumn,
+                LineEnd = context.SourcePosition(true).Item1,
+                ColumnEnd = context.SourcePosition(true).Item2
+            };
         }
 
         TypeRefNode typeRef = ProcessTypeRef(context);
-        return new ConstTemplateParameterNode(name, typeRef);
+        return new ConstTemplateParameterNode(name, typeRef)
+        {
+            LineStart = startLine,
+            ColumnStart = startColumn,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
     }
 
     public static ScopeNode ProcessScope(ParseContext context, bool isClassRoot = false)
@@ -341,11 +427,19 @@ public static class ASTGenerator
 
             while (context.Current != null)
             {
+                (int startLine, int startColumn) = context.SourcePosition(false);
+
                 switch (context.Current?.Type)
                 {
                     case TokenType.ClosingCurlyBraces:
                         context.MoveNext();
-                        return new ScopeNode(statements);
+                        return new ScopeNode(statements)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        };
                     case TokenType.BlockComment:
                     case TokenType.Comment:
                         statements.Add(
@@ -353,6 +447,12 @@ public static class ASTGenerator
                                 context.Current.Value.Text.ToString(),
                                 context.Current?.Type == TokenType.BlockComment
                             )
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
                         );
                         context.MoveNext();
                         break;
@@ -371,6 +471,8 @@ public static class ASTGenerator
         {
             while (context.Current != null)
             {
+                (int startLine, int startColumn) = context.SourcePosition(false);
+
                 switch (context.Current?.Type)
                 {
                     case TokenType.BlockComment:
@@ -380,12 +482,26 @@ public static class ASTGenerator
                                 context.Current.Value.Text.ToString(),
                                 context.Current?.Type == TokenType.BlockComment
                             )
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
                         );
                         context.MoveNext();
                         break;
                     case TokenType.Return:
                         context.MoveNext();
-                        statements.Add(new ReturnNode(ProcessExpression(context, true)));
+                        statements.Add(
+                            new ReturnNode(ProcessExpression(context, true))
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
+                        );
 
                         if (context.Current?.Type != TokenType.ClosingCurlyBraces)
                         {
@@ -398,7 +514,13 @@ public static class ASTGenerator
                         goto case TokenType.ClosingCurlyBraces;
                     case TokenType.ClosingCurlyBraces:
                         context.MoveNext();
-                        return new ScopeNode(statements);
+                        return new ScopeNode(statements)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        };
                     case TokenType.OpeningCurlyBraces:
                         statements.Add(ProcessScope(context));
                         break;
@@ -434,6 +556,7 @@ public static class ASTGenerator
 
     private static IExpressionNode ProcessIncrementDecrement(ParseContext context)
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
         var type = (TokenType)(context.Current?.Type);
 
         context.MoveNext();
@@ -442,12 +565,25 @@ public static class ASTGenerator
 
         return type == TokenType.Increment
             ? new IncrementVarNode(value)
-            : new DecrementVarNode(value);
+            {
+                LineStart = startLine,
+                ColumnStart = startColumn,
+                LineEnd = context.SourcePosition(true).Item1,
+                ColumnEnd = context.SourcePosition(true).Item2
+            }
+            : new DecrementVarNode(value)
+            {
+                LineStart = startLine,
+                ColumnStart = startColumn,
+                LineEnd = context.SourcePosition(true).Item1,
+                ColumnEnd = context.SourcePosition(true).Item2
+            };
     }
 
     public static IStatementNode ProcessWhile(ParseContext context)
     {
-        IExpressionNode condition = ProcessExpression(context);
+        (int startLine, int startColumn) = context.SourcePosition(false);
+        var condition = ProcessExpression(context);
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -455,11 +591,19 @@ public static class ASTGenerator
         }
 
         ScopeNode then = ProcessScope(context);
-        return new WhileNode(condition, then);
+        return new WhileNode(condition, then)
+        {
+            LineStart = startLine,
+            ColumnStart = startColumn,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
     }
 
     public static AttributeNode ProcessAttribute(ParseContext context)
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
+
         if (context.Current?.Type == TokenType.AttributeMarker)
         {
             if (context.MoveNext()?.Type == TokenType.Name)
@@ -472,11 +616,23 @@ public static class ASTGenerator
                     return new AttributeNode(
                         name,
                         ProcessArgs(context, TokenType.ClosingParentheses)
-                    );
+                    )
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
                 }
                 else
                 {
-                    return new AttributeNode(name, new List<IExpressionNode>());
+                    return new AttributeNode(name, new List<IExpressionNode>())
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
                 }
             }
             else
@@ -497,6 +653,7 @@ public static class ASTGenerator
         List<AttributeNode>? attributes
     )
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
         PrivacyType privacy = PrivacyType.Priv;
         bool isForeign = false;
         bool isStatic = false;
@@ -540,73 +697,30 @@ public static class ASTGenerator
 
         if (context.Current?.Type == TokenType.Type)
         {
-            return ProcessTypeDef(context, privacy, isUnion, attributes);
+            return ProcessTypeDef(context, privacy, isUnion, attributes, startLine, startColumn);
         }
         else if (context.Current?.Type == TokenType.Enum)
         {
-            return ProcessEnumDef(context, privacy, attributes);
+            return ProcessEnumDef(context, privacy, attributes, startLine, startColumn);
         }
         else if (context.Current?.Type == TokenType.Trait)
         {
             if (isForeign)
                 throw new UnexpectedTokenException(context.Current.Value);
 
-            return ProcessTraitDef(context, privacy, attributes);
+            return ProcessTraitDef(context, privacy, attributes, startLine, startColumn);
         }
         else if (context.Current?.Type == TokenType.Function)
         {
-            if (context.MoveNext()?.Type == TokenType.Name)
-            {
-                string name = context.Current.Value.Text.ToString();
-
-                if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
-                {
-                    context.MoveNext();
-                    List<ParameterNode> @params = ProcessParameterList(
-                        context,
-                        out bool isVariadic
-                    );
-                    TypeRefNode retTypeRef =
-                        context.Current?.Type == TokenType.OpeningCurlyBraces
-                        || context.Current?.Type == TokenType.Semicolon
-                            ? new TypeRefNode(Reserved.Void, 0, false)
-                            : ProcessTypeRef(context);
-                    ScopeNode scope;
-
-                    if (context.Current?.Type == TokenType.Semicolon)
-                    {
-                        context.MoveNext();
-                        scope = null;
-                    }
-                    else
-                    {
-                        scope = ProcessScope(context);
-                    }
-
-                    return new FuncDefNode(
-                        name,
-                        privacy,
-                        retTypeRef,
-                        @params,
-                        scope,
-                        isVariadic,
-                        isStatic,
-                        isForeign,
-                        attributes
-                    );
-                }
-                else
-                {
-                    throw new UnexpectedTokenException(
-                        context.Current.Value,
-                        TokenType.OpeningParentheses
-                    );
-                }
-            }
-            else
-            {
-                throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
-            }
+            return ProcessFuncDef(
+                context,
+                privacy,
+                isStatic,
+                isForeign,
+                attributes,
+                startLine,
+                startColumn
+            );
         }
         else if (context.Current?.Type == TokenType.Global)
         {
@@ -627,7 +741,13 @@ public static class ASTGenerator
                         ,
                         isForeign,
                         attributes
-                    );
+                    )
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
                 }
                 else
                 {
@@ -648,7 +768,13 @@ public static class ASTGenerator
             if (context.Current?.Type == TokenType.Semicolon)
             {
                 context.MoveNext();
-                return new FieldDefNode(name, privacy, typeRef, attributes);
+                return new FieldDefNode(name, privacy, typeRef, attributes)
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
             }
             else
             {
@@ -661,10 +787,85 @@ public static class ASTGenerator
         }
     }
 
+    public static FuncDefNode ProcessFuncDef(
+        ParseContext context,
+        PrivacyType privacy,
+        bool isStatic,
+        bool isForeign,
+        List<AttributeNode> attributes,
+        int startLine,
+        int startColumn
+    )
+    {
+        if (context.MoveNext()?.Type == TokenType.Name)
+        {
+            string name = context.Current.Value.Text.ToString();
+
+            if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
+            {
+                context.MoveNext();
+                List<ParameterNode> @params = ProcessParameterList(context, out bool isVariadic);
+                TypeRefNode retTypeRef =
+                    context.Current?.Type == TokenType.OpeningCurlyBraces
+                    || context.Current?.Type == TokenType.Semicolon
+                        ? new TypeRefNode(Reserved.Void, 0, false)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                        : ProcessTypeRef(context);
+                ScopeNode scope;
+
+                if (context.Current?.Type == TokenType.Semicolon)
+                {
+                    context.MoveNext();
+                    scope = null;
+                }
+                else
+                {
+                    scope = ProcessScope(context);
+                }
+
+                return new FuncDefNode(
+                    name,
+                    privacy,
+                    retTypeRef,
+                    @params,
+                    scope,
+                    isVariadic,
+                    isStatic,
+                    isForeign,
+                    attributes
+                )
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
+            }
+            else
+            {
+                throw new UnexpectedTokenException(
+                    context.Current.Value,
+                    TokenType.OpeningParentheses
+                );
+            }
+        }
+        else
+        {
+            throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
+        }
+    }
+
     public static EnumNode ProcessEnumDef(
         ParseContext context,
         PrivacyType privacy,
-        List<AttributeNode> attributes
+        List<AttributeNode> attributes,
+        int startLine,
+        int startColumn
     )
     {
         if (context.Current?.Type != TokenType.Enum)
@@ -697,7 +898,15 @@ public static class ASTGenerator
                 else
                     throw new UnexpectedTokenException(context.Current.Value, TokenType.LiteralInt);
 
-            enumFlags.Add(new EnumFlagNode(entryName, index));
+            enumFlags.Add(
+                new EnumFlagNode(entryName, index)
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                }
+            );
             index++;
 
             if (context.Current?.Type != TokenType.Comma)
@@ -708,10 +917,22 @@ public static class ASTGenerator
             throw new UnexpectedTokenException(context.Current.Value, TokenType.ClosingCurlyBraces);
 
         if (context.MoveNext()?.Type != TokenType.Extend)
-            return new EnumNode(name, privacy, enumFlags, null, attributes);
+            return new EnumNode(name, privacy, enumFlags, null, attributes)
+            {
+                LineStart = startLine,
+                ColumnStart = startColumn,
+                LineEnd = context.SourcePosition(true).Item1,
+                ColumnEnd = context.SourcePosition(true).Item2
+            };
 
         context.MoveNext();
-        return new EnumNode(name, privacy, enumFlags, ProcessScope(context, true), attributes);
+        return new EnumNode(name, privacy, enumFlags, ProcessScope(context, true), attributes)
+        {
+            LineStart = startLine,
+            ColumnStart = startColumn,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
     }
 
     public static List<ParameterNode> ProcessParameterList(
@@ -761,6 +982,7 @@ public static class ASTGenerator
 
     public static ParameterNode? ProcessParameter(ParseContext context, out bool isVariadic)
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
         string name;
         isVariadic = false;
 
@@ -780,12 +1002,19 @@ public static class ASTGenerator
             throw new UnexpectedTokenException(context.Current.Value, TokenType.Name);
         }
 
-        return new ParameterNode(name, ProcessTypeRef(context));
+        return new ParameterNode(name, ProcessTypeRef(context))
+        {
+            LineStart = startLine,
+            ColumnStart = startColumn,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
     }
 
     public static IfNode ProcessIf(ParseContext context)
     {
-        IExpressionNode condition = ProcessExpression(context);
+        (int startLine, int startColumn) = context.SourcePosition(false);
+        var condition = ProcessExpression(context);
 
         if (context.Current?.Type != TokenType.OpeningCurlyBraces)
         {
@@ -794,11 +1023,19 @@ public static class ASTGenerator
 
         ScopeNode then = ProcessScope(context);
         ScopeNode? @else = ProcessElse(context);
-        return new IfNode(condition, then, @else);
+        return new IfNode(condition, then, @else)
+        {
+            LineStart = startLine,
+            ColumnStart = startColumn,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
     }
 
     public static ScopeNode? ProcessElse(ParseContext context)
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
+
         if (context.Current?.Type == TokenType.Else)
         {
             if (context.MoveNext()?.Type == TokenType.If)
@@ -809,7 +1046,13 @@ public static class ASTGenerator
                     {
                         ProcessIf(context) //TODO: this does not work in compilation
                     }
-                );
+                )
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
             }
             else
             {
@@ -854,6 +1097,8 @@ public static class ASTGenerator
 
     public static TypeRefNode ProcessTypeRef(ParseContext context)
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
+
         if (context.Current?.Type == TokenType.TemplateTypeRef)
         {
             if (context.MoveNext()?.Type != TokenType.Name)
@@ -883,7 +1128,13 @@ public static class ASTGenerator
                 context.MoveNext();
             }
 
-            return new LocalTypeRefNode(retTypeName, pointerDepth, isRef);
+            return new LocalTypeRefNode(retTypeName, pointerDepth, isRef)
+            {
+                LineStart = startLine,
+                ColumnStart = startColumn,
+                LineEnd = context.SourcePosition(true).Item1,
+                ColumnEnd = context.SourcePosition(true).Item2
+            };
         }
         else
         {
@@ -968,7 +1219,19 @@ public static class ASTGenerator
                 var retVal =
                     genericParams.Count != 0
                         ? new TemplateTypeRefNode(retTypeName, genericParams, pointerDepth, isRef)
-                        : new TypeRefNode(retTypeName, pointerDepth, isRef);
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                        : new TypeRefNode(retTypeName, pointerDepth, isRef)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        };
                 if (b)
                     retVal.Namespace = nmspace;
                 return retVal;
@@ -1018,7 +1281,13 @@ public static class ASTGenerator
                 if (context.Current?.Type == TokenType.TypeRef)
                 {
                     retType = ProcessTypeRef(context);
-                    return new FuncTypeRefNode(retType, @params, pointerDepth, isRef);
+                    return new FuncTypeRefNode(retType, @params, pointerDepth, isRef)
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
                 }
                 else
                 {
@@ -1063,7 +1332,13 @@ public static class ASTGenerator
                     context.MoveNext();
                 }
 
-                return new ArrayTypeRefNode(elementType, pointerDepth, isRef);
+                return new ArrayTypeRefNode(elementType, pointerDepth, isRef)
+                {
+                    LineStart = startLine,
+                    ColumnStart = startColumn,
+                    LineEnd = context.SourcePosition(true).Item1,
+                    ColumnEnd = context.SourcePosition(true).Item2
+                };
             }
             else
             {
@@ -1078,12 +1353,20 @@ public static class ASTGenerator
 
         while (context.Current != null)
         {
+            (int startLine, int startColumn) = context.SourcePosition(false);
+
             switch (context.Current?.Type)
             {
                 case TokenType.OpeningParentheses:
                 {
                     context.MoveNext();
-                    var newNode = new SubExprNode(ProcessExpression(context));
+                    var newNode = new SubExprNode(ProcessExpression(context))
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
 
                     if (context.Current?.Type != TokenType.ClosingParentheses)
                     {
@@ -1096,7 +1379,15 @@ public static class ASTGenerator
                     if (stack.Count > 0 && stack.Peek() is TypeRefNode typeRef)
                     {
                         stack.Pop();
-                        stack.Push(new CastNode(typeRef, newNode));
+                        stack.Push(
+                            new CastNode(typeRef, newNode)
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
+                        );
                     }
                     else
                     {
@@ -1126,42 +1417,112 @@ public static class ASTGenerator
                                 stack.Pop(),
                                 ProcessArgs(context, TokenType.ClosingSquareBrackets)
                             )
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
                         );
                     }
 
                     break;
                 }
                 case TokenType.LiteralFloat:
-                    stack.Push(new LiteralNode(float.Parse(context.Current.Value.Text.Span)));
+                    stack.Push(
+                        new LiteralNode(float.Parse(context.Current.Value.Text.Span))
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.LiteralInt:
-                    stack.Push(new LiteralNode(int.Parse(context.Current.Value.Text.Span)));
+                    stack.Push(
+                        new LiteralNode(int.Parse(context.Current.Value.Text.Span))
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.LiteralString:
-                    stack.Push(new LiteralNode(context.Current.Value.Text.ToString()));
+                    stack.Push(
+                        new LiteralNode(context.Current.Value.Text.ToString())
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.LiteralChar:
-                    stack.Push(new LiteralNode(context.Current.Value.Text.ToString()[0]));
+                    stack.Push(
+                        new LiteralNode(context.Current.Value.Text.ToString()[0])
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.True:
-                    stack.Push(new LiteralNode(true));
+                    stack.Push(
+                        new LiteralNode(true)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.False:
-                    stack.Push(new LiteralNode(false));
+                    stack.Push(
+                        new LiteralNode(false)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.Null:
-                    stack.Push(new LiteralNode(null));
+                    stack.Push(
+                        new LiteralNode(null)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     context.MoveNext();
                     break;
                 case TokenType.Ampersand:
                     context.MoveNext();
-                    stack.Push(new RefOfNode(ProcessExpression(context)));
+                    stack.Push(
+                        new RefOfNode(ProcessExpression(context))
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     break;
                 case TokenType.Function:
                     if (context.MoveNext()?.Type == TokenType.OpeningParentheses)
@@ -1184,7 +1545,15 @@ public static class ASTGenerator
                         if (context.Current?.Type == TokenType.OpeningCurlyBraces)
                         {
                             ScopeNode scope = ProcessScope(context);
-                            stack.Push(new LocalFuncDefNode(retType, @params, scope));
+                            stack.Push(
+                                new LocalFuncDefNode(retType, @params, scope)
+                                {
+                                    LineStart = startLine,
+                                    ColumnStart = startColumn,
+                                    LineEnd = context.SourcePosition(true).Item1,
+                                    ColumnEnd = context.SourcePosition(true).Item2
+                                }
+                            );
                         }
                         else
                         {
@@ -1237,11 +1606,25 @@ public static class ASTGenerator
                                     ProcessArgs(context, TokenType.ClosingParentheses),
                                     stack.Pop()
                                 )
+                                {
+                                    LineStart = startLine,
+                                    ColumnStart = startColumn,
+                                    LineEnd = context.SourcePosition(true).Item1,
+                                    ColumnEnd = context.SourcePosition(true).Item2
+                                }
                             );
                         }
                         else
                         {
-                            stack.Push(new RefNode(name, stack.Pop()));
+                            stack.Push(
+                                new RefNode(name, stack.Pop())
+                                {
+                                    LineStart = startLine,
+                                    ColumnStart = startColumn,
+                                    LineEnd = context.SourcePosition(true).Item1,
+                                    ColumnEnd = context.SourcePosition(true).Item2
+                                }
+                            );
                         }
 
                         break;
@@ -1258,12 +1641,28 @@ public static class ASTGenerator
                         if (context.MoveNext()?.Type == TokenType.Assign)
                         {
                             context.MoveNext();
-                            stack.Push(new InferredLocalDefNode(name, ProcessExpression(context)));
+                            stack.Push(
+                                new InferredLocalDefNode(name, ProcessExpression(context))
+                                {
+                                    LineStart = startLine,
+                                    ColumnStart = startColumn,
+                                    LineEnd = context.SourcePosition(true).Item1,
+                                    ColumnEnd = context.SourcePosition(true).Item2
+                                }
+                            );
                         }
                         else
                         {
                             TypeRefNode type = ProcessTypeRef(context);
-                            stack.Push(new LocalDefNode(name, type));
+                            stack.Push(
+                                new LocalDefNode(name, type)
+                                {
+                                    LineStart = startLine,
+                                    ColumnStart = startColumn,
+                                    LineEnd = context.SourcePosition(true).Item1,
+                                    ColumnEnd = context.SourcePosition(true).Item2
+                                }
+                            );
                         }
                     }
                     else
@@ -1292,7 +1691,15 @@ public static class ASTGenerator
                     context.MoveNext();
                     IExpressionNode @else = ProcessExpression(context);
 
-                    stack.Push(new InlineIfNode(condition, then, @else));
+                    stack.Push(
+                        new InlineIfNode(condition, then, @else)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     break;
                 case TokenType.Hyphen:
                 {
@@ -1302,17 +1709,29 @@ public static class ASTGenerator
                     }
 
                     var newNode = new BinaryOperationNode(
-                        new LiteralNode(-1),
+                        new LiteralNode(-1)
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        },
                         OperationType.Multiplication
-                    );
+                    )
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
 
                     if (stack.Count != 0 && stack.Peek() is BinaryOperationNode lastBinOp)
                     {
                         lastBinOp.Right = newNode;
                     }
 
-                    context.MoveNext();
                     stack.Push(newNode);
+                    context.MoveNext();
                     break;
                 }
                 case TokenType.Asterix:
@@ -1322,7 +1741,15 @@ public static class ASTGenerator
                     }
 
                     context.MoveNext();
-                    stack.Push(new DeRefNode(ProcessExpression(context)));
+                    stack.Push(
+                        new DeRefNode(ProcessExpression(context))
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     break;
                 case TokenType.Assign:
                 case TokenType.Plus:
@@ -1351,7 +1778,13 @@ public static class ASTGenerator
                     {
                         if (GetOpPriority(opType) > GetOpPriority(lastBinOp.Type))
                         {
-                            var newNode = new BinaryOperationNode(contestedExpr, opType);
+                            var newNode = new BinaryOperationNode(contestedExpr, opType)
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            };
                             lastBinOp.Right = newNode;
                             stack.Push(newNode);
                         }
@@ -1360,7 +1793,13 @@ public static class ASTGenerator
                             lastBinOp.Right = contestedExpr;
                             stack.Pop();
 
-                            var newNode = new BinaryOperationNode(lastBinOp, opType);
+                            var newNode = new BinaryOperationNode(lastBinOp, opType)
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            };
 
                             if (stack.Count > 0 && stack.Peek() is BinaryOperationNode parent)
                             {
@@ -1372,7 +1811,15 @@ public static class ASTGenerator
                     }
                     else
                     {
-                        stack.Push(new BinaryOperationNode(contestedExpr, opType));
+                        stack.Push(
+                            new BinaryOperationNode(contestedExpr, opType)
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
+                        );
                     }
 
                     context.MoveNext();
@@ -1392,8 +1839,20 @@ public static class ASTGenerator
                         throw new UnexpectedTokenException(context.Current.Value);
                     }
 
-                    var newNode = new BinaryOperationNode(stack.Peek(), OperationType.Assignment);
-                    var newNode2 = new BinaryOperationNode(stack.Peek(), opType);
+                    var newNode = new BinaryOperationNode(stack.Peek(), OperationType.Assignment)
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
+                    var newNode2 = new BinaryOperationNode(stack.Peek(), opType)
+                    {
+                        LineStart = startLine,
+                        ColumnStart = startColumn,
+                        LineEnd = context.SourcePosition(true).Item1,
+                        ColumnEnd = context.SourcePosition(true).Item2
+                    };
 
                     context.MoveNext();
                     newNode.Right = newNode2;
@@ -1413,7 +1872,15 @@ public static class ASTGenerator
                         throw new UnexpectedTokenException(context.Current.Value);
 
                     context.MoveNext();
-                    stack.Push(new InverseNode(ProcessExpression(context)));
+                    stack.Push(
+                        new InverseNode(ProcessExpression(context))
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     break;
                 case TokenType.Increment:
                 case TokenType.Decrement:
@@ -1442,11 +1909,25 @@ public static class ASTGenerator
                                 ProcessArgs(context, TokenType.ClosingParentheses),
                                 null
                             )
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
                         );
                     }
                     else
                     {
-                        stack.Push(new RefNode(name, null));
+                        stack.Push(
+                            new RefNode(name, null)
+                            {
+                                LineStart = startLine,
+                                ColumnStart = startColumn,
+                                LineEnd = context.SourcePosition(true).Item1,
+                                ColumnEnd = context.SourcePosition(true).Item2
+                            }
+                        );
                     }
 
                     break;
@@ -1455,8 +1936,16 @@ public static class ASTGenerator
                     if (stack.Count > 0 && stack.Peek() is not BinaryOperationNode)
                         throw new UnexpectedTokenException(context.Current.Value);
 
-                    stack.Push(new SelfNode());
                     context.MoveNext();
+                    stack.Push(
+                        new SelfNode()
+                        {
+                            LineStart = startLine,
+                            ColumnStart = startColumn,
+                            LineEnd = context.SourcePosition(true).Item1,
+                            ColumnEnd = context.SourcePosition(true).Item2
+                        }
+                    );
                     break;
                 default:
                     if (nullAllowed && stack.Count == 0)
@@ -1519,6 +2008,7 @@ public static class ASTGenerator
         TypeRefNode elementType
     )
     {
+        (int startLine, int startColumn) = context.SourcePosition(false);
         var elements = new List<IExpressionNode>();
 
         if (context.Current?.Type != TokenType.OpeningSquareBrackets)
@@ -1556,8 +2046,15 @@ public static class ASTGenerator
             );
         }
 
+        var result = new LiteralArrayNode(elementType, elements.ToArray())
+        {
+            LineStart = startLine,
+            ColumnStart = startColumn,
+            LineEnd = context.SourcePosition(true).Item1,
+            ColumnEnd = context.SourcePosition(true).Item2
+        };
         context.MoveNext();
-        return new LiteralArrayNode(elementType, elements.ToArray());
+        return result;
     }
 
     private static int GetOpPriority(OperationType operationType)

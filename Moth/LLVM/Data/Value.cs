@@ -1,8 +1,11 @@
-﻿namespace Moth.LLVM.Data;
+﻿using Moth.AST;
+
+namespace Moth.LLVM.Data;
 
 public class Value : ICompilerData
 {
     public bool IsExternal { get; init; }
+    public IASTNode? Node { get; init; }
     public virtual Type Type { get; }
     public virtual LLVMValueRef LLVMValue { get; }
 
@@ -15,7 +18,7 @@ public class Value : ICompilerData
         LLVMValue = value;
     }
 
-    public Value ImplicitConvertTo(Type target)
+    public Value ImplicitConvertTo(Type target, IASTNode node = null)
     {
         if (Type.Equals(target))
         {
@@ -24,7 +27,7 @@ public class Value : ICompilerData
 
         if (Type is VarType)
         {
-            return DeRef().ImplicitConvertTo(target);
+            return DeRef().ImplicitConvertTo(target, node);
         }
 
         var implicits = Type.GetImplicitConversions();
@@ -35,7 +38,8 @@ public class Value : ICompilerData
         }
         else
         {
-            throw new Exception(
+            throw new CompilerException(
+                node ?? Node,
                 $"Cannot implicitly convert value of type \"{Type}\" to \"{target}\"."
             );
         }

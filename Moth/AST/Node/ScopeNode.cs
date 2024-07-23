@@ -2,6 +2,10 @@
 
 public class ScopeNode : IStatementNode
 {
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public List<IStatementNode> Statements { get; set; }
 
     public ScopeNode(List<IStatementNode> statements) => Statements = statements;

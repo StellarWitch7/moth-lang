@@ -3,7 +3,7 @@ using Moth.AST.Node;
 
 namespace Moth.LLVM.Metadata;
 
-public struct Global
+public struct MetaGlobal
 {
     public PrivacyType privacy;
     public bool is_constant;

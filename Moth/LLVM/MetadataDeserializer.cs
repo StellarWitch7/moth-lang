@@ -13,14 +13,14 @@ public unsafe class MetadataDeserializer
     private MemoryStream _stream;
     private Version _version = new Version();
     private Version _moduleVersion = new Version();
-    private Metadata.Header _header = new Metadata.Header();
-    private Metadata.Type[] _types;
-    private Metadata.Field[] _fields;
-    private Metadata.Function[] _functions;
-    private Metadata.Global[] _globals;
-    private Metadata.FuncType[] _funcTypes;
-    private Metadata.Parameter[] _parameters;
-    private Metadata.ParamType[] _paramTypes;
+    private Metadata.MetaHeader _metaHeader = new Metadata.MetaHeader();
+    private Metadata.MetaType[] _types;
+    private Metadata.MetaField[] _fields;
+    private Metadata.MetaFunction[] _functions;
+    private Metadata.MetaGlobal[] _globals;
+    private Metadata.MetaFuncType[] _funcTypes;
+    private Metadata.MetaParameter[] _parameters;
+    private Metadata.MetaParamType[] _paramTypes;
     private byte[] _typeRefs;
     private byte[] _names;
 
@@ -67,19 +67,19 @@ public unsafe class MetadataDeserializer
         _stream.ReadExactly(new Span<byte>(&moduleVersion, sizeof(Version)));
         _moduleVersion = moduleVersion;
 
-        var header = new Metadata.Header();
-        _stream.ReadExactly(new Span<byte>(&header, sizeof(Metadata.Header)));
-        _header = header;
+        var header = new Metadata.MetaHeader();
+        _stream.ReadExactly(new Span<byte>(&header, sizeof(Metadata.MetaHeader)));
+        _metaHeader = header;
 
-        InArr(ref _types, _header.field_table_offset);
-        InArr(ref _fields, _header.function_table_offset);
-        InArr(ref _functions, _header.global_variable_table_offset);
-        InArr(ref _globals, _header.functype_table_offset);
-        InArr(ref _funcTypes, _header.param_table_offset);
-        InArr(ref _parameters, _header.paramtype_table_offset);
-        InArr(ref _paramTypes, _header.typeref_table_offset);
-        InArr(ref _typeRefs, _header.name_table_offset);
-        InArr(ref _names, _header.size);
+        InArr(ref _types, _metaHeader.field_table_offset);
+        InArr(ref _fields, _metaHeader.function_table_offset);
+        InArr(ref _functions, _metaHeader.global_variable_table_offset);
+        InArr(ref _globals, _metaHeader.functype_table_offset);
+        InArr(ref _funcTypes, _metaHeader.param_table_offset);
+        InArr(ref _parameters, _metaHeader.paramtype_table_offset);
+        InArr(ref _paramTypes, _metaHeader.typeref_table_offset);
+        InArr(ref _typeRefs, _metaHeader.name_table_offset);
+        InArr(ref _names, _metaHeader.size);
 
         if (_stream.ReadByte() != -1)
         {
@@ -481,12 +481,24 @@ public unsafe class MetadataDeserializer
         {
             if (nmspace == null)
             {
-                nmspace = new NamespaceNode(str);
+                nmspace = new NamespaceNode(str)
+                {
+                    LineStart = 0,
+                    ColumnStart = 0,
+                    LineEnd = 0,
+                    ColumnEnd = 0
+                };
                 lastNmspace = nmspace;
             }
             else
             {
-                lastNmspace.Child = new NamespaceNode(str);
+                lastNmspace.Child = new NamespaceNode(str)
+                {
+                    LineStart = 0,
+                    ColumnStart = 0,
+                    LineEnd = 0,
+                    ColumnEnd = 0
+                };
                 lastNmspace = lastNmspace.Child;
             }
         }

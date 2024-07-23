@@ -5,25 +5,24 @@ namespace Moth.AST.Node;
 public class TypeNode : DefinitionNode
 {
     public bool IsUnion { get; set; }
-
-    private ScopeNode? _scope;
+    public ScopeNode? Contents { get; set; }
 
     public TypeNode(
         string name,
         PrivacyType privacy,
-        ScopeNode? scope,
+        ScopeNode? contents,
         bool isUnion,
         List<AttributeNode>? attributes
     )
         : base(name, privacy, attributes)
     {
         IsUnion = isUnion;
-        _scope = scope;
+        Contents = contents;
     }
 
     public bool IsOpaque
     {
-        get => _scope == null;
+        get => Contents == null;
     }
 
     public FieldDefNode[] Fields
@@ -32,7 +31,7 @@ public class TypeNode : DefinitionNode
         {
             return IsOpaque
                 ? new FieldDefNode[0]
-                : _scope.Statements.OfType<FieldDefNode>().ToArray();
+                : Contents.Statements.OfType<FieldDefNode>().ToArray();
         }
     }
 
@@ -42,7 +41,7 @@ public class TypeNode : DefinitionNode
         {
             return IsOpaque
                 ? new FuncDefNode[0]
-                : _scope.Statements.OfType<FuncDefNode>().ToArray();
+                : Contents.Statements.OfType<FuncDefNode>().ToArray();
         }
     }
 
@@ -70,7 +69,7 @@ public class TypeNode : DefinitionNode
         builder.Append($"{Reserved.Type} {Name}");
 
         if (!IsOpaque)
-            builder.Append($" {_scope.GetSource()}");
+            builder.Append($" {Contents.GetSource()}");
         else
             builder.Append(";");
     }

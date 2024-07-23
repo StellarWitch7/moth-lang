@@ -10,15 +10,6 @@ public class Field : IContainer
     public uint FieldIndex { get; }
     public Type Type { get; }
     public PrivacyType Privacy { get; }
-    public bool IsExternal
-    {
-        get => Parent.IsExternal;
-        init { }
-    }
-    public string FullName
-    {
-        get => $"{Parent.FullName}.{Name}";
-    }
 
     private LLVMCompiler _compiler;
 
@@ -37,6 +28,23 @@ public class Field : IContainer
         FieldIndex = index;
         Type = type;
         Privacy = privacy;
+    }
+
+    public bool IsExternal
+    {
+        get => Parent.IsExternal;
+        init { }
+    }
+
+    public IASTNode? Node
+    {
+        get => Parent.Node;
+        init { }
+    }
+
+    public string FullName
+    {
+        get => $"{Parent.FullName}.{Name}";
     }
 
     public Pointer GetValue(Value parent)

@@ -91,21 +91,19 @@ public class Program
                             }
                             catch (Exception e)
                             {
-                                logger.Error(
-                                    $"Failed to parse tokens of \"{filePath}\" due to: {e}"
-                                );
+                                logger.Error($"Failed parsing \"{filePath}\" due to: {e}");
                                 throw e;
                             }
                         }
                         catch (Exception e)
                         {
-                            logger.Error($"Failed to tokenize \"{filePath}\" due to: {e}");
+                            logger.Error($"Failed tokenizing \"{filePath}\" due to: {e}");
                             throw e;
                         }
                     }
                     catch (Exception e)
                     {
-                        logger.Error($"Failed to get contents of \"{filePath}\" due to: {e}");
+                        logger.Error($"Failed parsing \"{filePath}\" due to: {e}");
                         throw e;
                     }
                 }
@@ -178,7 +176,7 @@ public class Program
                                 logger.Log("Dumped LLVM IR for reviewal.");
                             }
 
-                            Console.WriteLine(e);
+                            logger.Error(e);
                             throw e;
                         }
 
@@ -308,7 +306,7 @@ public class Program
                 }
                 catch (Exception e)
                 {
-                    logger.Error($"Failed to compile due to: {e}");
+                    logger.Error(e);
                     throw e;
                 }
             });

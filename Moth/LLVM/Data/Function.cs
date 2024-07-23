@@ -106,7 +106,7 @@ public class DefinedFunction : Function
                     ? $"__{OriginModuleVersion}__{FullName}"
                     : Name;
                 _internalValue = IsForeign
-                    ? _compiler.HandleForeign(Name, Type)
+                    ? _compiler.HandleForeign(Node, Name, Type)
                     : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
 
                 if (

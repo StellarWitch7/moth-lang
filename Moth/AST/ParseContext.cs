@@ -9,6 +9,7 @@ public class ParseContext
     public readonly int Length;
 
     private readonly List<Token> _tokens;
+    private Token? _last;
 
     public ParseContext(List<Token> tokens)
     {
@@ -33,5 +34,22 @@ public class ParseContext
         Token? val = Current;
         Position++;
         return val;
+    }
+
+    public (int, int) SourcePosition(bool getEnd)
+    {
+        Token v;
+
+        if (Current.HasValue)
+            v = Current.Value;
+        else if (_last.HasValue)
+            v = _last.Value;
+        else
+            return (0, 0);
+
+        if (getEnd)
+            return (v.LineEnd, v.ColumnEnd);
+
+        return (v.LineStart, v.ColumnStart);
     }
 }

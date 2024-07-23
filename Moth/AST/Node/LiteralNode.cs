@@ -5,6 +5,10 @@ namespace Moth.AST.Node;
 
 public class LiteralNode : IExpressionNode
 {
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public object? Value { get; set; }
 
     public LiteralNode(object? value) => Value = value;

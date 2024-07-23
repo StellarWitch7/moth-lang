@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM.Data;
 
@@ -16,6 +17,7 @@ public enum TypeKind
 public class Type : ICompilerData
 {
     public bool IsExternal { get; init; }
+    public IASTNode? Node { get; init; }
     public virtual LLVMTypeRef LLVMType { get; }
     public virtual TypeKind Kind { get; }
 

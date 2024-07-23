@@ -2,6 +2,10 @@
 
 public class FuncCallNode : IExpressionNode
 {
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public string Name { get; set; }
     public List<IExpressionNode> Arguments { get; set; }
     public IExpressionNode? ToCallOn { get; set; }

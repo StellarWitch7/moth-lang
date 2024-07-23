@@ -3,8 +3,7 @@ namespace test;
 with core::io;
 
 fn main() #i32 {
-    // ret #u8(#Privacy.Priv)
-    ret 0
+    ret #u8(#Privacy.Priv)
 }
 
 // this is a normal comment. everything until the newline is not-code
@@ -20,7 +19,7 @@ if it begins with "!DOCS\n" (tolerance of one preceding space) the compiler will
 @Export
 fn DoSomething(val #u8, val2 #SomeStruct, func #(#u32)* #void) #u8 {
     var v3 = 3;
-    v3 = 6;
+    v3 = val2;
     
     // a testing comment
     var v = 1;
@@ -28,10 +27,12 @@ fn DoSomething(val #u8, val2 #SomeStruct, func #(#u32)* #void) #u8 {
     ret val + val2.inner
 }
 
-// enum Privacy {
-//     Priv,
-//     Pub,
-// }
+enum Privacy {
+    Priv = 0,
+    Pub = 1,
+}
+
+
 // type Thing {
 //     pub Value #i32;
 // }

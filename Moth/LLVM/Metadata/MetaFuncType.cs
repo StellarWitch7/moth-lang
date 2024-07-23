@@ -1,6 +1,6 @@
 namespace Moth.LLVM.Metadata;
 
-public struct FuncType
+public struct MetaFuncType
 {
     public bool is_variadic;
     public uint return_typeref_table_index;

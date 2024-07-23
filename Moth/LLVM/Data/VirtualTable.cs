@@ -1,8 +1,7 @@
 namespace Moth.LLVM.Data;
 
-public class VTableDef : ICompilerData
+public class VTableDef
 {
-    public bool IsExternal { get; init; }
     protected Dictionary<AspectMethod, LLVMValueRef> Table { get; } =
         new Dictionary<AspectMethod, LLVMValueRef>();
     protected int Count
@@ -22,7 +21,7 @@ public class VTableDef : ICompilerData
     }
 }
 
-public class VTableInst //TODO: compiler data?
+public class VTableInst
 {
     public VTableDef Definition { get; }
     public LLVMValueRef LLVMValue { get; }

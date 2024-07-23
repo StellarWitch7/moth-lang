@@ -1,6 +1,9 @@
-﻿namespace Moth.LLVM;
+﻿using Moth.AST;
+
+namespace Moth.LLVM;
 
 public interface ICompilerData
 {
-    public bool IsExternal { get; init; }
+    bool IsExternal { get; init; }
+    IASTNode? Node { get; init; }
 }

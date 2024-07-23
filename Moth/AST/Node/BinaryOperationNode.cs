@@ -2,6 +2,10 @@
 
 public class BinaryOperationNode : IExpressionNode
 {
+    public required int ColumnStart { get; init; }
+    public required int LineStart { get; init; }
+    public required int ColumnEnd { get; init; }
+    public required int LineEnd { get; init; }
     public OperationType Type { get; set; }
     public IExpressionNode Left { get; set; }
     public IExpressionNode Right { get; set; } = null;

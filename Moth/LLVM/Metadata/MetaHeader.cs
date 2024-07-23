@@ -1,6 +1,6 @@
 namespace Moth.LLVM.Metadata;
 
-public struct Header
+public struct MetaHeader
 {
     public uint type_table_offset;
     public uint field_table_offset;

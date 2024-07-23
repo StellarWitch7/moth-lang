@@ -60,6 +60,8 @@ public class Logger : TextWriter
         WriteLine($"ERR: {message}", new Style(Color.Red, null, Decoration.Bold));
     }
 
+    public void Error(Exception e) => Error(e.ToString());
+
     public void Call(string programName, string arguments)
     {
         WriteLine(
