@@ -179,7 +179,7 @@ public unsafe class MetadataDeserializer
             Function result = new DefinedFunction(
                 _compiler,
                 parent,
-                fullname,
+                name,
                 funcType,
                 null,
                 func.privacy,
@@ -187,7 +187,8 @@ public unsafe class MetadataDeserializer
                 new Dictionary<string, IAttribute>()
             )
             {
-                IsExternal = true
+                IsExternal = true,
+                OriginModuleVersion = moduleVersion
             };
             overloadList.Add(result);
         }

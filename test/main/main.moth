@@ -1,15 +1,26 @@
 namespace test;
 
+with core;
 with core::io;
 
 fn main() #i32 {
     // ret #u8(#Privacy.Priv)
+    WriteLine("hi");
     ret 0
 }
 
 // this is a normal comment. everything until the newline is not-code
 type SomeStruct {
     pub inner #u8;
+    
+    
+    //pub init(inner #u8) {
+    
+    //    self.inner = inner;
+    
+    //    ret self
+    
+    //}
 }
 
 /> !DOCS

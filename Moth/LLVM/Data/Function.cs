@@ -102,11 +102,12 @@ public class DefinedFunction : Function
         {
             if (_internalValue == default)
             {
-                string llvmFuncName = !(Name == Reserved.Main || IsForeign)
-                    ? $"__{OriginModuleVersion}__{FullName}"
-                    : Name;
+                string llvmFuncName =
+                    (_internalVersionOverride != null || !(Name == Reserved.Main || IsForeign))
+                        ? $"__{OriginModuleVersion}__{FullName}"
+                        : Name;
                 _internalValue = IsForeign
-                    ? _compiler.HandleForeign(Name, Type)
+                    ? _compiler.HandleForeign(llvmFuncName, Type)
                     : _compiler.Module.AddFunction(llvmFuncName, Type.BaseType.LLVMType);
 
                 if (

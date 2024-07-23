@@ -1,5 +1,4 @@
+[dir]
+
 [env]
 glibc = "__SILK_INCLUDE_GLIBC"
-
-[dir]
-raylib = "raylib"
