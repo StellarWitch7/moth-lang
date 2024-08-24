@@ -1,6 +1,6 @@
 namespace Moth.AST.Node;
 
-public class ImplementNode : IStatementNode
+public class ImplementNode : IDeclNode, ITopDeclNode
 {
     public ITypeRefNode Type { get; set; }
     public ITypeRefNode Trait { get; set; }

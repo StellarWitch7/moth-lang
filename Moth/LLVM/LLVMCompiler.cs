@@ -774,7 +774,7 @@ public class LLVMCompiler : IDisposable
             funcType,
             @params.ToArray(),
             funcDefNode.Privacy,
-            funcDefNode.IsForeign,
+            typeDecl == null && funcDefNode.ExecutionBlock == null,
             attributes
         );
         OverloadList overloads;
@@ -836,7 +836,7 @@ public class LLVMCompiler : IDisposable
             paramTypes = newParamTypes;
         }
 
-        if (funcDefNode.IsForeign || funcDefNode.ExecutionBlock == null)
+        if (funcDefNode.ExecutionBlock == null)
         {
             return;
         }
@@ -1029,10 +1029,9 @@ public class LLVMCompiler : IDisposable
     {
         Builder.PositionAtEnd(scope.LLVMBlock);
 
-        foreach (IStatementNode statement in scopeNode.Statements)
+        foreach (IExpressionNode statement in scopeNode.Statements)
         {
-            if (statement is CommentNode) { }
-            else if (statement is ReturnNode @return)
+            if (statement is ReturnNode @return)
             {
                 if (@return.Expression != null)
                 {
@@ -1535,18 +1534,13 @@ public class LLVMCompiler : IDisposable
                 LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, (ulong)(@bool ? 1 : 0))
             );
         }
-        else if (literalNode.Value is int i32)
+        else if (literalNode.Value is long i)
         {
-            return AbstractInt.Create(this, (long)i32);
+            return AbstractInt.Create(this, i);
         }
-        else if (literalNode.Value is float f32)
+        else if (literalNode.Value is double f)
         {
-            TypeDecl typeDecl = Float32;
-            return Value.Create(
-                this,
-                typeDecl,
-                LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f32)
-            );
+            return Value.Create(this, Float64, LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, f));
         }
         else if (literalNode.Value is char ch)
         {

@@ -1,19 +1,14 @@
 namespace Moth.AST.Node;
 
-public class TraitNode : DefinitionNode
+public class TraitNode : MemberContainingDefinitionNode, ITopDeclNode
 {
-    public ScopeNode Scope { get; set; }
-
     public TraitNode(
         string name,
         PrivacyType privacy,
-        ScopeNode scope,
+        List<IMemberDeclNode>? contents,
         List<AttributeNode>? attributes
     )
-        : base(name, privacy, attributes)
-    {
-        Scope = scope;
-    }
+        : base(name, privacy, contents, attributes) { }
 
     public override void GetSource(StringBuilder builder)
     {

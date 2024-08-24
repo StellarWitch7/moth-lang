@@ -2,14 +2,13 @@
 
 namespace Moth.AST.Node;
 
-public class FuncDefNode : DefinitionNode
+public class FuncDefNode : DefinitionNode, ITopDeclNode, IMemberDeclNode
 {
     public List<ParameterNode> Params { get; set; }
     public ScopeNode? ExecutionBlock { get; set; }
     public ITypeRefNode ReturnTypeRef { get; set; }
     public bool IsVariadic { get; set; }
     public bool IsStatic { get; set; }
-    public bool IsForeign { get; set; }
 
     public FuncDefNode(
         string name,
@@ -19,7 +18,6 @@ public class FuncDefNode : DefinitionNode
         ScopeNode? executionBlock,
         bool isVariadic,
         bool isStatic,
-        bool isForeign,
         List<AttributeNode> attributes
     )
         : base(name, privacy, attributes)
@@ -29,7 +27,6 @@ public class FuncDefNode : DefinitionNode
         ExecutionBlock = executionBlock;
         IsVariadic = isVariadic;
         IsStatic = isStatic;
-        IsForeign = isForeign;
     }
 
     public override void GetSource(StringBuilder builder)
@@ -46,9 +43,6 @@ public class FuncDefNode : DefinitionNode
 
         if (Privacy != PrivacyType.Priv)
             builder.Append($"{Privacy} ".ToLower());
-
-        if (IsForeign)
-            builder.Append($"{Reserved.Foreign} ");
 
         if (IsStatic)
             builder.Append($"{Reserved.Static} ");

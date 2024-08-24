@@ -10,7 +10,7 @@ public class NamespaceNode : IExpressionNode
         Name = name;
     }
 
-    public NamespaceNode(string name, NamespaceNode child)
+    public NamespaceNode(string name, NamespaceNode? child)
         : this(name)
     {
         Child = child;

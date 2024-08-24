@@ -2,61 +2,25 @@
 
 namespace Moth.AST.Node;
 
-public class TypeNode : DefinitionNode
+public class TypeNode : MemberContainingDefinitionNode, ITopDeclNode
 {
     public bool IsUnion { get; set; }
-
-    private ScopeNode? _scope;
 
     public TypeNode(
         string name,
         PrivacyType privacy,
-        ScopeNode? scope,
+        List<IMemberDeclNode>? contents,
         bool isUnion,
         List<AttributeNode>? attributes
     )
-        : base(name, privacy, attributes)
+        : base(name, privacy, contents, attributes)
     {
         IsUnion = isUnion;
-        _scope = scope;
     }
 
     public bool IsOpaque
     {
-        get => _scope == null;
-    }
-
-    public FieldDefNode[] Fields
-    {
-        get
-        {
-            return IsOpaque
-                ? new FieldDefNode[0]
-                : _scope.Statements.OfType<FieldDefNode>().ToArray();
-        }
-    }
-
-    public FuncDefNode[] Functions
-    {
-        get
-        {
-            return IsOpaque
-                ? new FuncDefNode[0]
-                : _scope.Statements.OfType<FuncDefNode>().ToArray();
-        }
-    }
-
-    public DefinitionNode[] OrganizedMembers
-    {
-        get
-        {
-            var result = new List<DefinitionNode>();
-
-            result.AddRange(Fields);
-            result.AddRange(Functions);
-
-            return result.ToArray();
-        }
+        get => IsEmpty;
     }
 
     public override void GetSource(StringBuilder builder)
@@ -70,7 +34,11 @@ public class TypeNode : DefinitionNode
         builder.Append($"{Reserved.Type} {Name}");
 
         if (!IsOpaque)
-            builder.Append($" {_scope.GetSource()}");
+            builder.Append(
+                $"{{\n{String.Join("\n", _contents.ToArray().ExecuteOverAll(e => {
+                return e.GetSource();
+            })).ReplaceLineEndings("    \n")}\n}}"
+            );
         else
             builder.Append(";");
     }

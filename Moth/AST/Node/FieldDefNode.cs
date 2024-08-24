@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class FieldDefNode : DefinitionNode
+public class FieldDefNode : DefinitionNode, IMemberDeclNode
 {
     public ITypeRefNode TypeRef { get; set; }
 

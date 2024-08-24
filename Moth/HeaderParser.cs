@@ -109,12 +109,12 @@ public unsafe class HeaderParser : IDisposable
                 _structFields = new List<FieldDefNode>();
                 Visit(c, StructLevel);
                 var structFields = _structFields;
-                var scopeStatements = new List<IStatementNode>();
+                var scopeStatements = new List<IMemberDeclNode>();
                 scopeStatements.AddRange(structFields);
                 var @struct = new TypeNode(
                     structName,
                     PrivacyType.Pub,
-                    scopeStatements.Count == 0 ? null : new ScopeNode(scopeStatements),
+                    scopeStatements.Count == 0 ? null : scopeStatements,
                     isUnion,
                     new List<AttributeNode>()
                 );
@@ -169,7 +169,6 @@ public unsafe class HeaderParser : IDisposable
                         null,
                         c.IsVariadic,
                         false,
-                        true,
                         new List<AttributeNode>()
                     )
                 );
@@ -346,14 +345,14 @@ public unsafe class HeaderParser : IDisposable
                                 _structFields = new List<FieldDefNode>();
                                 Visit(t.Declaration, StructLevel);
                                 var structFields = _structFields;
-                                var scopeStatements = new List<IStatementNode>();
+                                var scopeStatements = new List<IMemberDeclNode>();
                                 scopeStatements.AddRange(structFields);
                                 _typesDict.TryAdd(
                                     name,
                                     new TypeNode(
                                         name,
                                         PrivacyType.Pub,
-                                        new ScopeNode(scopeStatements),
+                                        scopeStatements,
                                         isUnion,
                                         new List<AttributeNode>()
                                     )

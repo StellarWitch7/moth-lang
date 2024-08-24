@@ -2,4 +2,4 @@
 
 namespace Moth.AST;
 
-public interface IExpressionNode : IStatementNode { }
+public interface IExpressionNode : IASTNode { }

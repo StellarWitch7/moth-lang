@@ -2,7 +2,7 @@ using Moth.LLVM;
 
 namespace Moth.AST.Node;
 
-public class GlobalVarNode : DefinitionNode
+public class GlobalVarNode : DefinitionNode, ITopDeclNode
 {
     public ITypeRefNode TypeRef { get; set; }
     public bool IsConstant { get; set; }

@@ -21,7 +21,7 @@ public static class Reserved
     public const string Foreign = "foreign";
     public const string Return = "ret";
     public const string Global = "global";
-    public const string Function = "fn";
+    public const string Function = "func";
     public const string Type = "type";
     public const string Enum = "enum";
     public const string Union = "union";

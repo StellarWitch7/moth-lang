@@ -4,62 +4,100 @@
 @using Moth
 @using Moth.AST.Node
 
-script <ScriptAST> = nmspace:file_namespace statements:(top_level_decl*) { new ScriptAST(nmspace, statements.ToList()) }
+script <ScriptAST> = nmspace:file_namespace statements:top_level* { new ScriptAST(nmspace, statements.ToList()) }
 
-file_namespace <NamespaceNode> = "namespace " nmspace:namespace ';' { nmspace }
+file_namespace <NamespaceNode> = "namespace" ws+ nmspace:namespace ';' { nmspace }
 
-namespace <NamespaceNode> = parent_namespace / simple_namespace
+namespace <NamespaceNode> = "::" name:name child:namespace? { new NamespaceNode(name, child.Count == 1 ? child[0] : null) }
 
-simple_namespace <NamespaceNode> = name:name { new NamespaceNode(name) }
+top_level <ITopDeclNode>
+    = import
+    / func_decl
 
-parent_namespace <NamespaceNode> = name:name child:namespace { new NamespaceNode(name, child) }
+import <ImportNode> = "with" ws+ nmspace:namespace ';' { new ImportNode(nmspace) }
 
-top_level_decl <IStatementNode> = import
+method_decl <FuncDefNode> = isStatic:"static"? ws+ val:func_decl {
+        {
+            if (isStatic.Count > 0)
+                val.IsStatic = true;
+            
+            return val;
+        }
+    }
 
-import <ImportNode> = "with " nmspace:namespace ';' { new ImportNode(nmspace) }
+func_decl <FuncDefNode>
+    = attrs:attribute* ws+
+    privacy:privacy ws+
+    "func" ws+
+    name:name _ '(' _ par:param<0,,','> _ ')' _
+    ret:type_ref _
+    scope:(<ScopeNode?> scope / ';' { null }) {
+        //TODO: support variadics
+        new FuncDefNode(name, privacy, ret, par.ToList(), scope, false, false, attrs.ToList())
+    }
 
-type_ref <TypeRefNode> = ref_type_ref
-                       / ptr_type_ref
-//                       / template_type_ref
-                       / local_type_ref
-                       / arr_type_ref
-                       / func_type_ref
-                       / default_type_ref
+privacy <PrivacyType> = p:(<string> "priv" / "pub")? {
+        p.Count == 1
+            ? p[0] == "pub"
+                ? PrivacyType.Pub
+                : PrivacyType.Priv
+            : PrivacyType.Priv
+    }
 
-child_type_ref <TypeRefNode> = ref_type_ref
-                             / ptr_type_ref
-//                             / template_type_ref
-                             / local_type_ref
-                             / arr_type_ref
-                             / child_func_type_ref
-                             / default_type_ref
+param <ParameterNode> = name:name _ type:type_ref { new ParameterNode(name, type) }
 
-default_type_ref <NamedTypeRefNode> = '#' name:name { new NamedTypeRefNode(name) }
+scope <ScopeNode> = '{' statements:expression<0,,';'> '}' { new ScopeNode(statements.ToList()) }
 
-//TODO: template_type_ref
+expression <IExpressionNode> -memoize
+    = scope
+    / '(' _ inner:expression _ ')' {
+        inner
+    }
+    / parent2:(<IExpressionNode> parent:expression _ '.' _ { parent })? name:name {
+        new RefNode(name, parent2.Count == 1 ? parent2[0] : null)
+    }
+    / literal
 
-local_type_ref <LocalTypeRefNode> = '?' name:name { new TemplateTypeRefNode(name) }
+//TODO: does this need to support complex expressions?
+attribute <AttributeNode> = '@' name:name args2:(<IList<LiteralNode>> _ '(' _ args:literal<0,,','> _ ')' { args })? {
+    new AttributeNode(name, args2.Count == 1 ? args2[0].ToList() : null)
+}
 
-arr_type_ref <ArrTypeRefNode> = '#[' elementType:type_ref ']' { new ArrTypeRefNode(elementType) }
+//TODO: strings and chars and... scientific notation?
+literal <LiteralNode>
+    = literal_int
+    / literal_float
 
-base_func_type_ref <FuncTypeRefNode> = '(' paramTypes:(<List<TypeRefNode>> type_ref<0,,",">) ')' ret:type_ref { new FuncTypeRefNode(ret, paramTypes) }
-
-func_type_ref <FuncTypeRefNode> = '#' base:base_func_type_ref { base }
-
-child_func_type_ref <FuncTypeRefNode> = '#' '(' base:base_func_type_ref ')' { base }
-
-//TODO: ambiguiously left-recursive?
-
-ptr_type_ref <PtrTypeRefNode> = child:child_type_ref '*' { new PtrTypeRefNode(child) }
-
-//TODO: ambiguiously left-recursive?
-
-ref_type_ref <RefTypeRefNode> = child:child_type_ref '&' { new RefTypeRefNode(child) }
+//TODO: template type ref
+type_ref <ITypeRefNode> -memoize
+    = child:type_ref '&' {
+        new RefTypeRefNode(child)
+    }
+    / child:type_ref '*' {
+        new PtrTypeRefNode(child)
+    }
+    / '#' '[' elementType:type_ref ']' {
+        new ArrTypeRefNode(elementType)
+    }
+    / '#' '(' _ par:type_ref<0,,','> _ ')' _ ret:type_ref { 
+        new FuncTypeRefNode(ret, par.ToList())
+    }
+    / '#' '(' _ inner:type_ref _ ')' { 
+        inner
+    }
+    / '?' name:name {
+        new LocalTypeRefNode(name)
+    }
+    / '#' name:name {
+        new NamedTypeRefNode(name)
+    }
 
 name <string> = [a-zA-Z_][a-zA-Z_0-9]*
 
-literal_int <int> = value:('' [0-9]+) { int.Parse(value) }
+literal_int <LiteralNode> = value:(<string> '-'? [0-9]+) { new LiteralNode(long.Parse(value)) }
 
-literal_float <double> = value:([0-9]+ '.' [0-9]+) { double.Parse(value) }
+literal_float <LiteralNode> = value:(<string> '-'? [0-9]+ '.' [0-9]+) { new LiteralNode(double.Parse(value)) }
 
-whitespace <string> = '' [ \n\t\r]+
+_ = ws*
+
+ws = [ \n\t]

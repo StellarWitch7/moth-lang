@@ -1,6 +1,6 @@
 namespace Moth.AST.Node;
 
-public class EnumTemplateNode : EnumNode
+public class EnumTemplateNode : EnumNode, ITopDeclNode
 {
     public EnumTemplateNode(
         string name,

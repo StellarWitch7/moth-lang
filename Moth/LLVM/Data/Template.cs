@@ -57,11 +57,11 @@ public class Template : ICompilerData
         }
     }
 
-    public DefinitionNode[] Members
+    public IMemberDeclNode[] Members
     {
         get
         {
-            var result = new List<DefinitionNode>();
+            var result = new List<IMemberDeclNode>();
 
             result.AddRange(Fields);
             result.AddRange(Functions);
@@ -116,7 +116,7 @@ public class Template : ICompilerData
         var structNode = new TypeNode(
             $"{Name}{Template.ArgsToSig(args)}",
             Privacy,
-            new ScopeNode(new List<IStatementNode>(Members)),
+            new List<IMemberDeclNode>(Members),
             IsUnion,
             _attributeList
         );

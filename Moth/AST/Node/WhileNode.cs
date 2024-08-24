@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class WhileNode : IStatementNode
+public class WhileNode : IExpressionNode
 {
     public IExpressionNode Condition { get; set; }
     public ScopeNode Then { get; set; }

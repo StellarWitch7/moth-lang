@@ -2,7 +2,7 @@ using Moth.LLVM;
 
 namespace Moth.AST.Node;
 
-public class EnumNode : DefinitionNode
+public class EnumNode : DefinitionNode, ITopDeclNode
 {
     public List<EnumFlagNode> EnumFlags { get; set; }
     public ScopeNode? Scope { get; set; } //TODO: don't use, should be private

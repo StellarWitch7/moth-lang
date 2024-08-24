@@ -6,9 +6,9 @@ namespace Moth.AST;
 public class ScriptAST : IASTNode, ITreeNode
 {
     public NamespaceNode Namespace { get; }
-    public List<IStatementNode> Contents { get; }
+    public List<ITopDeclNode> Contents { get; }
 
-    public ScriptAST(NamespaceNode @namespace, List<IStatementNode> contents)
+    public ScriptAST(NamespaceNode @namespace, List<ITopDeclNode> contents)
     {
         Namespace = @namespace;
         Contents = contents;
@@ -26,7 +26,7 @@ public class ScriptAST : IASTNode, ITreeNode
     )
         : this(
             @namespace,
-            Utils.Combine<IStatementNode>(
+            Utils.Combine<ITopDeclNode>(
                 imports,
                 globalVariables,
                 globalFuncs,
@@ -74,7 +74,7 @@ public class ScriptAST : IASTNode, ITreeNode
     public string GetSource()
     {
         var builder = new StringBuilder($"{Reserved.Namespace} {Namespace.GetSource()};\n");
-        IStatementNode last = null;
+        ITopDeclNode last = null;
 
         foreach (var statement in Contents)
         {

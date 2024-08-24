@@ -2,7 +2,7 @@
 
 namespace Moth.AST.Node;
 
-public abstract class DefinitionNode : IStatementNode
+public abstract class DefinitionNode : IDeclNode
 {
     public string Name { get; set; }
     public PrivacyType Privacy { get; set; }

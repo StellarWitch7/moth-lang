@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class TypeTemplateNode : TypeNode
+public class TypeTemplateNode : TypeNode, ITopDeclNode
 {
     public List<TemplateParameterNode> Params { get; set; }
 
@@ -8,11 +8,11 @@ public class TypeTemplateNode : TypeNode
         string name,
         PrivacyType privacy,
         List<TemplateParameterNode> @params,
-        ScopeNode scope,
+        List<IMemberDeclNode>? contents,
         bool isUnion,
         List<AttributeNode> attributes
     )
-        : base(name, privacy, scope, isUnion, attributes) => Params = @params;
+        : base(name, privacy, contents, isUnion, attributes) => Params = @params;
 
     public override void GetSource(StringBuilder builder)
     {

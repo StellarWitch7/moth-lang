@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class IfNode : IStatementNode
+public class IfNode : IExpressionNode
 {
     public IExpressionNode Condition { get; set; }
     public ScopeNode Then { get; set; }

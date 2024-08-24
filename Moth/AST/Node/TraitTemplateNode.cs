@@ -1,14 +1,14 @@
 namespace Moth.AST.Node;
 
-public class TraitTemplateNode : TraitNode
+public class TraitTemplateNode : TraitNode, ITopDeclNode
 {
     public TraitTemplateNode(
         string name,
         PrivacyType privacy,
-        ScopeNode scope,
+        List<IMemberDeclNode>? contents,
         List<AttributeNode> attributes
     )
-        : base(name, privacy, scope, attributes)
+        : base(name, privacy, contents, attributes)
     {
         throw new NotImplementedException(); //TODO
     }

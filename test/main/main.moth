@@ -1,7 +1,7 @@
-namespace test;
+namespace ::test;
 
-with core;
-with core::io;
+with ::core;
+with ::core::io;
 
 fn main() #i32 {
     // ret #u8(#Privacy.Priv)

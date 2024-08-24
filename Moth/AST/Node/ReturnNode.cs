@@ -1,6 +1,6 @@
 ﻿namespace Moth.AST.Node;
 
-public class ReturnNode : SingleExprNode, IStatementNode
+public class ReturnNode : SingleExprNode
 {
     public ReturnNode(IExpressionNode? returnValue)
         : base(returnValue) { }

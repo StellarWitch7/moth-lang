@@ -1,6 +1,6 @@
 namespace Moth.AST.Node;
 
-public class ImportNode : IStatementNode
+public class ImportNode : ITopDeclNode
 {
     public NamespaceNode Namespace { get; set; }
 
