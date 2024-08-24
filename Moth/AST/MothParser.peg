@@ -18,21 +18,21 @@ top_level_decl <IStatementNode> = import
 
 import <ImportNode> = "with " nmspace:namespace ';' { new ImportNode(nmspace) }
 
-type_ref <TypeRefNode> = default_type_ref
+type_ref <TypeRefNode> = ref_type_ref
+                       / ptr_type_ref
 //                       / template_type_ref
                        / local_type_ref
                        / arr_type_ref
                        / func_type_ref
-                       / ptr_type_ref
-                       / ref_type_ref
+                       / default_type_ref
 
-child_type_ref <TypeRefNode> = default_type_ref
+child_type_ref <TypeRefNode> = ref_type_ref
+                             / ptr_type_ref
 //                             / template_type_ref
                              / local_type_ref
                              / arr_type_ref
                              / child_func_type_ref
-                             / ptr_type_ref
-                             / ref_type_ref
+                             / default_type_ref
 
 default_type_ref <NamedTypeRefNode> = '#' name:name { new NamedTypeRefNode(name) }
 
@@ -48,7 +48,11 @@ func_type_ref <FuncTypeRefNode> = '#' base:base_func_type_ref { base }
 
 child_func_type_ref <FuncTypeRefNode> = '#' '(' base:base_func_type_ref ')' { base }
 
+//TODO: ambiguiously left-recursive?
+
 ptr_type_ref <PtrTypeRefNode> = child:child_type_ref '*' { new PtrTypeRefNode(child) }
+
+//TODO: ambiguiously left-recursive?
 
 ref_type_ref <RefTypeRefNode> = child:child_type_ref '&' { new RefTypeRefNode(child) }
 
