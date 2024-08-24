@@ -1,16 +1,14 @@
 ﻿namespace Moth.AST.Node;
 
-public class TemplateTypeRefNode : TypeRefNode
+public class TemplateTypeRefNode : NamedTypeRefNode
 {
     public List<IExpressionNode> Arguments { get; set; }
 
-    public TemplateTypeRefNode(
-        string name,
-        List<IExpressionNode> args,
-        uint pointerDepth,
-        bool isRef
-    )
-        : base(name, pointerDepth, isRef) => Arguments = args;
+    public TemplateTypeRefNode(string name, List<IExpressionNode> args)
+        : base(name)
+    {
+        Arguments = args;
+    }
 
     public string GetSource()
     {

@@ -6,7 +6,7 @@ public class FuncDefNode : DefinitionNode
 {
     public List<ParameterNode> Params { get; set; }
     public ScopeNode? ExecutionBlock { get; set; }
-    public TypeRefNode ReturnTypeRef { get; set; }
+    public ITypeRefNode ReturnTypeRef { get; set; }
     public bool IsVariadic { get; set; }
     public bool IsStatic { get; set; }
     public bool IsForeign { get; set; }
@@ -14,7 +14,7 @@ public class FuncDefNode : DefinitionNode
     public FuncDefNode(
         string name,
         PrivacyType privacy,
-        TypeRefNode returnTypeRef,
+        ITypeRefNode returnTypeRef,
         List<ParameterNode> @params,
         ScopeNode? executionBlock,
         bool isVariadic,

@@ -5,7 +5,6 @@ using CommandLine;
 using LLVMSharp.Interop;
 using Moth.AST;
 using Moth.LLVM;
-using Moth.Tokens;
 using Spectre.Console;
 using Version = Moth.LLVM.Metadata.Version;
 
@@ -37,77 +36,18 @@ public class Program
 
                 foreach (string filePath in options.InputFiles)
                 {
-                    try
+                    if (options.Verbose)
                     {
-                        if (options.Verbose)
-                        {
-                            logger.Log($"Reading \"{filePath}\"");
-                        }
-
-                        string fileContents = File.ReadAllText(filePath);
-
-                        // tokenize the contents of the file
-                        try
-                        {
-                            if (options.Verbose)
-                            {
-                                logger.Log($"Tokenizing \"{filePath}\"");
-                            }
-
-                            List<Token> tokens = Tokenizer.Tokenize(fileContents);
-
-                            // convert to AST
-                            try
-                            {
-                                if (options.Verbose)
-                                {
-                                    logger.Log($"Generating AST of \"{filePath}\"");
-                                }
-
-                                ScriptAST scriptAST = ASTGenerator.ProcessScript(
-                                    new ParseContext(tokens)
-                                );
-                                string formattedSource = scriptAST.GetSource();
-                                scripts.Add(scriptAST);
-
-                                if (
-                                    Utils.CompareTokens(Tokenizer.Tokenize(formattedSource), tokens)
-                                )
-                                {
-                                    logger.Log(
-                                        $"File \"{filePath}\" formatted successfully, overwriting..."
-                                    );
-
-                                    using (var fs = File.Create(filePath))
-                                        fs.Write(Encoding.UTF8.GetBytes(formattedSource));
-                                }
-
-                                if (options.Verbose)
-                                {
-                                    logger.WriteSeparator();
-                                    logger.WriteUnsigned(formattedSource);
-                                    logger.WriteSeparator();
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                logger.Error(
-                                    $"Failed to parse tokens of \"{filePath}\" due to: {e}"
-                                );
-                                throw e;
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            logger.Error($"Failed to tokenize \"{filePath}\" due to: {e}");
-                            throw e;
-                        }
+                        logger.Log($"Parsing \"{filePath}\"");
                     }
-                    catch (Exception e)
-                    {
-                        logger.Error($"Failed to get contents of \"{filePath}\" due to: {e}");
-                        throw e;
-                    }
+
+                    var parser = new MothParser();
+                    var result = parser.Parse(File.ReadAllText(filePath), filePath);
+
+                    if (result is not null)
+                        scripts.Add(result);
+                    else
+                        throw new Exception($"Failed to parse \"{filePath}\".");
                 }
 
                 // init LLVM stuff

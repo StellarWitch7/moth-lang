@@ -8,12 +8,12 @@ namespace Moth.AST.Node;
 
 public class LocalFuncDefNode : IExpressionNode
 {
-    public TypeRefNode ReturnTypeRef { get; set; }
+    public ITypeRefNode ReturnTypeRef { get; set; }
     public List<ParameterNode> Params { get; set; }
     public ScopeNode ExecutionBlock { get; set; }
 
     public LocalFuncDefNode(
-        TypeRefNode returnTypeRef,
+        ITypeRefNode returnTypeRef,
         List<ParameterNode> @params,
         ScopeNode executionBlock
     )

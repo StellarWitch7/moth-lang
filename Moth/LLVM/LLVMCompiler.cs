@@ -51,7 +51,7 @@ public class LLVMCompiler : IDisposable
     private readonly Dictionary<string, IntrinsicFunction> _intrinsics =
         new Dictionary<string, IntrinsicFunction>();
     private readonly Dictionary<string, FuncType> _foreigns = new Dictionary<string, FuncType>();
-    private Dictionary<string, Data.Type> _anonTypes = new Dictionary<string, Data.Type>();
+    private Dictionary<string, Type> _anonTypes = new Dictionary<string, Type>();
     private Namespace[] _imports = null;
     private Namespace? _currentNamespace;
     private Function? _currentFunction;
@@ -261,7 +261,12 @@ public class LLVMCompiler : IDisposable
 
             foreach (ImplementNode implementNode in script.ImplementNodes)
             {
-                var trait = GetTrait(implementNode.Trait.Name); //TODO: traits should be treated like types, *mostly*
+                if (implementNode.Trait is not NamedTypeRefNode namedTypeRef)
+                    throw new Exception(
+                        $"Cannot implement trait for unnamed type \"{implementNode.Trait.GetSource()}\"."
+                    );
+
+                var trait = GetTrait(namedTypeRef.Name); //TODO: traits should be treated like types, *mostly*
 
                 if (ResolveType(implementNode.Type) is not StructDecl type)
                     throw new Exception($"Cannot implement non-trait \"{implementNode.Type}\".");
@@ -541,7 +546,7 @@ public class LLVMCompiler : IDisposable
         var oldAnonTypes = _anonTypes;
         var oldFunction = _currentFunction;
 
-        var newAnonTypes = new Dictionary<string, Data.Type>();
+        var newAnonTypes = new Dictionary<string, Type>();
 
         for (var i = 0; i < template.Params.Length; i++)
         {
@@ -550,7 +555,7 @@ public class LLVMCompiler : IDisposable
 
             if (!param.IsConst)
             {
-                newAnonTypes.Add(param.Name, ResolveType((TypeRefNode)arg));
+                newAnonTypes.Add(param.Name, ResolveType((ITypeRefNode)arg));
             }
         }
 
@@ -715,7 +720,7 @@ public class LLVMCompiler : IDisposable
 
         uint index = 0;
         var @params = new List<Parameter>();
-        var paramTypes = new List<Data.Type>();
+        var paramTypes = new List<Type>();
 
         if (typeDecl != null && !funcDefNode.IsStatic)
         {
@@ -725,8 +730,7 @@ public class LLVMCompiler : IDisposable
 
         foreach (ParameterNode paramNode in funcDefNode.Params)
         {
-            Data.Type paramType = ResolveParameter(paramNode);
-            paramNode.TypeRef.Name = paramNode.TypeRef.Name;
+            Type paramType = ResolveParameter(paramNode);
             @params.Add(new Parameter(index, paramNode.Name));
             paramTypes.Add(paramType);
             index++;
@@ -747,7 +751,7 @@ public class LLVMCompiler : IDisposable
 
         builder.Append(')');
 
-        Data.Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
+        Type returnType = ResolveType(funcDefNode.ReturnTypeRef);
         LLVMTypeRef llvmFuncType = LLVMTypeRef.CreateFunction(
             returnType.LLVMType,
             paramTypes.AsLLVMTypes().ToArray(),
@@ -817,7 +821,7 @@ public class LLVMCompiler : IDisposable
 
         Function? func;
         OverloadList? overloads;
-        var paramTypes = new List<Data.Type>();
+        var paramTypes = new List<Type>();
 
         foreach (ParameterNode param in funcDefNode.Params)
         {
@@ -826,7 +830,7 @@ public class LLVMCompiler : IDisposable
 
         if (!funcDefNode.IsStatic && typeDecl != null)
         {
-            var newParamTypes = new List<Data.Type>() { new PtrType(this, typeDecl) };
+            var newParamTypes = new List<Type>() { new PtrType(this, typeDecl) };
 
             newParamTypes.AddRange(paramTypes);
             paramTypes = newParamTypes;
@@ -970,7 +974,7 @@ public class LLVMCompiler : IDisposable
         }
     }
 
-    public Data.Type ResolveParameter(ParameterNode param)
+    public Type ResolveParameter(ParameterNode param)
     {
         return ResolveType(param.TypeRef);
     }
@@ -995,7 +999,7 @@ public class LLVMCompiler : IDisposable
             return;
         }
 
-        Data.Type globalType = ResolveType(globalDef.TypeRef);
+        Type globalType = ResolveType(globalDef.TypeRef);
         LLVMValueRef globalVal = Module.AddGlobal(globalType.LLVMType, globalDef.Name);
         GlobalVariable global = new GlobalVariable(
             this,
@@ -1172,11 +1176,42 @@ public class LLVMCompiler : IDisposable
         return false;
     }
 
-    public Data.Type ResolveType(TypeRefNode typeRef)
+    public Type ResolveType(ITypeRefNode typeRef)
     {
-        Data.Type type;
+        Type type;
 
-        if (typeRef is LocalTypeRefNode localTypeRef)
+        if (typeRef is TemplateTypeRefNode tmplTypeRef)
+        {
+            Template template = GetTemplate(tmplTypeRef.Name);
+            type = template.Build(tmplTypeRef.Arguments);
+        }
+        else if (typeRef is FuncTypeRefNode fnTypeRef)
+        {
+            Type retType = ResolveType(fnTypeRef.ReturnType);
+            var paramTypes = new List<Type>();
+
+            foreach (ITypeRefNode param in fnTypeRef.ParameterTypes)
+            {
+                Type paramType = ResolveType(param);
+                paramTypes.Add(paramType);
+            }
+
+            type = new LocalFuncType(this, retType, paramTypes.ToArray());
+        }
+        else if (typeRef is ArrTypeRefNode arrayTypeRef)
+        {
+            Type elementType = ResolveType(arrayTypeRef.ElementType);
+            type = Array.ResolveType(this, elementType);
+        }
+        else if (typeRef is RefTypeRefNode refTypeRef)
+        {
+            type = new RefType(this, ResolveType(refTypeRef.Child));
+        }
+        else if (typeRef is PtrTypeRefNode ptrTypeRef)
+        {
+            type = new PtrType(this, ResolveType(ptrTypeRef.Child));
+        }
+        else if (typeRef is LocalTypeRefNode localTypeRef)
         {
             if (!_anonTypes.TryGetValue(localTypeRef.Name, out type))
             {
@@ -1185,43 +1220,14 @@ public class LLVMCompiler : IDisposable
                 );
             }
         }
-        else if (typeRef is TemplateTypeRefNode tmplTypeRef)
+        else if (typeRef is NamedTypeRefNode namedTypeRef)
         {
-            Template template = GetTemplate(tmplTypeRef.Name);
-            type = template.Build(tmplTypeRef.Arguments);
-        }
-        else if (typeRef is FuncTypeRefNode fnTypeRef)
-        {
-            Data.Type retType = ResolveType(fnTypeRef.ReturnType);
-            var paramTypes = new List<Data.Type>();
-
-            foreach (TypeRefNode param in fnTypeRef.ParameterTypes)
-            {
-                Data.Type paramType = ResolveType(param);
-                paramTypes.Add(paramType);
-            }
-
-            type = new LocalFuncType(this, retType, paramTypes.ToArray());
-        }
-        else if (typeRef is ArrayTypeRefNode arrayTypeRef)
-        {
-            Data.Type elementType = ResolveType(arrayTypeRef.ElementType);
-            type = Array.ResolveType(this, elementType);
+            TypeDecl typeDecl = GetType(namedTypeRef.Name);
+            type = typeDecl;
         }
         else
         {
-            TypeDecl typeDecl = GetType(typeRef.Name);
-            type = typeDecl;
-        }
-
-        for (int i = 0; i < typeRef.PointerDepth; i++)
-        {
-            type = new PtrType(this, type);
-        }
-
-        if (typeRef.IsRef)
-        {
-            type = new RefType(this, type);
+            throw new Exception($"Could not resolve type reference \"{typeRef.GetSource()}\".");
         }
 
         return type;
@@ -1245,14 +1251,14 @@ public class LLVMCompiler : IDisposable
         }
         else if (expr is LocalFuncDefNode localFuncDef)
         {
-            Data.Type retType = ResolveType(localFuncDef.ReturnTypeRef);
+            Type retType = ResolveType(localFuncDef.ReturnTypeRef);
             var @params = new List<Parameter>();
-            var paramTypes = new List<Data.Type>();
+            var paramTypes = new List<Type>();
             uint index = 0;
 
             foreach (ParameterNode param in localFuncDef.Params)
             {
-                Data.Type paramType = ResolveParameter(param);
+                Type paramType = ResolveParameter(param);
                 paramTypes.Add(paramType);
                 @params.Add(new Parameter(index, param.Name));
                 index++;
@@ -1361,7 +1367,7 @@ public class LLVMCompiler : IDisposable
         else if (expr is IndexAccessNode indexAccess)
         {
             var toBeIndexed = CompileExpression(scope, indexAccess.ToBeIndexed);
-            Data.Type arrType = toBeIndexed.Type;
+            Type arrType = toBeIndexed.Type;
 
             if (toBeIndexed.Type is RefType varType)
             {
@@ -1370,7 +1376,7 @@ public class LLVMCompiler : IDisposable
 
             if (arrType is PtrType ptrType)
             {
-                Data.Type resultType = ptrType.BaseType;
+                Type resultType = ptrType.BaseType;
 
                 if (indexAccess.Arguments.Count != 1)
                 {
@@ -1629,7 +1635,7 @@ public class LLVMCompiler : IDisposable
             value = value.DeRef();
         }
 
-        Data.Type destType = ResolveType(cast.NewType);
+        Type destType = ResolveType(cast.NewType);
         LLVMValueRef builtVal;
 
         if (value.Type.CanConvertTo(destType))
@@ -1866,7 +1872,7 @@ public class LLVMCompiler : IDisposable
     public Variable CompileLocal(Scope scope, LocalDefNode localDef)
     {
         Value? value = null;
-        Data.Type type;
+        Type type;
 
         if (localDef is InferredLocalDefNode inferredLocalDef)
         {
@@ -1894,7 +1900,7 @@ public class LLVMCompiler : IDisposable
     {
         if (@ref.Parent != null)
         {
-            if (@ref.Parent is TypeRefNode staticParent)
+            if (@ref.Parent is ITypeRefNode staticParent)
             {
                 TypeDecl typeDecl;
 
@@ -1964,7 +1970,7 @@ public class LLVMCompiler : IDisposable
     {
         Function? func;
         Value? toCallOn = null;
-        var argTypes = new List<Data.Type>();
+        var argTypes = new List<Type>();
         var args = new List<Value>();
 
         foreach (IExpressionNode arg in funcCall.Arguments)
@@ -1982,7 +1988,7 @@ public class LLVMCompiler : IDisposable
 
         if (funcCall.ToCallOn != null)
         {
-            if (funcCall.ToCallOn is TypeRefNode typeRef)
+            if (funcCall.ToCallOn is ITypeRefNode typeRef)
             {
                 var type = ResolveType(typeRef);
 
@@ -2032,7 +2038,7 @@ public class LLVMCompiler : IDisposable
                 if (toCallOn.Type is StructDecl temporary)
                 {
                     Pointer ptrToTemporary = Value.CreatePtrToTemp(this, toCallOn);
-                    var newArgTypes = new List<Data.Type> { ptrToTemporary.Type };
+                    var newArgTypes = new List<Type> { ptrToTemporary.Type };
 
                     newArgTypes.AddRange(argTypes);
                     argTypes = newArgTypes;
@@ -2041,7 +2047,7 @@ public class LLVMCompiler : IDisposable
                 }
                 else if (toCallOn.Type is TraitPtrType aspectPtrType)
                 {
-                    var newArgTypes = new List<Data.Type> { aspectPtrType };
+                    var newArgTypes = new List<Type> { aspectPtrType };
 
                     newArgTypes.AddRange(argTypes);
                     argTypes = newArgTypes;
@@ -2052,7 +2058,7 @@ public class LLVMCompiler : IDisposable
                     && structPtrType.BaseType is StructDecl baseType
                 )
                 {
-                    var newArgTypes = new List<Data.Type> { structPtrType };
+                    var newArgTypes = new List<Type> { structPtrType };
 
                     newArgTypes.AddRange(argTypes);
                     argTypes = newArgTypes;
@@ -2184,7 +2190,7 @@ public class LLVMCompiler : IDisposable
         }
     }
 
-    public Function GetFunction(string name, IReadOnlyList<Data.Type> paramTypes)
+    public Function GetFunction(string name, IReadOnlyList<Type> paramTypes)
     {
         if (
             CurrentFunction != null
@@ -2273,20 +2279,20 @@ public class LLVMCompiler : IDisposable
         {
             entries.Add(
                 Reserved.Malloc,
-                new FuncType(this, new PtrType(this, Void), new Data.Type[1] { UInt64 }, false)
+                new FuncType(this, new PtrType(this, Void), new Type[1] { UInt64 }, false)
             );
             entries.Add(
                 Reserved.Realloc,
                 new FuncType(
                     this,
                     new PtrType(this, Void),
-                    new Data.Type[2] { new PtrType(this, Void), UInt64 },
+                    new Type[2] { new PtrType(this, Void), UInt64 },
                     false
                 )
             );
             entries.Add(
                 Reserved.Free,
-                new FuncType(this, Void, new Data.Type[1] { new PtrType(this, Void) }, false)
+                new FuncType(this, Void, new Type[1] { new PtrType(this, Void) }, false)
             );
         }
 

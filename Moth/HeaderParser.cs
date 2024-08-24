@@ -262,9 +262,9 @@ public unsafe class HeaderParser : IDisposable
         return CXChildVisitResult.CXChildVisit_Continue;
     }
 
-    private TypeRefNode TranslateTypeRef(CXType t)
+    private ITypeRefNode TranslateTypeRef(CXType t)
     {
-        TypeRefNode result = null;
+        ITypeRefNode result = null;
         string oldT = t.ToString();
         uint pointerDepth = 0;
 
@@ -279,33 +279,24 @@ public unsafe class HeaderParser : IDisposable
                     t = t.PointeeType;
                     break;
                 case CXTypeKind.CXType_FunctionProto:
-                    var paramTypes = new List<TypeRefNode>();
+                    var paramTypes = new List<ITypeRefNode>();
 
                     for (uint i = 0; i < t.NumArgTypes; i++)
                     {
                         paramTypes.Add(TranslateTypeRef(t.GetArgType(i)));
                     }
 
-                    result = new FuncTypeRefNode(
-                        TranslateTypeRef(t.ResultType),
-                        paramTypes,
-                        pointerDepth,
-                        false
-                    );
+                    result = new FuncTypeRefNode(TranslateTypeRef(t.ResultType), paramTypes);
                     break;
                 case CXTypeKind.CXType_FunctionNoProto:
                     result = new FuncTypeRefNode(
                         TranslateTypeRef(t.ResultType),
-                        new List<TypeRefNode>(),
-                        pointerDepth,
-                        false
+                        new List<ITypeRefNode>()
                     );
                     break;
                 case CXTypeKind.CXType_ConstantArray:
-                    result = new ConstSizeArrayTypeRefNode(
+                    result = new ConstSizeArrTypeRefNode(
                         TranslateTypeRef(t.ArrayElementType),
-                        pointerDepth,
-                        false,
                         t.ArraySize
                     );
                     break;
@@ -314,14 +305,12 @@ public unsafe class HeaderParser : IDisposable
                 case CXTypeKind.CXType_VariableArray:
                 case CXTypeKind.CXType_Vector:
                     result = TranslateTypeRef(t.ElementType);
-                    result.PointerDepth++;
+                    pointerDepth++;
                     break;
                 case CXTypeKind.CXType_Complex:
                     result = new TemplateTypeRefNode(
                         "Complex",
-                        new List<IExpressionNode>() { TranslateTypeRef(t.ElementType) },
-                        pointerDepth,
-                        false
+                        new List<IExpressionNode>() { TranslateTypeRef(t.ElementType) }
                     );
                     var coreMath = new NamespaceNode("core");
                     coreMath.Child = new NamespaceNode("math");
@@ -423,9 +412,14 @@ public unsafe class HeaderParser : IDisposable
                         };
                     }
 
-                    result = new TypeRefNode(name, pointerDepth, false);
+                    result = new NamedTypeRefNode(name);
                     break;
             }
+        }
+
+        for (uint i = pointerDepth; i > 0; i--)
+        {
+            result = new PtrTypeRefNode(result);
         }
 
         if (_isVerbose)

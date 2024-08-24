@@ -10,6 +10,12 @@ public class NamespaceNode : IExpressionNode
         Name = name;
     }
 
+    public NamespaceNode(string name, NamespaceNode child)
+        : this(name)
+    {
+        Child = child;
+    }
+
     public string GetSource()
     {
         if (Child == default)

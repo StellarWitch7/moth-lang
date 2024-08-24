@@ -2,8 +2,8 @@
 
 public class ConstTemplateParameterNode : TemplateParameterNode
 {
-    public TypeRefNode TypeRef { get; set; }
+    public ITypeRefNode TypeRef { get; set; }
 
-    public ConstTemplateParameterNode(string name, TypeRefNode typeRef)
+    public ConstTemplateParameterNode(string name, ITypeRefNode typeRef)
         : base(name) => TypeRef = typeRef;
 }

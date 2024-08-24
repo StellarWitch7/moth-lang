@@ -4,13 +4,13 @@ namespace Moth.AST.Node;
 
 public class GlobalVarNode : DefinitionNode
 {
-    public TypeRefNode TypeRef { get; set; }
+    public ITypeRefNode TypeRef { get; set; }
     public bool IsConstant { get; set; }
     public bool IsForeign { get; set; }
 
     public GlobalVarNode(
         string name,
-        TypeRefNode typeRef,
+        ITypeRefNode typeRef,
         PrivacyType privacy,
         bool isConstant,
         bool isForeign,

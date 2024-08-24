@@ -6,38 +6,11 @@ using Moth.AST;
 using Moth.AST.Node;
 using Moth.LLVM;
 using Moth.LLVM.Data;
-using Moth.Tokens;
 
 namespace Moth;
 
 public static class Utils
 {
-    public static bool CompareTokens(List<Token> old, List<Token> @new)
-    {
-        if (old.Count != @new.Count)
-            return false;
-
-        for (int i = 0; i < old.Count; i++)
-        {
-            bool b = CompareToken(old[i], @new[i]);
-
-            if (!b)
-                return false;
-        }
-
-        return true;
-    }
-
-    public static bool CompareToken(Token old, Token @new)
-    {
-        if (old.Type != @new.Type)
-            return false;
-        if (old.Text.ToString() != @new.Text.ToString())
-            return false;
-        else
-            return true;
-    }
-
     public static List<T> Combine<T>(params IEnumerable<T>[] listList)
     {
         var result = new List<T>();

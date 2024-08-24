@@ -1,41 +1,34 @@
 ﻿namespace Moth.AST.Node;
 
-public class FuncTypeRefNode : TypeRefNode
+public class FuncTypeRefNode : ITypeRefNode
 {
-    public TypeRefNode ReturnType { get; set; }
-    public List<TypeRefNode> ParameterTypes { get; set; }
+    public ITypeRefNode ReturnType { get; set; }
+    public List<ITypeRefNode> ParameterTypes { get; set; }
 
-    public FuncTypeRefNode(
-        TypeRefNode retType,
-        List<TypeRefNode> @params,
-        uint pointerDepth,
-        bool isRef
-    )
-        : base(null, pointerDepth, isRef)
+    public FuncTypeRefNode(ITypeRefNode retType, List<ITypeRefNode> @params)
     {
         ReturnType = retType;
         ParameterTypes = @params;
     }
 
-    public override string GetSource()
+    public string GetSource()
     {
-        var builder = new StringBuilder($"#(");
-        builder.Append(
-            String.Join(
-                ", ",
-                ParameterTypes
-                    .ToArray()
-                    .ExecuteOverAll(t =>
-                    {
-                        return t.GetSource();
-                    })
-            )
-        );
-        builder.Append(")");
+        return GetSource(false);
+    }
 
-        for (uint i = PointerDepth; i > 0; i--)
-            builder.Append("*");
+    public string GetSource(bool asChild)
+    {
+        string @base =
+            $"({String.Join(
+            ", ",
+            ParameterTypes
+                .ToArray()
+                .ExecuteOverAll(t =>
+                {
+                    return t.GetSource();
+                })
+        )}) {ReturnType.GetSource()}";
 
-        return $"{builder} {ReturnType.GetSource()}";
+        return asChild ? $"#({@base})" : $"#{@base}";
     }
 }

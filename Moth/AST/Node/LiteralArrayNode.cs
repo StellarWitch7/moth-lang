@@ -2,10 +2,10 @@ namespace Moth.AST.Node;
 
 public class LiteralArrayNode : IExpressionNode
 {
-    public TypeRefNode ElementType { get; set; }
+    public ITypeRefNode ElementType { get; set; }
     public IExpressionNode[] Elements { get; set; }
 
-    public LiteralArrayNode(TypeRefNode elementType, IExpressionNode[] elements)
+    public LiteralArrayNode(ITypeRefNode elementType, IExpressionNode[] elements)
     {
         ElementType = elementType;
         Elements = elements;

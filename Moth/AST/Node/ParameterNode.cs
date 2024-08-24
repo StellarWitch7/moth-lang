@@ -3,9 +3,9 @@
 public class ParameterNode : IASTNode
 {
     public string Name { get; set; }
-    public TypeRefNode TypeRef { get; set; }
+    public ITypeRefNode TypeRef { get; set; }
 
-    public ParameterNode(string name, TypeRefNode typeRef)
+    public ParameterNode(string name, ITypeRefNode typeRef)
     {
         Name = name;
         TypeRef = typeRef;

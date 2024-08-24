@@ -3,9 +3,9 @@
 public class LocalDefNode : IExpressionNode
 {
     public string Name { get; set; }
-    public TypeRefNode TypeRef { get; set; }
+    public ITypeRefNode TypeRef { get; set; }
 
-    public LocalDefNode(string name, TypeRefNode typeRef)
+    public LocalDefNode(string name, ITypeRefNode typeRef)
     {
         Name = name;
         TypeRef = typeRef;

@@ -1,9 +1,9 @@
 namespace Moth.AST.Node;
 
-public class LocalTypeRefNode : TypeRefNode
+public class LocalTypeRefNode : NamedTypeRefNode
 {
-    public LocalTypeRefNode(string name, uint pointerDepth, bool isRef)
-        : base(name, pointerDepth, isRef) { }
+    public LocalTypeRefNode(string name)
+        : base(name) { }
 
     public override string GetSource()
     {

@@ -104,7 +104,7 @@ public class Template : ICompilerData
             }
             else
             {
-                if (arg is not TypeRefNode typeRef)
+                if (arg is not ITypeRefNode typeRef)
                 {
                     throw new Exception(
                         $"Template argument {i} for template \"{Name}\" is expected to be a type."
