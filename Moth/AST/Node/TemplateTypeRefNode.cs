@@ -4,8 +4,8 @@ public class TemplateTypeRefNode : NamedTypeRefNode
 {
     public List<IExpressionNode> Arguments { get; set; }
 
-    public TemplateTypeRefNode(string name, List<IExpressionNode> args)
-        : base(name)
+    public TemplateTypeRefNode(string name, List<IExpressionNode> args, NamespaceNode? nmspace)
+        : base(name, nmspace)
     {
         Arguments = args;
     }

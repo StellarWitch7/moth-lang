@@ -2,8 +2,8 @@ namespace Moth.AST.Node;
 
 public class LocalTypeRefNode : NamedTypeRefNode
 {
-    public LocalTypeRefNode(string name)
-        : base(name) { }
+    public LocalTypeRefNode(string name, NamespaceNode? nmspace)
+        : base(name, nmspace) { }
 
     public override string GetSource()
     {

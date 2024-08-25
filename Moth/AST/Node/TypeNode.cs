@@ -1,6 +1,4 @@
-﻿using Moth.LLVM;
-
-namespace Moth.AST.Node;
+﻿namespace Moth.AST.Node;
 
 public class TypeNode : MemberContainingDefinitionNode, ITopDeclNode
 {

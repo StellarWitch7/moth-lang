@@ -4,15 +4,16 @@
 @using Moth
 @using Moth.AST.Node
 
-script <ScriptAST> = nmspace:file_namespace statements:top_level* { new ScriptAST(nmspace, statements.ToList()) }
+script <ScriptAST> = _ nmspace:file_namespace statements:top_level* { new ScriptAST(nmspace, statements.ToList()) }
 
 file_namespace <NamespaceNode> = "namespace" ws+ nmspace:namespace ';' { nmspace }
 
 namespace <NamespaceNode> = "::" name:name child:namespace? { new NamespaceNode(name, child.Count == 1 ? child[0] : null) }
 
-top_level <ITopDeclNode>
-    = import
-    / func_decl
+top_level <ITopDeclNode> = _ val:(<ITopDeclNode>
+        import
+        / func_decl
+    ) _ { val }
 
 import <ImportNode> = "with" ws+ nmspace:namespace ';' { new ImportNode(nmspace) }
 
@@ -25,8 +26,9 @@ method_decl <FuncDefNode> = isStatic:"static"? ws+ val:func_decl {
         }
     }
 
-func_decl <FuncDefNode>
-    = attrs:attribute* ws+
+//TODO: attrs and privacy need their whitespace to be required only if they are there
+func_decl <FuncDefNode> =
+    attrs:attribute* ws+
     privacy:privacy ws+
     "func" ws+
     name:name _ '(' _ par:param<0,,','> _ ')' _
@@ -46,13 +48,13 @@ privacy <PrivacyType> = p:(<string> "priv" / "pub")? {
 
 param <ParameterNode> = name:name _ type:type_ref { new ParameterNode(name, type) }
 
-scope <ScopeNode> = '{' statements:expression<0,,';'> '}' { new ScopeNode(statements.ToList()) }
+scope <ScopeNode> = '{' _ statements:expression<0,,';'> _ '}' { new ScopeNode(statements.ToList()) }
+
+sub_expr <IExpressionNode> = '(' _ inner:expression _ ')' { inner }
 
 expression <IExpressionNode> -memoize
     = scope
-    / '(' _ inner:expression _ ')' {
-        inner
-    }
+    / sub_expr
     / parent2:(<IExpressionNode> parent:expression _ '.' _ { parent })? name:name {
         new RefNode(name, parent2.Count == 1 ? parent2[0] : null)
     }
@@ -60,7 +62,7 @@ expression <IExpressionNode> -memoize
 
 //TODO: does this need to support complex expressions?
 attribute <AttributeNode> = '@' name:name args2:(<IList<LiteralNode>> _ '(' _ args:literal<0,,','> _ ')' { args })? {
-    new AttributeNode(name, args2.Count == 1 ? args2[0].ToList() : null)
+    new AttributeNode(name, args2.Count == 1 ? args2[0].ToList() : new List<LiteralNode>())
 }
 
 //TODO: strings and chars and... scientific notation?
@@ -85,11 +87,15 @@ type_ref <ITypeRefNode> -memoize
     / '#' '(' _ inner:type_ref _ ')' { 
         inner
     }
-    / '?' name:name {
-        new LocalTypeRefNode(name)
-    }
-    / '#' name:name {
-        new NamedTypeRefNode(name)
+    / named_type_ref
+
+named_type_ref <NamedTypeRefNode>
+    = nmspace2:(<NamespaceNode> nmspace:namespace? { nmspace.Count == 1 ? nmspace[0] : null })
+    type:(<NamedTypeRefNode> '?' name:name { new LocalTypeRefNode(name, null) } / '#' name:name { new NamedTypeRefNode(name, null) }) {
+        {
+            type.Namespace = nmspace2;
+            return type;
+        }
     }
 
 name <string> = [a-zA-Z_][a-zA-Z_0-9]*

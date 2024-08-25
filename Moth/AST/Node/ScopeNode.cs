@@ -23,15 +23,15 @@ public class ScopeNode : IExpressionNode
                 s = s.Remove(0, 1);
 
             s = s.Replace("\n", "\n    ");
-
-            if (statement is ReturnNode or ScopeNode or DefinitionNode or IfNode or WhileNode)
-                builder.Append(s);
-            else
-                builder.Append($"{s};");
-
+            builder.Append($"{s};");
             last = statement;
         }
 
-        return $"{builder.ToString().TrimEnd()}\n}}";
+        string result = builder.ToString();
+
+        if (Statements.Count > 0)
+            result = result.Substring(0, result.Length - 1);
+
+        return $"{result}\n}}";
     }
 }

@@ -3,6 +3,7 @@ using ClangSharp;
 using ClangSharp.Interop;
 using Moth.AST;
 using Moth.AST.Node;
+using Index = ClangSharp.Index;
 
 namespace Moth;
 
@@ -309,11 +310,9 @@ public unsafe class HeaderParser : IDisposable
                 case CXTypeKind.CXType_Complex:
                     result = new TemplateTypeRefNode(
                         "Complex",
-                        new List<IExpressionNode>() { TranslateTypeRef(t.ElementType) }
+                        new List<IExpressionNode>() { TranslateTypeRef(t.ElementType) },
+                        new NamespaceNode("core", new NamespaceNode("math"))
                     );
-                    var coreMath = new NamespaceNode("core");
-                    coreMath.Child = new NamespaceNode("math");
-                    WithNamespace(coreMath);
                     break;
                 default:
                     string name;
@@ -411,7 +410,7 @@ public unsafe class HeaderParser : IDisposable
                         };
                     }
 
-                    result = new NamedTypeRefNode(name);
+                    result = new NamedTypeRefNode(name, null);
                     break;
             }
         }

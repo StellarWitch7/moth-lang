@@ -1,5 +1,3 @@
-using Moth.LLVM;
-
 namespace Moth.AST.Node;
 
 public class GlobalVarNode : DefinitionNode, ITopDeclNode
